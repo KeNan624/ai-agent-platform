@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>管理员登录 · 阿川 AI</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;500;600;700&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#1A1814;--bg-card:#242220;--gold:#9A7A3D;--gold-light:#C9B88A;--gold-bg:rgba(154,122,61,.12);--ink:#FAF6EC;--ink-mid:#C9C3B5;--ink-mute:#7A7468;--line:rgba(255,255,255,.08);--red:#C75B3A;--green:#4A8C6F;--sans:'DM Sans',-apple-system,sans-serif;--serif:'Noto Serif SC',serif}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:var(--sans);background:var(--bg);color:var(--ink);min-height:100vh;display:flex;align-items:center;justify-content:center}
+
+.login-wrap{width:100%;max-width:400px;padding:24px}
+.login-logo{text-align:center;margin-bottom:40px}
+.login-logo-icon{width:56px;height:56px;background:var(--gold);border-radius:14px;display:inline-flex;align-items:center;justify-content:center;font-size:24px;color:#fff;font-family:var(--serif);font-weight:700;margin-bottom:16px}
+.login-logo h1{font-size:22px;font-family:var(--serif);font-weight:700;color:var(--ink);margin-bottom:6px}
+.login-logo p{font-size:13px;color:var(--ink-mute)}
+
+.login-card{background:var(--bg-card);border:1px solid var(--line);border-radius:16px;padding:32px 28px}
+.field{margin-bottom:20px}
+.field label{display:block;font-size:12px;color:var(--ink-mute);margin-bottom:6px;font-weight:500;text-transform:uppercase;letter-spacing:1px}
+.field-row{display:flex;gap:10px}
+.field input{width:100%;padding:12px 16px;border-radius:10px;border:1px solid var(--line);background:rgba(255,255,255,.04);font-size:15px;color:var(--ink);outline:none;font-family:var(--sans);transition:border-color .15s}
+.field input:focus{border-color:var(--gold)}
+.field input::placeholder{color:var(--ink-mute)}
+.send-btn{padding:12px 20px;border-radius:10px;border:1px solid var(--gold);background:transparent;color:var(--gold);font-size:13px;cursor:pointer;white-space:nowrap;font-family:var(--sans);font-weight:500;transition:all .15s;flex-shrink:0}
+.send-btn:hover{background:var(--gold-bg)}
+.send-btn:disabled{opacity:.4;cursor:default}
+.login-btn{width:100%;padding:14px;border-radius:10px;border:none;background:var(--gold);color:#fff;font-size:15px;font-weight:600;cursor:pointer;font-family:var(--sans);transition:all .15s;margin-top:4px}
+.login-btn:hover{background:#876A34;transform:translateY(-1px)}
+.login-btn:disabled{opacity:.5;cursor:default}
+
+.msg{text-align:center;margin-top:16px;font-size:13px;min-height:20px}
+.msg.err{color:var(--red)}
+.msg.ok{color:var(--green)}
+
+.back-link{display:block;text-align:center;margin-top:24px;font-size:13px;color:var(--ink-mute);text-decoration:none}
+.back-link:hover{color:var(--ink)}
+
+.secure-badge{display:flex;align-items:center;justify-content:center;gap:6px;margin-top:32px;font-size:11px;color:var(--ink-mute)}
+</style>
+</head>
+<body>
+
+<div class="login-wrap">
+  <div class="login-logo">
+    <div class="login-logo-icon">阿</div>
+    <h1>管理后台</h1>
+    <p>仅限管理员登录</p>
+  </div>
+
+  <div class="login-card">
+    <div class="field">
+      <label>手机号</label>
+      <input id="phoneInput" type="tel" placeholder="输入管理员手机号" maxlength="11" autofocus>
+    </div>
+    <div class="field">
+      <label>验证码</label>
+      <div class="field-row">
+        <input id="codeInput" type="text" placeholder="输入验证码" maxlength="6">
+        <button class="send-btn" id="sendBtn" onclick="sendCode()">发送验证码</button>
+      </div>
+    </div>
+    <button class="login-btn" id="loginBtn" onclick="doLogin()">登 录</button>
+    <div class="msg" id="msg"></div>
+  </div>
+
+  <a class="back-link" href="choose.html">← 返回首页</a>
+  <div class="secure-badge">🔒 管理员专用通道 · 非管理员无法登录</div>
+</div>
+
+<script>
+const API = 'http://localhost:8000';
+let countdown = 0;
+
+async function sendCode() {
+  const phone = document.getElementById('phoneInput').value.trim();
+  if (phone.length !== 11) { showMsg('请输入 11 位手机号', 'err'); return; }
+
+  const btn = document.getElementById('sendBtn');
+  btn.disabled = true;
+
+  try {
+    const r = await fetch(`${API}/auth/send-code`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ phone })
+    });
+    const d = await r.json();
+    if (r.ok) {
+      showMsg('验证码已发送', 'ok');
+      // 如果返回了验证码（开发模式）
+      if (d.code) {
+        document.getElementById('codeInput').value = d.code;
+        showMsg('验证码: ' + d.code, 'ok');
+      }
+      startCountdown(d.resend_seconds || 60);
+    } else {
+      showMsg(d.detail || '发送失败', 'err');
+      btn.disabled = false;
+    }
+  } catch(e) {
+    showMsg('网络错误', 'err');
+    btn.disabled = false;
+  }
+}
+
+function startCountdown(seconds) {
+  countdown = seconds || 60;
+  const btn = document.getElementById('sendBtn');
+  const tick = () => {
+    if (countdown <= 0) { btn.textContent = '发送验证码'; btn.disabled = false; return; }
+    btn.textContent = countdown + 's';
+    countdown--;
+    setTimeout(tick, 1000);
+  };
+  tick();
+}
+
+async function doLogin() {
+  const phone = document.getElementById('phoneInput').value.trim();
+  const code = document.getElementById('codeInput').value.trim();
+  if (!phone || !code) { showMsg('请填写手机号和验证码', 'err'); return; }
+
+  const btn = document.getElementById('loginBtn');
+  btn.disabled = true; btn.textContent = '验证中...';
+
+  try {
+    const r = await fetch(`${API}/practice/admin/login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ phone, code })
+    });
+    const d = await r.json();
+
+    if (r.ok && d.ok) {
+      // 存管理员 token（用独立的 key）
+      localStorage.setItem('admin_token', d.token);
+      localStorage.setItem('admin_user_id', d.user_id);
+      localStorage.setItem('admin_phone', d.phone);
+      localStorage.setItem('admin_nickname', d.nickname || '管理员');
+      localStorage.setItem('token', d.token);
+      localStorage.setItem('user_id', d.user_id);
+      showMsg('登录成功，正在跳转...', 'ok');
+      setTimeout(() => { location.href = 'admin-practice.html'; }, 500);
+    } else {
+      showMsg(d.detail || '登录失败', 'err');
+    }
+  } catch(e) {
+    showMsg('网络错误', 'err');
+  }
+
+  btn.disabled = false; btn.textContent = '登 录';
+}
+
+function showMsg(text, type) {
+  const el = document.getElementById('msg');
+  el.textContent = text;
+  el.className = 'msg ' + (type || '');
+}
+
+// Enter 键提交
+document.getElementById('codeInput').addEventListener('keydown', e => {
+  if (e.key === 'Enter') doLogin();
+});
+document.getElementById('phoneInput').addEventListener('keydown', e => {
+  if (e.key === 'Enter') sendCode();
+});
+</script>
+</body>
+</html>

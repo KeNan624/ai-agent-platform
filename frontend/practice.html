@@ -1,0 +1,3041 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>实战区 · 阿川 AI 超级助手</title>
+<script>
+if (location.protocol === 'file:') {
+  const page = location.pathname.split('/frontend/').pop() || 'practice.html';
+  location.replace(`http://localhost:8000/${page}${location.search}${location.hash}`);
+}
+</script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Noto+Serif+SC:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/marked/9.1.6/marked.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-python.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-javascript.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-bash.min.js"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css">
+<style>
+:root {
+  --bg: #F3EFE4;
+  --bg-tint: #EBE6D7;
+  --bg-card: #FAF6EC;
+  --bg-white: #FFFDF7;
+  --ink: #1A1814;
+  --ink-mid: #48433B;
+  --ink-soft: #6B6558;
+  --ink-mute: #A39B8A;
+  --gold: #9A7A3D;
+  --gold-light: #C9B88A;
+  --gold-bg: #F5EFDE;
+  --accent: #D4A853;
+  --green: #4A8C6F;
+  --green-bg: #E8F2EC;
+  --red: #C75B3A;
+  --red-bg: #FCEEE8;
+  --blue: #4A7FB5;
+  --blue-bg: #E8F0F8;
+  --line: rgba(26,24,20,.12);
+  --line-strong: rgba(26,24,20,.22);
+  --shadow-sm: 0 1px 3px rgba(26,24,20,.06);
+  --shadow-md: 0 4px 16px rgba(26,24,20,.08);
+  --shadow-lg: 0 8px 32px rgba(26,24,20,.12);
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --serif-en: 'Instrument Serif', Georgia, serif;
+  --serif-cn: 'Noto Serif SC', 'Songti SC', serif;
+  --mono: 'JetBrains Mono', ui-monospace, monospace;
+  --sans: 'Inter', -apple-system, 'PingFang SC', sans-serif;
+  --ease: cubic-bezier(.2,.65,.25,1);
+}
+
+* { margin:0; padding:0; box-sizing:border-box; }
+html { scroll-behavior: smooth; }
+body {
+  font-family: var(--serif-cn), var(--sans);
+  background: var(--bg);
+  color: var(--ink);
+  min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ─── 顶部导航 ─── */
+.nav {
+  position: sticky; top: 0; z-index: 100;
+  background: rgba(243,239,228,.85);
+  backdrop-filter: blur(20px) saturate(1.2);
+  -webkit-backdrop-filter: blur(20px) saturate(1.2);
+  border-bottom: 1px solid var(--line);
+}
+.nav-inner {
+  max-width: 1200px; margin: 0 auto;
+  display: flex; align-items: center; gap: 0;
+  padding: 0 32px; height: 68px;
+}
+.nav-logo {
+  display: flex; align-items: center; gap: 12px;
+  cursor: pointer; text-decoration: none; color: var(--ink);
+  margin-right: 48px; flex-shrink: 0;
+}
+.nav-logo-icon {
+  width: 38px; height: 38px; background: var(--ink);
+  border-radius: 10px; display: flex; align-items: center; justify-content: center;
+  font-size: 17px; color: var(--bg-card);
+  font-family: var(--serif-cn); font-weight: 600;
+  transition: transform .2s var(--ease);
+}
+.nav-logo:hover .nav-logo-icon { transform: scale(1.06); }
+.nav-logo-text {
+  font-family: var(--serif-cn); font-weight: 600;
+  font-size: 18px; letter-spacing: .5px;
+}
+.nav-tabs { display: flex; gap: 6px; flex: 1; }
+.nav-tab {
+  padding: 10px 24px; border-radius: 10px;
+  font-size: 17px; font-weight: 500;
+  color: var(--ink-soft); cursor: pointer;
+  transition: all .2s var(--ease);
+  position: relative; user-select: none;
+  font-family: var(--serif-cn);
+  white-space: nowrap; flex-shrink: 0;
+}
+.nav-tab:hover { color: var(--ink); background: rgba(26,24,20,.04); }
+.nav-tab.active {
+  color: var(--ink); background: var(--bg-card);
+  box-shadow: var(--shadow-sm);
+}
+.nav-tab.active::after {
+  content: ''; position: absolute; bottom: 5px; left: 50%; transform: translateX(-50%);
+  width: 20px; height: 2.5px; background: var(--gold); border-radius: 1.5px;
+}
+.nav-right { display: flex; align-items: center; gap: 12px; margin-left: auto; }
+.admin-entry {
+  display: none; align-items: center; gap: 6px;
+  padding: 7px 13px; border-radius: 18px;
+  background: var(--ink); color: var(--bg-card);
+  border: 1px solid var(--ink);
+  font-size: 12.5px; font-weight: 500; font-family: var(--sans);
+  cursor: pointer; transition: all .16s var(--ease);
+  white-space: nowrap;
+}
+.admin-entry.show { display: inline-flex; }
+.admin-entry:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 5px 18px rgba(26,24,20,.16);
+}
+.nav-search {
+  display: flex; align-items: center; gap: 8px;
+  background: var(--bg-tint); border: 1px solid var(--line);
+  border-radius: 20px; padding: 6px 14px;
+  transition: all .2s var(--ease);
+}
+.nav-search:focus-within {
+  background: var(--bg-card); border-color: var(--gold-light);
+  box-shadow: 0 0 0 3px rgba(154,122,61,.08);
+}
+.nav-search svg { width: 15px; height: 15px; color: var(--ink-mute); flex-shrink: 0; }
+.nav-search input {
+  border: none; background: none; outline: none;
+  font-size: 13.5px; color: var(--ink); width: 160px;
+  font-family: var(--sans);
+}
+.nav-search input::placeholder { color: var(--ink-mute); }
+.nav-back {
+  display: flex; align-items: center; gap: 5px;
+  padding: 6px 14px; border-radius: 8px;
+  font-size: 13px; color: var(--ink-soft);
+  cursor: pointer; transition: all .15s;
+  text-decoration: none; font-family: var(--sans);
+}
+.nav-back:hover { background: rgba(26,24,20,.05); color: var(--ink); }
+
+/* ─── Hero ─── */
+.hero {
+  max-width: 1200px; margin: 0 auto; padding: 48px 32px 8px;
+  text-align: center;
+}
+.hero-slogan {
+  font-family: var(--serif-cn);
+  font-size: 32px; font-weight: 700;
+  line-height: 1.4; letter-spacing: 1px;
+  margin-bottom: 12px;
+  background: linear-gradient(135deg, var(--ink) 0%, var(--gold) 100%);
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+.hero-desc {
+  font-size: 15px; color: var(--ink-soft);
+  line-height: 1.6; max-width: 520px; margin: 0 auto;
+  font-family: var(--sans);
+}
+
+/* ─── 模块容器 ─── */
+.main { max-width: 1200px; margin: 0 auto; padding: 24px 32px 80px; }
+.section { display: none; }
+.section.active { display: block; animation: fadeUp .35s var(--ease); }
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* ─── 筛选栏 ─── */
+.filter-bar {
+  display: flex; align-items: center; gap: 8px;
+  padding: 16px 0; flex-wrap: wrap;
+  border-bottom: 1px solid var(--line);
+  margin-bottom: 24px;
+}
+.filter-label {
+  font-size: 13px; color: var(--ink-mute);
+  font-family: var(--sans); margin-right: 4px;
+  flex-shrink: 0;
+}
+.filter-tag {
+  padding: 5px 14px; border-radius: 16px;
+  font-size: 13px; color: var(--ink-soft);
+  cursor: pointer; transition: all .15s var(--ease);
+  border: 1px solid transparent;
+  font-family: var(--sans); user-select: none;
+}
+.filter-tag:hover { background: var(--bg-card); color: var(--ink); }
+.filter-tag.active {
+  background: var(--ink); color: var(--bg-card);
+  border-color: var(--ink);
+}
+.filter-sort {
+  margin-left: auto; display: flex; gap: 4px;
+}
+.sort-btn {
+  padding: 5px 12px; border-radius: 6px;
+  font-size: 12.5px; color: var(--ink-mute);
+  cursor: pointer; transition: all .15s;
+  font-family: var(--sans); font-weight: 500;
+}
+.sort-btn:hover { color: var(--ink); }
+.sort-btn.active { color: var(--gold); background: var(--gold-bg); }
+
+/* ─── 项目卡片网格 ─── */
+.card-grid {
+  display: grid; gap: 16px;
+  grid-template-columns: repeat(3, 1fr);
+}
+.card {
+  background: var(--bg-card); border: 1px solid var(--line);
+  border-radius: var(--radius-md); padding: 14px 16px;
+  cursor: pointer; transition: all .25s var(--ease);
+  position: relative; overflow: hidden;
+}
+.card:hover {
+  transform: translateY(-3px);
+  box-shadow: var(--shadow-md);
+  border-color: var(--line-strong);
+}
+.card-top { display: flex; align-items: flex-start; gap: 10px; margin-bottom: 8px; }
+.card-emoji {
+  width: 34px; height: 34px; border-radius: 8px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 17px; flex-shrink: 0;
+}
+.card-cover {
+  margin: -14px -16px 14px;
+  height: 132px; overflow: hidden;
+  border-radius: var(--radius-md) var(--radius-md) 0 0;
+  background: var(--gold-bg);
+}
+.card-cover img {
+  width: 100%; height: 100%; object-fit: cover; display: block;
+}
+.card-meta { flex: 1; min-width: 0; }
+.card-title {
+  font-size: 15px; font-weight: 600;
+  line-height: 1.45; margin-bottom: 4px;
+  display: -webkit-box; -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical; overflow: hidden;
+}
+.card-cat {
+  font-size: 11.5px; color: var(--gold);
+  font-family: var(--sans); font-weight: 500;
+}
+.card-desc {
+  font-size: 12px; color: var(--ink-soft);
+  line-height: 1.55; margin-bottom: 10px;
+  display: -webkit-box; -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical; overflow: hidden;
+  font-family: var(--sans);
+}
+.card-footer {
+  margin-top: 12px;
+  display: flex; align-items: center; gap: 10px;
+  font-size: 11px; color: var(--ink-mute);
+  font-family: var(--sans);
+}
+.card-footer span { display: flex; align-items: center; gap: 3px; }
+.card-badge {
+  padding: 3px 10px; border-radius: 10px;
+  font-size: 11px; font-weight: 500;
+  font-family: var(--sans);
+}
+.badge-open { background: var(--green-bg); color: var(--green); }
+.badge-ongoing { background: var(--blue-bg); color: var(--blue); }
+.badge-ended { background: rgba(26,24,20,.06); color: var(--ink-mute); }
+
+/* ─── 专栏时间线 ─── */
+.camp-banner {
+  background: linear-gradient(135deg, var(--gold-bg) 0%, var(--bg-card) 100%);
+  border: 1px solid var(--gold-light);
+  border-radius: var(--radius-lg); padding: 32px;
+  margin-bottom: 32px; display: none;
+}
+.camp-banner.show { display: block; }
+.camp-banner-title {
+  font-size: 22px; font-weight: 700;
+  margin-bottom: 8px; color: var(--ink);
+}
+.camp-banner-desc {
+  font-size: 14px; color: var(--ink-mid);
+  line-height: 1.6; margin-bottom: 16px;
+  font-family: var(--sans);
+}
+.camp-banner-btn {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 10px 24px; border-radius: 8px;
+  background: var(--gold); color: #fff;
+  font-size: 14px; font-weight: 500;
+  cursor: pointer; border: none;
+  transition: all .15s var(--ease);
+  font-family: var(--sans);
+}
+.camp-banner-btn:hover { background: #876A34; transform: translateY(-1px); }
+
+.timeline-group { margin-bottom: 32px; }
+.timeline-label {
+  font-size: 14px; font-weight: 600;
+  color: var(--ink-mid); margin-bottom: 16px;
+  padding-left: 16px; border-left: 3px solid var(--gold);
+  font-family: var(--sans);
+}
+
+/* ─── 视频课程卡片（专栏风格） ─── */
+.course-grid {
+  display: grid; gap: 18px;
+  grid-template-columns: repeat(3, 1fr);
+}
+.course-card {
+  background: var(--bg-card); border: 1px solid var(--line);
+  border-radius: var(--radius-lg); overflow: hidden;
+  cursor: pointer; transition: all .25s var(--ease);
+  position: relative;
+}
+.course-card:hover {
+  transform: translateY(-4px);
+  box-shadow: var(--shadow-lg);
+  border-color: var(--line-strong);
+}
+.course-cover {
+  height: 100px; display: flex; align-items: center; justify-content: center;
+  font-size: 36px; position: relative;
+  background: linear-gradient(135deg, var(--gold-bg), var(--bg-tint));
+  overflow: hidden;
+}
+.course-cover img {
+  width: 100%; height: 100%; object-fit: cover;
+  position: absolute; inset: 0;
+}
+.course-cover-badge {
+  position: absolute; top: 10px; left: 10px;
+  background: rgba(26,24,20,.7); color: #fff;
+  padding: 3px 9px; border-radius: 5px;
+  font-size: 10.5px; font-family: var(--sans); font-weight: 500;
+  backdrop-filter: blur(8px);
+}
+.course-cover-count {
+  position: absolute; bottom: 10px; right: 10px;
+  background: rgba(26,24,20,.65); color: #fff;
+  padding: 3px 9px; border-radius: 5px;
+  font-size: 10.5px; font-family: var(--sans); font-weight: 500;
+  backdrop-filter: blur(8px);
+}
+.course-body { padding: 12px 14px; }
+.course-title {
+  font-size: 14px; font-weight: 600;
+  margin-bottom: 3px; line-height: 1.35;
+  font-family: var(--serif-cn);
+}
+.course-instructor {
+  font-size: 11px; color: var(--ink-mute);
+  margin-bottom: 8px; font-family: var(--sans);
+}
+.course-bottom {
+  display: flex; align-items: center; justify-content: space-between;
+}
+.course-stats {
+  display: flex; align-items: center; gap: 14px;
+  font-size: 13px; color: var(--ink-soft);
+  font-family: var(--sans);
+}
+.course-stats span { display: flex; align-items: center; gap: 4px; }
+.course-view-btn {
+  padding: 5px 14px; border-radius: 6px;
+  background: var(--ink); color: var(--bg-card);
+  font-size: 11.5px; font-weight: 500;
+  font-family: var(--sans);
+  transition: all .15s var(--ease);
+  border: none; cursor: pointer;
+}
+.course-view-btn:hover { background: #333028; transform: translateY(-1px); }
+.course-price-tag {
+  font-weight: 600; font-size: 12.5px;
+  color: var(--gold); font-family: var(--sans);
+}
+.course-price-tag.free { color: var(--green); }
+
+/* ─── 详情页覆盖层 ─── */
+.detail-overlay {
+  position: fixed; inset: 0; z-index: 200;
+  background: rgba(26,24,20,.3);
+  backdrop-filter: blur(4px);
+  display: none; justify-content: center;
+  padding: 24px;
+  overflow-y: auto;
+}
+.detail-overlay.show { display: flex; align-items: flex-start; padding-top: 40px; }
+.detail-panel {
+  background: var(--bg-white);
+  border-radius: var(--radius-lg);
+  max-width: 760px; width: 100%;
+  max-height: calc(100vh - 80px);
+  overflow-y: auto; position: relative;
+  box-shadow: var(--shadow-lg);
+  animation: slideUp .3s var(--ease);
+  margin-bottom: 40px;
+}
+.detail-panel.column-detail-panel { max-width: 1080px; }
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(24px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.detail-banner {
+  height: 100px; display: flex; align-items: center; justify-content: center;
+  font-size: 48px; border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+  position: relative;
+}
+.detail-close {
+  position: absolute; top: 16px; right: 16px;
+  width: 34px; height: 34px; border-radius: 50%;
+  background: rgba(255,255,255,.85); border: 1px solid var(--line);
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer; z-index: 10;
+  font-size: 16px; color: var(--ink-soft);
+  transition: all .15s;
+  backdrop-filter: blur(8px);
+}
+.detail-close:hover { background: #fff; color: var(--ink); }
+.detail-header {
+  padding: 24px 32px 18px; border-bottom: 1px solid var(--line);
+}
+.detail-emoji { display: none; }
+.detail-title {
+  font-size: 22px; font-weight: 700;
+  line-height: 1.35; margin-bottom: 8px;
+}
+.detail-desc-text {
+  font-size: 14px; color: var(--ink-mid); line-height: 1.6;
+  margin-bottom: 10px; font-family: var(--sans);
+}
+.detail-info {
+  display: flex; align-items: center; gap: 16px; flex-wrap: wrap;
+  font-size: 13px; color: var(--ink-soft); font-family: var(--sans);
+}
+.detail-info .tag {
+  padding: 3px 10px; border-radius: 10px;
+  background: var(--gold-bg); color: var(--gold);
+  font-size: 11.5px; font-weight: 500;
+}
+.detail-content {
+  padding: 20px 32px 32px;
+  font-size: 14.5px; line-height: 1.75; color: var(--ink-mid);
+}
+.detail-content.protected-content {
+  user-select: none;
+  -webkit-user-select: none;
+}
+.detail-content h1,.detail-content h2,.detail-content h3 {
+  color: var(--ink); margin: 24px 0 12px; font-family: var(--serif-cn);
+}
+.detail-content h1 { font-size: 22px; }
+.detail-content h2 { font-size: 18px; }
+.detail-content h3 { font-size: 16px; }
+.detail-content p { margin-bottom: 14px; }
+.detail-content ul,.detail-content ol { margin: 8px 0 14px 20px; }
+.detail-content li { margin-bottom: 4px; }
+.detail-content code {
+  background: var(--bg-tint); padding: 2px 6px; border-radius: 4px;
+  font-family: var(--mono); font-size: 13px;
+}
+.detail-content pre {
+  position: relative;
+  background: #1e1e2e; color: #cdd6f4; padding: 16px 20px;
+  border-radius: var(--radius-sm); overflow-x: auto;
+  margin: 12px 0 16px; font-size: 13px;
+}
+.detail-content pre.has-copy-btn { padding-top: 44px; }
+.detail-content pre code { background: none; padding: 0; color: inherit; }
+.detail-content.protected-content pre,
+.detail-content.protected-content pre * {
+  user-select: text;
+  -webkit-user-select: text;
+}
+.detail-content.protected-content img {
+  -webkit-user-drag: none;
+}
+.code-copy-btn {
+  position: absolute; top: 9px; right: 9px;
+  border: 1px solid rgba(255,255,255,.18);
+  background: rgba(255,255,255,.08);
+  color: #f6f1e6; border-radius: 7px;
+  padding: 5px 10px; font-size: 12px;
+  font-family: var(--sans); cursor: pointer;
+  transition: all .15s var(--ease);
+  z-index: 2;
+}
+.code-copy-btn:hover {
+  background: rgba(255,255,255,.15);
+  border-color: rgba(255,255,255,.3);
+}
+.detail-content img { max-width: 100%; border-radius: var(--radius-sm); margin: 12px 0; }
+.detail-content video {
+  width: 100%; max-width: 100%; border-radius: var(--radius-sm);
+  margin: 12px 0; background: #111; aspect-ratio: 16/9;
+  display: block;
+}
+.detail-content blockquote {
+  border-left: 3px solid var(--gold-light);
+  padding: 8px 16px; margin: 12px 0;
+  background: var(--gold-bg); border-radius: 0 8px 8px 0;
+  color: var(--ink-mid); font-style: italic;
+}
+
+/* 飞书导入样式 */
+.fs-fg-1,.fs-fg-8{color:#C75B3A}.fs-fg-2,.fs-fg-9{color:#B66A21}.fs-fg-3,.fs-fg-10{color:#9A7A3D}.fs-fg-4,.fs-fg-11{color:#3D7C62}.fs-fg-5,.fs-fg-12{color:#3F75B5}.fs-fg-6,.fs-fg-13{color:#7B5BB8}.fs-fg-7,.fs-fg-14{color:#6B6558}.fs-fg-15{color:#8A5A24}.fs-fg-16{color:#2F7F87}.fs-fg-17{color:#3B4758}
+.fs-fg-1 strong,.fs-fg-2 strong,.fs-fg-3 strong,.fs-fg-4 strong,.fs-fg-5 strong,.fs-fg-6 strong,.fs-fg-7 strong,.fs-fg-8 strong,.fs-fg-9 strong,.fs-fg-10 strong,.fs-fg-11 strong,.fs-fg-12 strong,.fs-fg-13 strong,.fs-fg-14 strong,.fs-fg-15 strong,.fs-fg-16 strong,.fs-fg-17 strong{color:inherit}
+.fs-bg-1,.fs-bg-8{background:#FCEEE8}.fs-bg-2,.fs-bg-9{background:#FFF2DF}.fs-bg-3,.fs-bg-10{background:#FFF8D9}.fs-bg-4,.fs-bg-11{background:#E8F2EC}.fs-bg-5,.fs-bg-12{background:#EAF3FF}.fs-bg-6,.fs-bg-13{background:#F1EAFE}.fs-bg-7,.fs-bg-14{background:#F0EDE6}.fs-bg-15{background:#F5EFDE}.fs-bg-16{background:#E7F4F4}.fs-bg-17{background:#E9EDF2}
+span[class*="fs-bg-"]{padding:1px 4px;border-radius:4px}
+.fs-block-highlight{display:block;padding:10px 12px;border-radius:8px;margin:12px 0}
+.fs-align-center{text-align:center}.fs-align-right{text-align:right}
+.fs-callout{display:flex;gap:10px;margin:16px 0;padding:13px 15px;border:1px solid #D9C99E;border-left-width:4px;border-radius:8px;background:#F8F1DF;color:var(--ink-mid);font-style:normal}
+.fs-callout-icon{width:24px;line-height:1.7;flex:0 0 auto}.fs-callout-content{flex:1;min-width:0}.fs-callout-content>:last-child{margin-bottom:0}
+.fs-callout-bg-1,.fs-callout-bg-8{background:#FCEEE8}.fs-callout-bg-2,.fs-callout-bg-9{background:#FFF2DF}.fs-callout-bg-3,.fs-callout-bg-10{background:#FFF8D9}.fs-callout-bg-4,.fs-callout-bg-11{background:#E8F2EC}.fs-callout-bg-5,.fs-callout-bg-12{background:#EAF3FF}.fs-callout-bg-6,.fs-callout-bg-13{background:#F1EAFE}.fs-callout-bg-7,.fs-callout-bg-14{background:#F0EDE6}.fs-callout-bg-15{background:#F5EFDE}.fs-callout-bg-16{background:#E7F4F4}.fs-callout-bg-17{background:#E9EDF2}
+.fs-callout-border-1,.fs-callout-border-8{border-color:#E59A87}.fs-callout-border-2,.fs-callout-border-9{border-color:#E7B46F}.fs-callout-border-3,.fs-callout-border-10{border-color:#E2C75A}.fs-callout-border-4,.fs-callout-border-11{border-color:#8DC3A9}.fs-callout-border-5,.fs-callout-border-12{border-color:#8EB9E6}.fs-callout-border-6,.fs-callout-border-13{border-color:#B9A3E5}.fs-callout-border-7,.fs-callout-border-14{border-color:#C7BFAF}.fs-callout-border-15{border-color:#D9C99E}.fs-callout-border-16{border-color:#9ACED0}.fs-callout-border-17{border-color:#B8C1CD}
+.fs-quote-container{font-style:normal}
+.detail-subscribe-bar {
+  padding: 14px 32px 20px; border-top: 1px solid var(--line);
+  display: flex; align-items: center; gap: 12px;
+}
+.detail-subscribe-btn {
+  padding: 10px 28px; border-radius: 8px;
+  background: var(--gold); color: #fff;
+  font-size: 14px; font-weight: 500;
+  cursor: pointer; border: none;
+  transition: all .15s; font-family: var(--sans);
+}
+.detail-subscribe-btn:hover { background: #876A34; }
+.detail-subscribe-btn.subscribed {
+  background: var(--green-bg); color: var(--green);
+  cursor: default;
+}
+.detail-sub-count {
+  font-size: 13px; color: var(--ink-mute); font-family: var(--sans);
+}
+
+/* ─── 课程详情 ─── */
+.course-detail-layout { display: flex; gap: 0; }
+.course-player {
+  flex: 1; min-width: 0;
+  padding: 32px 32px 20px 40px;
+}
+.course-player video, .course-player iframe {
+  width: 100%; aspect-ratio: 16/9;
+  border-radius: var(--radius-md);
+  background: #000; display: block;
+}
+.course-player-placeholder {
+  width: 100%; aspect-ratio: 16/9;
+  border-radius: var(--radius-md);
+  background: linear-gradient(135deg, #1a1a1a, #2d2a24);
+  display: flex; align-items: center; justify-content: center;
+  color: var(--ink-mute); font-size: 48px;
+}
+.course-lesson-title {
+  font-size: 18px; font-weight: 600;
+  margin: 16px 0 8px;
+}
+.course-lesson-desc {
+  font-size: 14px; color: var(--ink-soft);
+  line-height: 1.6; font-family: var(--sans);
+}
+.course-sidebar {
+  width: 300px; flex-shrink: 0;
+  border-left: 1px solid var(--line);
+  max-height: calc(100vh - 48px); overflow-y: auto;
+}
+.course-sidebar-header {
+  padding: 20px; border-bottom: 1px solid var(--line);
+  font-size: 14px; font-weight: 600;
+}
+.lesson-item {
+  padding: 14px 20px; border-bottom: 1px solid var(--line);
+  cursor: pointer; transition: all .12s;
+  display: flex; align-items: flex-start; gap: 10px;
+}
+.lesson-item:hover { background: var(--bg-tint); }
+.lesson-item.active { background: var(--gold-bg); }
+.lesson-num {
+  width: 24px; height: 24px; border-radius: 50%;
+  background: var(--bg-tint); display: flex; align-items: center; justify-content: center;
+  font-size: 11px; font-weight: 600; color: var(--ink-soft);
+  flex-shrink: 0; font-family: var(--sans);
+}
+.lesson-item.active .lesson-num { background: var(--gold); color: #fff; }
+.lesson-info { flex: 1; min-width: 0; }
+.lesson-name {
+  font-size: 13.5px; font-weight: 500;
+  line-height: 1.35; margin-bottom: 2px;
+}
+.lesson-meta {
+  font-size: 11.5px; color: var(--ink-mute);
+  font-family: var(--sans);
+  display: flex; gap: 8px;
+}
+.lesson-free {
+  font-size: 10.5px; color: var(--green);
+  background: var(--green-bg); padding: 1px 6px;
+  border-radius: 4px; font-weight: 500;
+}
+
+/* ─── 专栏详情：图文阅读优先 ─── */
+.column-detail-panel .detail-banner { height: 132px; }
+.column-detail-panel .detail-header {
+  padding: 24px 42px 18px;
+  background: linear-gradient(180deg, #FFFDF7 0%, #FAF7EE 100%);
+}
+.column-detail-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 292px;
+  min-height: 520px;
+}
+.column-reader {
+  min-width: 0;
+  padding: 34px 48px 56px;
+  background:
+    linear-gradient(90deg, rgba(154,122,61,.04) 0 1px, transparent 1px) 0 0/40px 40px,
+    #FFFDF7;
+}
+.column-reader.is-article .course-player-placeholder { display: none; }
+.column-reader.is-video {
+  padding: 34px 42px 42px;
+  background: #FFFDF7;
+}
+.column-reader.is-video .column-lesson-head { max-width: none; }
+.column-reader.is-video #columnLessonArticle { display: none !important; }
+.column-lesson-head {
+  max-width: 740px;
+  margin: 0 auto 22px;
+  padding-bottom: 18px;
+  border-bottom: 1px solid rgba(26,24,20,.1);
+}
+.column-lesson-kicker {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 10px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: var(--gold-bg);
+  color: var(--gold);
+  font: 600 11.5px/1 var(--sans);
+}
+.column-reader .course-lesson-title {
+  margin: 0 0 8px;
+  font-size: 24px;
+  line-height: 1.35;
+  font-family: var(--serif-cn);
+  color: var(--ink);
+}
+.column-reader .course-lesson-desc {
+  font-size: 14px;
+  line-height: 1.7;
+  color: var(--ink-soft);
+}
+.column-reader .detail-content {
+  max-width: 740px;
+  margin: 0 auto;
+  padding: 0;
+  font-size: 16px;
+  line-height: 1.95;
+  color: #3F3A32;
+}
+.column-reader .detail-content p { margin-bottom: 18px; }
+.column-reader .detail-content h1,
+.column-reader .detail-content h2,
+.column-reader .detail-content h3 {
+  margin: 32px 0 14px;
+  line-height: 1.35;
+}
+.column-reader .detail-content h1 { font-size: 25px; }
+.column-reader .detail-content h2 { font-size: 21px; }
+.column-reader .detail-content h3 { font-size: 18px; }
+.column-reader .detail-content ul,
+.column-reader .detail-content ol {
+  margin: 10px 0 18px 24px;
+  padding-left: 0;
+}
+.column-reader .detail-content li { margin-bottom: 8px; }
+.column-reader .detail-content img {
+  display: block;
+  margin: 20px auto;
+  border-radius: 10px;
+}
+.column-reader .detail-content blockquote {
+  margin: 20px 0;
+  padding: 14px 18px;
+  border-left-width: 4px;
+  font-style: normal;
+}
+.column-sidebar {
+  width: auto;
+  border-left: 1px solid rgba(26,24,20,.1);
+  background: #F7F2E8;
+  max-height: none;
+}
+.column-sidebar .course-sidebar-header {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: rgba(247,242,232,.96);
+  backdrop-filter: blur(8px);
+  padding: 18px 18px 14px;
+}
+.column-sidebar .lesson-item {
+  margin: 8px 12px;
+  padding: 12px;
+  border: 1px solid transparent;
+  border-radius: 8px;
+}
+.column-sidebar .lesson-item:hover {
+  background: rgba(255,255,255,.65);
+}
+.column-sidebar .lesson-item.active {
+  background: #FFFDF7;
+  border-color: rgba(154,122,61,.22);
+  box-shadow: 0 8px 22px rgba(26,24,20,.06);
+}
+.column-sidebar .lesson-name {
+  font-size: 13px;
+  line-height: 1.45;
+}
+.column-sidebar .lesson-meta {
+  flex-wrap: wrap;
+  row-gap: 4px;
+}
+
+/* ─── 空状态 ─── */
+.empty-state {
+  text-align: center; padding: 60px 20px;
+  color: var(--ink-mute);
+}
+.empty-state-icon { font-size: 48px; margin-bottom: 16px; opacity: .5; }
+.empty-state-text { font-size: 15px; line-height: 1.6; }
+
+/* ─── Loading ─── */
+.loading-spinner {
+  display: flex; justify-content: center; padding: 40px;
+}
+.spinner {
+  width: 32px; height: 32px; border: 3px solid var(--line);
+  border-top-color: var(--gold); border-radius: 50%;
+  animation: spin .7s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ─── 互动区（点赞/收藏/评论） ─── */
+.detail-interact {
+  padding: 0 32px 20px; border-top: 1px solid var(--line);
+}
+.interact-bar {
+  display: flex; align-items: center; gap: 20px;
+  padding: 16px 0; border-bottom: 1px solid var(--line);
+}
+.interact-btn {
+  display: flex; align-items: center; gap: 5px;
+  padding: 6px 16px; border-radius: 20px;
+  font-size: 13px; color: var(--ink-soft);
+  cursor: pointer; transition: all .15s var(--ease);
+  border: 1px solid var(--line); background: none;
+  font-family: var(--sans); user-select: none;
+}
+.interact-btn:hover { background: var(--bg-tint); color: var(--ink); }
+.interact-btn.active { background: var(--red-bg); color: var(--red); border-color: transparent; }
+.interact-btn .count { font-weight: 500; }
+
+.comment-section { padding-top: 16px; }
+.comment-header {
+  font-size: 15px; font-weight: 600; margin-bottom: 16px;
+  display: flex; align-items: center; gap: 6px;
+}
+.comment-header .count { color: var(--ink-mute); font-weight: 400; font-size: 13px; }
+.comment-input-wrap {
+  display: flex; gap: 10px; margin-bottom: 20px;
+}
+.comment-input {
+  flex: 1; padding: 10px 14px; border-radius: 10px;
+  border: 1px solid var(--line); background: var(--bg);
+  font-size: 13.5px; color: var(--ink); resize: none;
+  font-family: var(--sans); outline: none;
+  min-height: 40px; max-height: 120px;
+  transition: border-color .15s;
+}
+.comment-input:focus { border-color: var(--gold-light); }
+.comment-input::placeholder { color: var(--ink-mute); }
+.comment-submit {
+  padding: 8px 20px; border-radius: 8px;
+  background: var(--gold); color: #fff;
+  font-size: 13px; font-weight: 500;
+  cursor: pointer; border: none; white-space: nowrap;
+  font-family: var(--sans); transition: all .15s;
+  align-self: flex-end;
+}
+.comment-submit:hover { background: #876A34; }
+.comment-list { list-style: none; }
+.comment-item {
+  padding: 14px 0; border-bottom: 1px solid var(--line);
+}
+.comment-item:last-child { border-bottom: none; }
+.comment-author {
+  display: flex; align-items: center; gap: 8px; margin-bottom: 6px;
+}
+.comment-avatar {
+  width: 28px; height: 28px; border-radius: 50%;
+  background: var(--gold-bg); display: flex; align-items: center; justify-content: center;
+  font-size: 12px; color: var(--gold); font-weight: 600;
+  font-family: var(--sans);
+}
+.comment-name {
+  font-size: 13px; font-weight: 500; color: var(--ink);
+}
+.comment-time {
+  font-size: 11px; color: var(--ink-mute); font-family: var(--sans); margin-left: auto;
+}
+.comment-text {
+  font-size: 13.5px; color: var(--ink-mid); line-height: 1.6;
+  padding-left: 36px; font-family: var(--sans);
+}
+.comment-empty {
+  text-align: center; padding: 20px;
+  font-size: 13px; color: var(--ink-mute); font-family: var(--sans);
+}
+
+/* ─── 全部/推荐 Tab ─── */
+.exp-tabs {
+  display: flex; gap: 4px; margin-right: 12px;
+}
+.exp-tab {
+  padding: 5px 16px; border-radius: 8px;
+  font-size: 13.5px; font-weight: 500;
+  color: var(--ink-soft); cursor: pointer;
+  font-family: var(--sans); transition: all .15s;
+}
+.exp-tab:hover { color: var(--ink); }
+.exp-tab.active { background: var(--ink); color: var(--bg-card); }
+.filter-tags-wrap {
+  display: flex; gap: 6px; flex-wrap: wrap; flex: 1;
+}
+
+/* ─── 视图切换 ─── */
+.view-switch {
+  display: flex; gap: 2px; margin-left: auto; flex-shrink: 0;
+}
+.view-btn {
+  width: 32px; height: 32px; border-radius: 6px;
+  border: 1px solid var(--line); background: none;
+  font-size: 16px; color: var(--ink-mute); cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  transition: all .12s;
+}
+.view-btn:hover { background: var(--bg-tint); color: var(--ink); }
+.view-btn.active { background: var(--ink); color: var(--bg-card); border-color: var(--ink); }
+
+/* ─── 信息流模式 ─── */
+.feed-list { display: flex; flex-direction: column; gap: 0; }
+.feed-item {
+  display: flex; gap: 16px; padding: 20px 0;
+  border-bottom: 1px solid var(--line);
+  cursor: pointer; transition: background .12s;
+}
+.feed-item:hover { background: rgba(26,24,20,.02); }
+.feed-item:first-child { padding-top: 0; }
+.feed-body { flex: 1; min-width: 0; }
+.feed-author {
+  display: flex; align-items: center; gap: 8px; margin-bottom: 8px;
+}
+.feed-avatar {
+  width: 28px; height: 28px; border-radius: 50%;
+  background: var(--gold-bg); display: flex; align-items: center; justify-content: center;
+  font-size: 12px; color: var(--gold); font-weight: 600;
+  font-family: var(--sans); flex-shrink: 0;
+}
+.feed-author-name { font-size: 13px; font-weight: 500; color: var(--ink); }
+.feed-author-time { font-size: 11.5px; color: var(--ink-mute); font-family: var(--sans); }
+.feed-author-tag {
+  padding: 1px 7px; border-radius: 3px;
+  background: var(--gold-bg); color: var(--gold);
+  font-size: 10px; font-weight: 500; font-family: var(--sans);
+}
+.feed-title {
+  font-size: 17px; font-weight: 600; line-height: 1.4;
+  margin-bottom: 6px; color: var(--ink);
+}
+.feed-image {
+  width: 140px; height: 100px; border-radius: var(--radius-sm);
+  object-fit: cover; flex-shrink: 0; background: var(--bg-tint);
+}
+.feed-footer {
+  display: flex; align-items: center; gap: 14px;
+  margin-top: 12px;
+  font-size: 12px; color: var(--ink-mute); font-family: var(--sans);
+}
+.feed-footer span { display: flex; align-items: center; gap: 3px; }
+.feed-actions {
+  margin-left: auto; display: flex; gap: 6px;
+}
+.feed-action-btn {
+  padding: 3px 10px; border-radius: 5px;
+  font-size: 11px; color: var(--ink-mute); cursor: pointer;
+  border: 1px solid var(--line); background: none;
+  font-family: var(--sans); transition: all .1s;
+}
+.feed-action-btn:hover { background: var(--bg-tint); color: var(--ink); }
+.feed-action-btn.danger:hover { background: var(--red-bg); color: var(--red); border-color: transparent; }
+
+/* ─── 权限遮罩 ─── */
+.access-wall {
+  position: fixed; inset: 0; z-index: 300;
+  background: rgba(243,239,228,.95);
+  display: flex; align-items: center; justify-content: center;
+  backdrop-filter: blur(8px);
+}
+.access-wall-box {
+  text-align: center; max-width: 400px; padding: 40px;
+}
+.access-wall-icon { font-size: 56px; margin-bottom: 16px; }
+.access-wall-title { font-size: 22px; font-weight: 700; margin-bottom: 10px; }
+.access-wall-desc {
+  font-size: 14px; color: var(--ink-soft); line-height: 1.7;
+  margin-bottom: 24px; font-family: var(--sans);
+}
+.access-wall-btn {
+  display: inline-block; padding: 12px 32px; border-radius: 10px;
+  background: var(--gold); color: #fff; font-size: 15px; font-weight: 500;
+  cursor: pointer; border: none; font-family: var(--sans);
+  transition: all .15s; text-decoration: none;
+}
+.access-wall-btn:hover { background: #876A34; transform: translateY(-1px); }
+.access-wall-back {
+  display: block; margin-top: 12px; font-size: 13px; color: var(--ink-mute);
+  cursor: pointer; text-decoration: none; font-family: var(--sans);
+}
+
+/* ─── 发布浮动按钮 ─── */
+.fab-publish {
+  position: fixed; bottom: 32px; right: 32px; z-index: 150;
+  width: 56px; height: 56px; border-radius: 50%;
+  background: var(--gold); color: #fff;
+  display: none; align-items: center; justify-content: center;
+  font-size: 28px; cursor: pointer; border: none;
+  box-shadow: 0 4px 20px rgba(154,122,61,.35);
+  transition: all .2s var(--ease);
+  font-family: var(--sans);
+}
+.fab-publish.show { display: flex; }
+.fab-publish:hover { transform: scale(1.08) translateY(-2px); box-shadow: 0 6px 28px rgba(154,122,61,.45); }
+
+/* ─── 发布编辑器 ─── */
+.publish-overlay {
+  position: fixed; inset: 0; z-index: 250;
+  background: rgba(26,24,20,.3);
+  backdrop-filter: blur(4px);
+  display: none; justify-content: center;
+  padding: 32px; overflow-y: auto;
+}
+.publish-overlay.show { display: flex; }
+.publish-panel {
+  background: var(--bg-white);
+  border-radius: var(--radius-lg);
+  max-width: 720px; width: 100%;
+  max-height: calc(100vh - 64px);
+  overflow-y: auto; position: relative;
+  box-shadow: var(--shadow-lg);
+  animation: slideUp .3s var(--ease);
+}
+.publish-header {
+  padding: 20px 28px; border-bottom: 1px solid var(--line);
+  display: flex; align-items: center; justify-content: space-between;
+}
+.publish-header-title { font-size: 17px; font-weight: 600; }
+.publish-close {
+  width: 32px; height: 32px; border-radius: 50%;
+  background: var(--bg-tint); border: none; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 16px; color: var(--ink-soft); transition: all .15s;
+}
+.publish-close:hover { background: var(--bg); color: var(--ink); }
+.publish-body { padding: 24px 28px; }
+.publish-field { margin-bottom: 20px; }
+.publish-label {
+  display: block; font-size: 13px; font-weight: 500; color: var(--ink-mid);
+  margin-bottom: 6px; font-family: var(--sans);
+}
+.publish-input {
+  width: 100%; padding: 10px 14px; border-radius: 10px;
+  border: 1px solid var(--line); background: var(--bg);
+  font-size: 16px; font-weight: 600; color: var(--ink);
+  font-family: var(--serif-cn); outline: none;
+  transition: border-color .15s;
+}
+.publish-input:focus { border-color: var(--gold-light); }
+.publish-input::placeholder { color: var(--ink-mute); font-weight: 400; }
+.publish-editor {
+  width: 100%; padding: 14px 16px; border-radius: 10px;
+  border: 1px solid var(--line); background: var(--bg);
+  font-size: 14.5px; color: var(--ink); min-height: 280px;
+  max-height: 450px; overflow-y: auto;
+  font-family: var(--sans); outline: none;
+  line-height: 1.7; transition: border-color .15s;
+  word-break: break-word;
+}
+.publish-editor:focus { border-color: var(--gold-light); }
+.publish-editor:empty::before {
+  content: attr(data-placeholder);
+  color: var(--ink-mute); pointer-events: none;
+}
+.publish-editor img, .publish-editor video {
+  max-width: 100%; border-radius: 8px; margin: 8px 0;
+  display: block;
+}
+.publish-editor video {
+  background: #111; aspect-ratio: 16/9;
+}
+.publish-editor blockquote {
+  border-left: 3px solid var(--gold-light);
+  padding: 4px 12px; margin: 8px 0;
+  color: var(--ink-soft);
+}
+.publish-toolbar {
+  display: flex; gap: 8px; margin-bottom: 6px;
+}
+.publish-tool-btn {
+  padding: 4px 10px; border-radius: 6px;
+  border: 1px solid var(--line); background: var(--bg-card);
+  font-size: 12px; color: var(--ink-soft); cursor: pointer;
+  font-family: var(--sans); transition: all .12s;
+}
+.publish-tool-btn:hover { background: var(--bg-tint); color: var(--ink); }
+.publish-upload-status {
+  min-height: 18px; margin-top: 6px;
+  font-size: 12px; color: var(--ink-mute);
+  font-family: var(--sans);
+}
+.publish-upload-status.error { color: var(--red); }
+.publish-upload-status button {
+  margin-left: 8px; padding: 2px 8px; border-radius: 5px;
+  border: 1px solid var(--line); background: var(--bg-card);
+  color: var(--ink-mid); cursor: pointer; font-size: 12px;
+}
+.publish-cats {
+  display: flex; gap: 6px; flex-wrap: wrap;
+}
+.publish-cat {
+  padding: 5px 14px; border-radius: 14px;
+  border: 1px solid var(--line); background: none;
+  font-size: 12.5px; color: var(--ink-soft); cursor: pointer;
+  font-family: var(--sans); transition: all .12s;
+}
+.publish-cat:hover { background: var(--bg-tint); }
+.publish-cat.active { background: var(--ink); color: var(--bg-card); border-color: var(--ink); }
+.publish-footer {
+  padding: 16px 28px; border-top: 1px solid var(--line);
+  display: flex; justify-content: flex-end; gap: 10px;
+}
+.publish-submit {
+  padding: 10px 32px; border-radius: 8px;
+  background: var(--gold); color: #fff; font-size: 14px; font-weight: 500;
+  cursor: pointer; border: none; font-family: var(--sans);
+  transition: all .15s;
+}
+.publish-submit:hover { background: #876A34; }
+.publish-submit:disabled { opacity: .5; cursor: not-allowed; }
+.publish-cancel {
+  padding: 10px 20px; border-radius: 8px;
+  background: none; color: var(--ink-soft); font-size: 14px;
+  cursor: pointer; border: 1px solid var(--line);
+  font-family: var(--sans); transition: all .12s;
+}
+.publish-cancel:hover { background: var(--bg-tint); }
+
+/* ─── Toast ─── */
+.toast {
+  position: fixed; bottom: 32px; left: 50%; transform: translateX(-50%) translateY(20px);
+  background: var(--ink); color: var(--bg-card);
+  padding: 10px 24px; border-radius: 8px;
+  font-size: 13.5px; font-family: var(--sans);
+  box-shadow: var(--shadow-lg);
+  opacity: 0; transition: all .25s var(--ease);
+  z-index: 999; pointer-events: none;
+}
+.toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+/* ─── 响应式 ─── */
+@media (max-width: 1024px) {
+  .card-grid { grid-template-columns: repeat(2, 1fr); }
+  .course-grid { grid-template-columns: repeat(2, 1fr); }
+}
+@media (max-width: 768px) {
+  .nav-inner { padding: 0 16px; }
+  .nav-logo-text { display: none; }
+  .admin-entry { padding: 7px 10px; font-size: 0; gap: 0; }
+  .admin-entry::before { content: '⚙'; font-size: 14px; }
+  .nav-search input { width: 100px; }
+  .hero { padding: 32px 16px 4px; }
+  .hero-slogan { font-size: 24px; }
+  .main { padding: 16px 16px 60px; }
+  .card-grid { grid-template-columns: 1fr; }
+  .course-grid { grid-template-columns: 1fr; }
+  .detail-panel { border-radius: var(--radius-md); }
+  .detail-header { padding: 24px 20px 16px; }
+  .detail-content { padding: 20px; }
+  .detail-subscribe-bar { padding: 12px 20px 20px; }
+  .course-detail-layout { flex-direction: column; }
+  .course-sidebar { width: 100%; border-left: none; border-top: 1px solid var(--line); max-height: 300px; }
+  .course-player { padding: 20px; }
+  .detail-panel.column-detail-panel { max-width: 100%; }
+  .column-detail-panel .detail-banner { height: 96px; }
+  .column-detail-panel .detail-header { padding: 22px 20px 16px; }
+  .column-detail-layout { display: flex; flex-direction: column; }
+  .column-reader { padding: 24px 20px 34px; }
+  .column-reader .detail-content {
+    max-width: none;
+    font-size: 15.5px;
+    line-height: 1.86;
+  }
+  .column-reader .course-lesson-title { font-size: 21px; }
+  .column-sidebar {
+    width: 100%;
+    border-left: none;
+    border-top: 1px solid var(--line);
+    max-height: 340px;
+    overflow-y: auto;
+  }
+  .column-sidebar .lesson-item { margin: 8px 10px; }
+  .filter-sort { margin-left: 0; width: 100%; margin-top: 8px; }
+}
+</style>
+</head>
+<body>
+
+<!-- ─── 导航 ─── -->
+<nav class="nav">
+  <div class="nav-inner">
+    <a class="nav-logo" href="choose.html">
+      <div class="nav-logo-icon">阿</div>
+      <span class="nav-logo-text">阿川 AI</span>
+    </a>
+    <div class="nav-tabs">
+      <div class="nav-tab active" data-tab="experience" onclick="switchTab('experience')">实战经验</div>
+      <div class="nav-tab" data-tab="camp" onclick="switchTab('camp')">专栏</div>
+      <div class="nav-tab" data-tab="video" onclick="switchTab('video')">视频课程</div>
+    </div>
+    <div class="nav-right">
+      <div class="nav-search">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+        <input id="searchInput" placeholder="搜索内容..." oninput="handleSearch(this.value)">
+      </div>
+      <button id="adminEntry" class="admin-entry" onclick="openAdminEntry()" title="进入实战区总后台">⚙ 管理后台</button>
+      <a class="nav-back" href="choose.html">← 返回</a>
+    </div>
+  </div>
+</nav>
+
+<!-- ─── Hero ─── -->
+<div class="hero">
+  <div class="hero-slogan" id="heroSlogan">从工具到变现 · 用 AI 跑通每一个项目</div>
+  <div class="hero-desc" id="heroDesc">实战图文 · 深度专栏 · 视频课程 — 把真实项目沉淀成可复用内容</div>
+</div>
+
+<!-- ─── 主内容区 ─── -->
+<div class="main">
+
+  <!-- 模块一：实战经验 -->
+  <div id="sec-experience" class="section active">
+    <div class="filter-bar" id="exp-filter-bar">
+      <div class="exp-tabs">
+        <div class="exp-tab" data-feed="all" onclick="switchFeed('all', this)">全部</div>
+        <div class="exp-tab active" data-feed="featured" onclick="switchFeed('featured', this)">推荐</div>
+      </div>
+      <div class="filter-tags-wrap" id="expCatTags">
+      </div>
+      <div class="view-switch">
+        <button class="view-btn active" id="viewGrid" onclick="switchView('grid')" title="卡片">⊞</button>
+        <button class="view-btn" id="viewFeed" onclick="switchView('feed')" title="信息流">☰</button>
+      </div>
+    </div>
+    <div id="exp-list" class="card-grid"></div>
+    <div id="exp-loading" class="loading-spinner"><div class="spinner"></div></div>
+    <div id="exp-empty" class="empty-state" style="display:none">
+      <div class="empty-state-icon">📝</div>
+      <div class="empty-state-text">暂无实战项目 · 敬请期待</div>
+    </div>
+  </div>
+
+  <!-- 模块二：专栏 -->
+  <div id="sec-camp" class="section">
+    <div id="camp-banner" class="camp-banner"></div>
+    <div class="filter-bar" id="camp-filter-bar">
+      <span class="filter-label">方向</span>
+      <div class="filter-tag active" data-cat="" onclick="filterCamp(this, '')">全部</div>
+    </div>
+    <div id="camp-list"></div>
+    <div id="camp-loading" class="loading-spinner"><div class="spinner"></div></div>
+    <div id="camp-empty" class="empty-state" style="display:none">
+      <div class="empty-state-icon">🚢</div>
+      <div class="empty-state-text">暂无专栏 · 敬请期待</div>
+    </div>
+  </div>
+
+  <!-- 模块三：视频课程 -->
+  <div id="sec-video" class="section">
+    <div class="filter-bar" id="vid-filter-bar">
+      <span class="filter-label">分类</span>
+      <div class="filter-tag active" data-cat="" onclick="filterVid(this, '')">全部</div>
+      <div class="filter-sort">
+        <div class="sort-btn active" data-sort="hot" onclick="sortVid(this,'hot')">热门</div>
+        <div class="sort-btn" data-sort="latest" onclick="sortVid(this,'latest')">最新</div>
+      </div>
+    </div>
+    <div id="vid-list" class="course-grid"></div>
+    <div id="vid-loading" class="loading-spinner"><div class="spinner"></div></div>
+    <div id="vid-empty" class="empty-state" style="display:none">
+      <div class="empty-state-icon">🎬</div>
+      <div class="empty-state-text">暂无视频课程 · 敬请期待</div>
+    </div>
+  </div>
+
+</div>
+
+<!-- ─── 详情遮罩层 ─── -->
+<div id="detailOverlay" class="detail-overlay" onclick="if(event.target===this)closeDetail()">
+  <div class="detail-panel" id="detailPanel"></div>
+</div>
+
+<!-- ─── Toast ─── -->
+<div id="toast" class="toast"></div>
+
+<!-- ─── 权限遮罩 ─── -->
+<div id="accessWall" class="access-wall" style="display:none">
+  <div class="access-wall-box">
+    <div class="access-wall-icon">🔒</div>
+    <div class="access-wall-title">实战区 · 年卡/私教专属</div>
+    <div class="access-wall-desc">实战区包含深度图文、专栏和视频课程，仅对年卡会员和私教用户开放。升级后即可浏览全部内容并发表分享。</div>
+    <a class="access-wall-btn" href="index.html">了解会员权益 →</a>
+    <a class="access-wall-back" href="choose.html">返回首页</a>
+  </div>
+</div>
+
+<!-- ─── 发布浮动按钮 ─── -->
+<button id="fabPublish" class="fab-publish" onclick="openPublishEditor()" title="发布内容">✏</button>
+
+<!-- ─── 发布编辑器 ─── -->
+<div id="publishOverlay" class="publish-overlay" onclick="if(event.target===this)closePublish()">
+  <div class="publish-panel">
+    <div class="publish-header">
+      <span class="publish-header-title">发布图文</span>
+      <button class="publish-close" onclick="closePublish()">✕</button>
+    </div>
+    <div class="publish-body">
+      <div class="publish-field">
+        <label class="publish-label" id="pubTitleLabel">标题</label>
+        <input id="pubTitle" class="publish-input" placeholder="请输入标题" maxlength="100">
+      </div>
+      <div class="publish-field">
+        <label class="publish-label" id="pubContentLabel">正文</label>
+        <div class="publish-toolbar">
+          <button class="publish-tool-btn" onclick="document.execCommand('bold')" title="加粗"><b>B</b></button>
+          <button class="publish-tool-btn" onclick="document.execCommand('formatBlock',false,'blockquote')" title="引用">引</button>
+          <button class="publish-tool-btn" onclick="document.execCommand('insertUnorderedList')" title="列表">列</button>
+          <button class="publish-tool-btn" onclick="document.execCommand('insertHorizontalRule')" title="分隔线">—</button>
+          <button class="publish-tool-btn" id="pubImageBtn" onclick="triggerImageUpload()" title="插入图片">📷 图片</button>
+          <button class="publish-tool-btn" id="pubVideoBtn" onclick="triggerVideoUpload()" title="插入视频">🎬 视频</button>
+        </div>
+        <div id="pubContent" class="publish-editor" contenteditable="true" data-placeholder="从这里开始输入正文..."></div>
+        <input type="file" id="imageUploadInput" accept="image/*" style="display:none" onchange="handleImageUpload(this)">
+        <input type="file" id="videoUploadInput" accept="video/mp4,video/webm" style="display:none" onchange="handleVideoUpload(this)">
+        <div id="publishUploadStatus" class="publish-upload-status"></div>
+      </div>
+      <div class="publish-field">
+        <label class="publish-label">分类</label>
+        <div class="publish-cats" id="pubCats">
+          <button class="publish-cat active" data-cat="AI" onclick="selectPubCat(this)">AI</button>
+          <button class="publish-cat" data-cat="自媒体" onclick="selectPubCat(this)">自媒体</button>
+          <button class="publish-cat" data-cat="小红书" onclick="selectPubCat(this)">小红书</button>
+          <button class="publish-cat" data-cat="电商" onclick="selectPubCat(this)">电商</button>
+          <button class="publish-cat" data-cat="副业" onclick="selectPubCat(this)">副业</button>
+          <button class="publish-cat" data-cat="编程" onclick="selectPubCat(this)">编程</button>
+          <button class="publish-cat" data-cat="出海" onclick="selectPubCat(this)">出海</button>
+          <button class="publish-cat" data-cat="视频号" onclick="selectPubCat(this)">视频号</button>
+        </div>
+      </div>
+    </div>
+    <div class="publish-footer">
+      <button class="publish-cancel" onclick="closePublish()">取消</button>
+      <button id="pubSubmitBtn" class="publish-submit" onclick="submitPublish()">发布</button>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ─────────────────────────────────────────
+   阿川 AI · 实战区 practice.html
+   ───────────────────────────────────────── */
+
+const API = 'http://localhost:8000/practice';
+const STATIC_ORIGIN = location.protocol === 'file:' ? 'http://localhost:8000' : '';
+const DEFAULT_EXPERIENCE_COVER_URL = `${STATIC_ORIGIN}/static/assets/default-experience-cover.jpg`;
+const DEFAULT_COURSE_COVER_URL = `${STATIC_ORIGIN}/static/assets/default-course-cover.jpg`;
+const DEFAULT_COLUMN_COVER_URL = `${STATIC_ORIGIN}/static/assets/default-column-cover.jpg`;
+const TOKEN = localStorage.getItem('token') || localStorage.getItem('admin_token') || '';
+const PHONE = '13260018535'; // 测试号
+let currentUserId = parseInt(localStorage.getItem('user_id')) || 0;
+let currentUserName = '';
+let currentUserIsAdmin = false;
+
+function hardenVideoElements(root = document) {
+  if (!root) return;
+  root.querySelectorAll('video').forEach(video => {
+    video.setAttribute('controlsList', 'nodownload noremoteplayback');
+    video.setAttribute('oncontextmenu', 'return false');
+    video.setAttribute('disablePictureInPicture', '');
+    video.setAttribute('disableRemotePlayback', '');
+  });
+}
+
+function nodeInsideCodeBlock(node) {
+  if (!node) return false;
+  const el = node.nodeType === 1 ? node : node.parentElement;
+  return !!(el && el.closest('pre'));
+}
+
+function eventInsideCodeBlock(e) {
+  if (e.target && e.target.closest && e.target.closest('pre,.code-copy-btn')) return true;
+  const sel = window.getSelection();
+  return !!(sel && sel.rangeCount && !sel.isCollapsed && nodeInsideCodeBlock(sel.anchorNode) && nodeInsideCodeBlock(sel.focusNode));
+}
+
+function eventTouchesProtectedRoot(e, root) {
+  const targetInside = !!(e.target && root.contains(e.target));
+  const sel = window.getSelection();
+  const selectionInside = !!(sel && sel.rangeCount && (root.contains(sel.anchorNode) || root.contains(sel.focusNode)));
+  return targetInside || selectionInside;
+}
+
+async function copyText(text) {
+  if (navigator.clipboard && window.isSecureContext) {
+    await navigator.clipboard.writeText(text);
+    return;
+  }
+  const ta = document.createElement('textarea');
+  ta.value = text;
+  ta.setAttribute('readonly', '');
+  ta.style.position = 'fixed';
+  ta.style.left = '-9999px';
+  document.body.appendChild(ta);
+  ta.select();
+  document.execCommand('copy');
+  ta.remove();
+}
+
+function enhanceCodeBlocks(root) {
+  if (!root) return;
+  root.querySelectorAll('pre').forEach(pre => {
+    if (pre.querySelector('.code-copy-btn')) return;
+    pre.classList.add('has-copy-btn');
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'code-copy-btn';
+    btn.textContent = '复制代码';
+    btn.addEventListener('click', async e => {
+      e.preventDefault();
+      e.stopPropagation();
+      const code = pre.querySelector('code');
+      const text = code ? code.innerText : pre.innerText.replace(/^复制代码\s*/, '');
+      try {
+        await copyText(text.trimEnd());
+        btn.textContent = '已复制';
+        showToast('代码已复制');
+        setTimeout(() => { btn.textContent = '复制代码'; }, 1200);
+      } catch(err) {
+        showToast('复制失败，请手动选择代码');
+      }
+    });
+    pre.appendChild(btn);
+  });
+}
+
+function protectExperienceContent(root) {
+  if (!root || root.dataset.copyProtected === '1') return;
+  root.dataset.copyProtected = '1';
+  root.classList.add('protected-content');
+  ['contextmenu', 'dragstart', 'selectstart'].forEach(type => {
+    root.addEventListener(type, e => {
+      if (eventInsideCodeBlock(e)) return;
+      e.preventDefault();
+      if (type === 'contextmenu') showToast('实战内容已开启复制保护');
+    });
+  });
+  const copyGuard = e => {
+    if (!root.isConnected) {
+      document.removeEventListener('copy', copyGuard, true);
+      document.removeEventListener('cut', copyGuard, true);
+      return;
+    }
+    if (!eventTouchesProtectedRoot(e, root) || eventInsideCodeBlock(e)) return;
+    e.preventDefault();
+    showToast('实战内容已开启复制保护');
+  };
+  document.addEventListener('copy', copyGuard, true);
+  document.addEventListener('cut', copyGuard, true);
+}
+
+// 获取用户信息
+async function loadUserInfo() {
+  if (!TOKEN) return;
+  try {
+    const r = await fetch('http://localhost:8000/auth/me', {
+      headers: { 'Authorization': 'Bearer ' + TOKEN }
+    });
+    if (!r.ok) return;
+    const info = await r.json();
+    console.log('[loadUserInfo] /auth/me:', JSON.stringify(info));
+    currentUserId = info.id || info.user_id || 0;
+    currentUserName = info.nickname || info.name || ('用户' + (info.phone || '').slice(-4));
+    currentUserIsAdmin = Boolean(info.is_admin);
+    if (currentUserId) localStorage.setItem('user_id', currentUserId);
+    updateAdminEntry();
+  } catch(e) { console.warn('loadUserInfo failed', e); }
+}
+
+function updateAdminEntry() {
+  const btn = document.getElementById('adminEntry');
+  if (!btn) return;
+  btn.classList.toggle('show', currentUserIsAdmin);
+}
+
+function openAdminEntry() {
+  if (!currentUserIsAdmin) return;
+  location.href = `${STATIC_ORIGIN || ''}/admin-practice.html`;
+}
+// 不在这里调用，统一在底部初始化
+
+// ─── 状态 ───
+let currentTab = 'experience';
+let expData = { items: [], loaded: false, category: '', sort: 'latest', feedMode: 'featured', page: 1, total: 0, pageSize: 20 };
+let campData = { items: [], loaded: false, category: '' };
+let vidData = { items: [], loaded: false, category: '', sort: 'hot' };
+let viewMode = localStorage.getItem('practice_view') || 'grid'; // grid | feed
+let searchQuery = '';
+let publishMode = 'experience';
+
+// ─── Marked 配置 ───
+if (typeof marked !== 'undefined') {
+  marked.setOptions({ breaks: true, gfm: true });
+}
+
+// ─── Tab 切换 ───
+function switchTab(tab) {
+  currentTab = tab;
+  document.querySelectorAll('.nav-tab').forEach(t => t.classList.toggle('active', t.dataset.tab === tab));
+  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+  document.getElementById('sec-' + tab).classList.add('active');
+
+  // 首次加载数据
+  if (tab === 'experience' && !expData.loaded) loadExperience();
+  if (tab === 'camp' && !campData.loaded) loadCamp();
+  if (tab === 'video' && !vidData.loaded) loadVideo();
+  updatePublishButton();
+}
+
+// ─── 通用 fetch ───
+async function apiFetch(path) {
+  try {
+    const r = await fetch(API + path, {
+      headers: TOKEN ? { 'Authorization': 'Bearer ' + TOKEN } : {}
+    });
+    if (!r.ok) throw new Error(r.status);
+    return await r.json();
+  } catch (e) {
+    console.error('[API]', path, e);
+    return null;
+  }
+}
+
+// ─── 模块一：实战经验 ───
+async function loadExperience() {
+  show('exp-loading'); hide('exp-empty');
+  const cats = await apiFetch('/categories?project_type=experience');
+  if (cats && cats.length) {
+    const wrap = document.getElementById('expCatTags');
+    cats.forEach(c => {
+      if (!c) return;
+      const d = document.createElement('div');
+      d.className = 'filter-tag'; d.dataset.cat = c;
+      d.textContent = c;
+      d.onclick = () => filterExp(d, c);
+      wrap.appendChild(d);
+    });
+  }
+  // 恢复视图模式
+  if (viewMode === 'feed') {
+    document.getElementById('viewGrid').classList.remove('active');
+    document.getElementById('viewFeed').classList.add('active');
+  }
+  await fetchExperience();
+  expData.loaded = true;
+}
+
+async function fetchExperience(append) {
+  if (!append) show('exp-loading');
+  let url = `/projects?project_type=experience&sort=${expData.sort}&page=${expData.page}&page_size=${expData.pageSize}`;
+  if (expData.category) url += `&category=${encodeURIComponent(expData.category)}`;
+  if (expData.feedMode === 'featured') url += `&is_featured=true`;
+  if (searchQuery) url += `&keyword=${encodeURIComponent(searchQuery)}`;
+  const data = await apiFetch(url);
+  hide('exp-loading');
+
+  if (!data || !data.items) {
+    if (!append) { document.getElementById('exp-list').innerHTML = ''; show('exp-empty'); }
+    return;
+  }
+
+  expData.total = data.total || 0;
+
+  if (append) {
+    expData.items = expData.items.concat(data.items);
+  } else {
+    expData.items = data.items;
+  }
+
+  if (expData.items.length === 0) {
+    document.getElementById('exp-list').innerHTML = '';
+    show('exp-empty');
+    return;
+  }
+  hide('exp-empty');
+  renderExp(expData.items);
+  renderLoadMore();
+}
+
+function renderExp(items) {
+  if (viewMode === 'feed') renderFeedList(items);
+  else renderExpCards(items);
+}
+
+function renderLoadMore() {
+  // 移除旧的加载更多按钮
+  const old = document.getElementById('loadMoreBtn');
+  if (old) old.remove();
+
+  const hasMore = expData.items.length < expData.total;
+  if (!hasMore) return;
+
+  const btn = document.createElement('div');
+  btn.id = 'loadMoreBtn';
+  btn.style.cssText = 'text-align:center;padding:24px;';
+  btn.innerHTML = `<button onclick="loadMoreExp()" style="
+    padding:10px 32px;border-radius:8px;border:1px solid var(--line);
+    background:var(--bg-card);color:var(--ink-mid);font-size:14px;
+    cursor:pointer;font-family:var(--sans);transition:all .15s;
+  ">加载更多 (${expData.items.length}/${expData.total})</button>`;
+  document.getElementById('exp-list').after(btn);
+}
+
+function loadMoreExp() {
+  expData.page++;
+  fetchExperience(true);
+}
+
+function renderExpCards(items) {
+  const grid = document.getElementById('exp-list');
+  grid.className = 'card-grid';
+  if (!items.length) { grid.innerHTML = ''; show('exp-empty'); return; }
+  hide('exp-empty');
+  grid.innerHTML = items.map(p => {
+    const img = _extractImg(p);
+    return `
+    <div class="card" onclick="location.href='article.html?slug='+'${p.slug}'">
+      ${img ? `<div class="card-cover"><img src="${esc(img)}" alt="" onerror="this.parentNode.remove()"></div>` : ''}
+      <div class="card-top">
+        ${!img ? `<div class="card-emoji" style="background:${_isColor(p.cover_color) ? p.cover_color : '#F5EFDE'}">${p.cover_emoji || '📋'}</div>` : ''}
+        <div class="card-meta">
+          <div class="card-title">${esc(p.title)}</div>
+          ${p.category ? `<div class="card-cat">${esc(p.category)}</div>` : ''}
+        </div>
+      </div>
+      <div class="card-footer">
+        ${p.author_name ? `<span>✍ ${esc(p.author_name)}</span>` : ''}
+        <span>👁 ${p.view_count || 0}</span>
+        ${p.is_featured ? '<span class="card-badge badge-open">推荐</span>' : ''}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function renderFeedList(items) {
+  const container = document.getElementById('exp-list');
+  container.className = 'feed-list';
+  if (!items.length) { container.innerHTML = ''; show('exp-empty'); return; }
+  hide('exp-empty');
+
+  container.innerHTML = items.map(p => {
+    const firstImg = _extractImg(p);
+    const isOwn = p.author_id && p.author_id === currentUserId;
+    const timeStr = p.created_at ? formatTimeShort(p.created_at) : '';
+
+    return `
+      <div class="feed-item" onclick="location.href='article.html?slug=${p.slug}'">
+        <div class="feed-body">
+          <div class="feed-author">
+            <div class="feed-avatar">${(p.author_name || '阿').charAt(0)}</div>
+            <span class="feed-author-name">${esc(p.author_name || '阿川')}</span>
+            ${p.is_featured ? '<span class="feed-author-tag">推荐</span>' : ''}
+            <span class="feed-author-time">${timeStr}</span>
+          </div>
+          <div class="feed-title">${esc(p.title)}</div>
+          <div class="feed-footer">
+            <span>👁 ${p.view_count || 0}</span>
+            <span>👍 ${p.like_count || 0}</span>
+            <span>💬 ${p.comment_count || 0}</span>
+            ${isOwn ? `
+              <div class="feed-actions" onclick="event.stopPropagation()">
+                <button class="feed-action-btn" onclick="editPost('${p.slug}')">编辑</button>
+                <button class="feed-action-btn danger" onclick="deletePost('${p.slug}')">删除</button>
+              </div>
+            ` : ''}
+          </div>
+        </div>
+        ${firstImg ? `<img class="feed-image" src="${esc(firstImg)}" alt="" onerror="this.remove()">` : ''}
+      </div>
+    `;
+  }).join('');
+}
+
+// ─── 全部/推荐切换 ───
+function switchFeed(mode, el) {
+  document.querySelectorAll('.exp-tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('#expCatTags .filter-tag').forEach(t => t.classList.remove('active'));
+  el.classList.add('active');
+  expData.feedMode = mode;
+  expData.category = '';
+  expData.page = 1;
+  fetchExperience();
+}
+
+// ─── 视图切换 ───
+function switchView(mode) {
+  viewMode = mode;
+  localStorage.setItem('practice_view', mode);
+  document.getElementById('viewGrid').classList.toggle('active', mode === 'grid');
+  document.getElementById('viewFeed').classList.toggle('active', mode === 'feed');
+  if (expData.items.length) renderExp(expData.items);
+}
+
+function filterExp(el, cat) {
+  document.querySelectorAll('.exp-tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('#expCatTags .filter-tag').forEach(t => t.classList.remove('active'));
+  el.classList.add('active');
+  expData.category = cat;
+  expData.feedMode = 'all';
+  expData.page = 1;
+  fetchExperience();
+}
+
+function formatTimeShort(ts) {
+  if (!ts) return '';
+  const d = new Date(ts);
+  const now = new Date();
+  const diff = (now - d) / 1000;
+  if (diff < 3600) return Math.floor(diff / 60) + '分钟前';
+  if (diff < 86400) return Math.floor(diff / 3600) + '小时前';
+  if (diff < 604800) return Math.floor(diff / 86400) + '天前';
+  return (d.getMonth() + 1) + '-' + d.getDate();
+}
+
+// ─── 编辑/删除 ───
+function editPost(slug) {
+  // 打开发布编辑器 · 填充原内容
+  const item = expData.items.find(p => p.slug === slug) || campData.items.find(p => p.slug === slug);
+  if (!item) return;
+  publishMode = item.project_type === 'camp' ? 'camp' : 'experience';
+  document.getElementById('pubTitle').value = item.title || '';
+  // 加载 md 内容
+  apiFetch(`/projects/${slug}/md`).then(md => {
+    const editor = document.getElementById('pubContent');
+    if (md && md.content) editor.innerHTML = marked.parse(md.content);
+    else editor.innerHTML = item.description || '';
+    hardenVideoElements(editor);
+  });
+  if (item.category) {
+    document.querySelectorAll('.publish-cat').forEach(c => {
+      c.classList.toggle('active', c.dataset.cat === item.category);
+    });
+    selectedPubCat = item.category;
+  }
+  // 标记为编辑模式
+  window._editSlug = slug;
+  openPublishEditor(publishMode);
+  document.querySelector('.publish-header-title').textContent = '编辑内容';
+}
+
+async function deletePost(slug) {
+  if (!confirm('确定要删除这篇内容吗？')) return;
+  try {
+    const r = await fetch(API + `/projects/${slug}`, {
+      method: 'DELETE',
+      headers: authJsonHeaders(),
+      body: JSON.stringify({ user_id: currentUserId })
+    });
+    const data = await r.json();
+    if (data.ok) {
+      showToast('已删除');
+      expData.loaded = false;
+      loadExperience();
+    } else showToast('删除失败');
+  } catch(e) { showToast('删除失败'); }
+}
+
+// ─── 模块二：专栏 ───
+async function loadCamp() {
+  show('camp-loading'); hide('camp-empty');
+  const cats = await apiFetch('/column-categories');
+  if (cats && cats.length) {
+    const bar = document.getElementById('camp-filter-bar');
+    bar.querySelectorAll('.filter-tag:not([data-cat=""])').forEach(n => n.remove());
+    cats.forEach(c => {
+      if (!c) return;
+      const d = document.createElement('div');
+      d.className = 'filter-tag'; d.dataset.cat = c;
+      d.textContent = c;
+      d.onclick = () => filterCamp(d, c);
+      bar.appendChild(d);
+    });
+  }
+  await fetchCamp();
+  campData.loaded = true;
+}
+
+async function fetchCamp() {
+  show('camp-loading');
+  let columnUrl = `/columns?sort=latest&page=1&page_size=50`;
+  let legacyUrl = `/projects?project_type=camp&sort=latest&page=1&page_size=50`;
+  if (campData.category) {
+    const cat = encodeURIComponent(campData.category);
+    columnUrl += `&category=${cat}`;
+    legacyUrl += `&category=${cat}`;
+  }
+  const [columnData, legacyData] = await Promise.all([
+    apiFetch(columnUrl).catch(() => null),
+    apiFetch(legacyUrl).catch(() => null)
+  ]);
+  hide('camp-loading');
+  const columnItems = (columnData?.items || []).map(item => ({ ...item, _kind: 'column' }));
+  const legacyItems = (legacyData?.items || []).map(item => ({ ...item, _kind: 'legacy-camp' }));
+  const items = [...columnItems, ...legacyItems];
+
+  if (!items.length) {
+    document.getElementById('camp-list').innerHTML = '';
+    document.getElementById('camp-banner').classList.remove('show');
+    show('camp-empty');
+    return;
+  }
+  hide('camp-empty');
+  campData.items = items;
+  renderCamp(searchQuery ? filterBySearch(items, searchQuery.toLowerCase()) : items);
+}
+
+function renderCamp(items) {
+  const list = document.getElementById('camp-list');
+  const banner = document.getElementById('camp-banner');
+  banner.classList.remove('show');
+  if (!items.length) { list.innerHTML = ''; show('camp-empty'); return; }
+  hide('camp-empty');
+  const series = items.filter(p => p._kind === 'column');
+  const legacy = items.filter(p => p._kind === 'legacy-camp');
+  let html = '';
+  if (series.length) {
+    html += `<div class="timeline-group">
+      <div class="timeline-label">系列专栏 · ${series.length} 个</div>
+      <div class="course-grid">${series.map(campCard).join('')}</div>
+    </div>`;
+  }
+  if (legacy.length) {
+    html += `<div class="timeline-group">
+      <div class="timeline-label">历史专栏</div>
+      <div class="course-grid">${legacy.map(campCard).join('')}</div>
+    </div>`;
+  }
+  list.innerHTML = html;
+}
+
+function campCard(p) {
+  if (p._kind === 'legacy-camp') {
+    const cover = _extractImg(p);
+    return `
+      <div class="course-card" onclick="openProjectDetail('${p.slug}')">
+        <div class="course-cover" style="background:url(${esc(cover)}) center/cover no-repeat">
+          <img src="${esc(cover)}" alt="${esc(p.title)}" onerror="this.onerror=null;this.src='${DEFAULT_COLUMN_COVER_URL}'">
+          <div class="course-cover-badge">${esc(p.category || '历史专栏')}</div>
+          <div class="course-cover-count">图文</div>
+        </div>
+        <div class="course-body">
+          <div class="course-title">${esc(p.title)}</div>
+          <div class="course-instructor">历史专栏 · ${(p.updated_at || p.created_at || '').substring(0,10)}</div>
+          <div class="course-bottom">
+            <span class="course-price-tag free">已发布</span>
+            <button class="course-view-btn" onclick="event.stopPropagation();openProjectDetail('${p.slug}')">阅读 →</button>
+          </div>
+        </div>
+      </div>`;
+  }
+  const coverUrl = (p.cover_url && p.cover_url.trim()) || DEFAULT_COLUMN_COVER_URL;
+  const lessonCount = p.published_lesson_count || p.lesson_count || 0;
+  return `
+    <div class="course-card" onclick="openColumnDetail('${p.slug}')">
+      <div class="course-cover" style="background:url(${esc(coverUrl)}) center/cover no-repeat">
+        <img src="${esc(coverUrl)}" alt="${esc(p.title)}" onerror="this.onerror=null;this.src='${DEFAULT_COLUMN_COVER_URL}'">
+        <div class="course-cover-badge">${esc(p.category || '专栏')}</div>
+        <div class="course-cover-count">共 ${lessonCount} 章</div>
+      </div>
+      <div class="course-body">
+        <div class="course-title">${esc(p.title)}</div>
+        <div class="course-instructor">${esc(p.description || '图文与视频章节持续更新')}</div>
+        <div class="course-bottom">
+          <span class="course-price-tag free">${p.status === 'published' ? '更新中' : esc(p.status || '专栏')}</span>
+          <button class="course-view-btn" onclick="event.stopPropagation();openColumnDetail('${p.slug}')">进入专栏 →</button>
+        </div>
+      </div>
+    </div>`;
+}
+
+function filterCamp(el, cat) {
+  document.querySelectorAll('#camp-filter-bar .filter-tag').forEach(t => t.classList.remove('active'));
+  el.classList.add('active');
+  campData.category = cat;
+  fetchCamp();
+}
+
+// ─── 模块三：视频课程 ───
+async function loadVideo() {
+  show('vid-loading'); hide('vid-empty');
+  const cats = await apiFetch('/course-categories');
+  if (cats && cats.length) {
+    const bar = document.getElementById('vid-filter-bar');
+    // 插在 filter-sort 之前
+    const sortDiv = bar.querySelector('.filter-sort');
+    cats.forEach(c => {
+      if (!c) return;
+      const d = document.createElement('div');
+      d.className = 'filter-tag'; d.dataset.cat = c;
+      d.textContent = c;
+      d.onclick = () => filterVid(d, c);
+      bar.insertBefore(d, sortDiv);
+    });
+  }
+  await fetchVideo();
+  vidData.loaded = true;
+}
+
+async function fetchVideo() {
+  show('vid-loading');
+  let url = `/courses?sort=${vidData.sort}&page=1&page_size=50`;
+  if (vidData.category) url += `&category=${encodeURIComponent(vidData.category)}`;
+  const data = await apiFetch(url);
+  hide('vid-loading');
+
+  if (!data || !data.items || data.items.length === 0) {
+    document.getElementById('vid-list').innerHTML = '';
+    show('vid-empty');
+    return;
+  }
+  hide('vid-empty');
+  vidData.items = data.items;
+  renderVideoCourses(searchQuery ? filterBySearch(data.items, searchQuery) : data.items);
+}
+
+function renderVideoCourses(items) {
+  const grid = document.getElementById('vid-list');
+  if (!items.length) { grid.innerHTML = ''; show('vid-empty'); return; }
+  hide('vid-empty');
+
+  grid.innerHTML = items.map(c => {
+    const coverUrl = (c.cover_url && c.cover_url.trim()) || DEFAULT_COURSE_COVER_URL;
+    const bgStyle = `background: url(${esc(coverUrl)}) center/cover no-repeat`;
+    const lessonCount = c.lesson_count || 0;
+    const priceText = c.price === 0 ? '免费' : '¥' + c.price;
+    const priceClass = c.price === 0 ? 'free' : '';
+
+    return `
+      <div class="course-card" onclick="openCourseDetail('${c.slug}')">
+        <div class="course-cover" style="${bgStyle}">
+          <img src="${esc(coverUrl)}" alt="${esc(c.title)}" onerror="this.onerror=null;this.src='${DEFAULT_COURSE_COVER_URL}'">
+          <div class="course-cover-badge">${esc(c.category || '课程')}</div>
+          <div class="course-cover-count">共 ${lessonCount} 小节</div>
+        </div>
+        <div class="course-body">
+          <div class="course-title">${esc(c.title)}</div>
+          <div class="course-instructor">${c.instructor ? esc(c.instructor) + ' · ' : ''}${formatDuration(c.total_duration)}</div>
+          <div class="course-bottom">
+            <span class="course-price-tag ${priceClass}">${priceText}</span>
+            <button class="course-view-btn" onclick="event.stopPropagation();openCourseDetail('${c.slug}')">查看课程 →</button>
+          </div>
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+function filterVid(el, cat) {
+  document.querySelectorAll('#vid-filter-bar .filter-tag').forEach(t => t.classList.remove('active'));
+  el.classList.add('active');
+  vidData.category = cat;
+  fetchVideo();
+}
+
+function sortVid(el, sort) {
+  document.querySelectorAll('.sort-btn').forEach(b => b.classList.remove('active'));
+  el.classList.add('active');
+  vidData.sort = sort;
+  fetchVideo();
+}
+
+// ─── 项目详情 ───
+async function openProjectDetail(slug) {
+  const panel = document.getElementById('detailPanel');
+  panel.className = 'detail-panel';
+  panel.innerHTML = '<div class="loading-spinner" style="padding:60px"><div class="spinner"></div></div>';
+  openOverlay();
+
+  const data = await apiFetch(`/projects/${slug}`);
+  if (!data) { panel.innerHTML = '<div class="empty-state"><div class="empty-state-text">加载失败</div></div>'; return; }
+
+  // 获取 Markdown 内容
+  let mdContent = '';
+  if (data.md_filename) {
+    const md = await apiFetch(`/projects/${slug}/md`);
+    if (md && md.content && !md.content.includes('即将更新')) mdContent = md.content;
+  }
+
+  // 标签去重（去掉和 category 重复的）
+  const tagNames = new Set();
+  if (data.category) tagNames.add(data.category);
+  const uniqueTags = (data.tags || []).filter(t => {
+    if (tagNames.has(t.name)) return false;
+    tagNames.add(t.name);
+    return true;
+  });
+  const tagsHtml = uniqueTags.map(t => `<span class="tag">${esc(t.name)}</span>`).join('');
+
+  // banner 背景
+  const detailCover = _extractImg(data);
+  const bannerBg = detailCover
+    ? `url(${esc(detailCover)}) center/cover`
+    : (_isColor(data.cover_color) ? data.cover_color : '#F5EFDE');
+
+  // 内容区
+  let contentHtml = '';
+  if (mdContent) {
+    contentHtml = marked.parse(mdContent);
+  } else if (data.description) {
+    contentHtml = `
+      <div class="detail-desc-text">${esc(data.description)}</div>
+      <div style="margin-top:20px;padding:20px;background:var(--gold-bg);border-radius:10px;text-align:center">
+        <div style="font-size:28px;margin-bottom:8px">📝</div>
+        <div style="font-size:14px;color:var(--ink-mid);font-family:var(--sans)">完整内容正在整理中，订阅即可第一时间收到更新通知</div>
+      </div>`;
+  } else {
+    contentHtml = `
+      <div style="padding:30px;text-align:center">
+        <div style="font-size:36px;margin-bottom:10px">📝</div>
+        <div style="font-size:14px;color:var(--ink-mute);font-family:var(--sans)">内容即将更新...</div>
+      </div>`;
+  }
+
+  panel.innerHTML = `
+    <div class="detail-banner" style="background:${bannerBg}">
+      ${detailCover ? '' : `<span>${data.cover_emoji || '📋'}</span>`}
+      <div class="detail-close" onclick="closeDetail()">✕</div>
+    </div>
+    <div class="detail-header">
+      <div class="detail-title">${esc(data.title)}</div>
+      <div class="detail-info">
+        ${data.category ? `<span class="tag">${esc(data.category)}</span>` : ''}
+        ${tagsHtml}
+        ${data.start_date ? `<span>📅 ${data.start_date}</span>` : ''}
+      </div>
+    </div>
+    <div class="detail-content">${contentHtml}</div>
+    <div class="detail-interact">
+      <div class="interact-bar">
+        <button id="likeBtn" class="interact-btn" onclick="toggleLike('${slug}')">
+          <span id="likeIcon">👍</span> <span class="count" id="likeCount">0</span>
+        </button>
+        <button class="interact-btn" onclick="document.getElementById('commentInput').focus()">
+          💬 <span class="count" id="commentCountBar">0</span>
+        </button>
+        <button id="subBtn" class="interact-btn" onclick="doSubscribe('${slug}')">📌 订阅</button>
+      </div>
+      <div class="comment-section">
+        <div class="comment-header">评论 <span class="count" id="commentTotal"></span></div>
+        <div class="comment-input-wrap">
+          <textarea id="commentInput" class="comment-input" placeholder="写下你的想法..." rows="1"></textarea>
+          <button class="comment-submit" onclick="postComment('${slug}')">发布</button>
+        </div>
+        <ul class="comment-list" id="commentList"><li class="comment-empty">加载中...</li></ul>
+      </div>
+    </div>
+  `;
+
+  hardenVideoElements(panel);
+
+  // 浏览量 +1
+  fetch(API + `/projects/${slug}/view`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ user_id: currentUserId || null })
+  }).catch(() => {});
+
+  // 代码高亮
+  panel.querySelectorAll('pre code').forEach(block => {
+    if (typeof Prism !== 'undefined') Prism.highlightElement(block);
+  });
+  const detailContentEl = panel.querySelector('.detail-content');
+  enhanceCodeBlocks(detailContentEl);
+  if ((data.project_type || 'experience') === 'experience') {
+    protectExperienceContent(detailContentEl);
+  }
+
+  // 加载互动数据
+  loadLikeStatus(slug);
+  loadComments(slug);
+  checkSubscribeStatus(slug);
+}
+
+// ─── 课程详情 ───
+async function openCourseDetail(slug) {
+  const panel = document.getElementById('detailPanel');
+  panel.className = 'detail-panel';
+  panel.innerHTML = '<div class="loading-spinner" style="padding:60px"><div class="spinner"></div></div>';
+  openOverlay();
+
+  const data = await apiFetch(`/courses/${slug}`);
+  if (!data) { panel.innerHTML = '<div class="empty-state"><div class="empty-state-text">加载失败</div></div>'; return; }
+
+  const lessons = data.lessons || [];
+  const firstLesson = lessons[0] || null;
+  const courseCoverUrl = (data.cover_url && data.cover_url.trim()) || DEFAULT_COURSE_COVER_URL;
+  const bannerBg = `url(${esc(courseCoverUrl)}) center/cover`;
+  const priceText = data.price === 0 ? '免费' : '¥' + data.price;
+  const priceClass = data.price === 0 ? 'free' : '';
+
+  panel.innerHTML = `
+    <div class="detail-banner" style="background:${bannerBg}">
+      <div class="detail-close" onclick="closeDetail()">✕</div>
+    </div>
+    <div class="detail-header" style="padding-bottom:12px">
+      <div class="detail-title">${esc(data.title)}</div>
+      <div class="detail-info">
+        ${data.category ? `<span class="tag">${esc(data.category)}</span>` : ''}
+        ${data.instructor ? `<span>${esc(data.instructor)}</span>` : ''}
+        <span>📚 ${data.lesson_count || lessons.length} 节</span>
+        <span>⏱ ${formatDuration(data.total_duration)}</span>
+        <span class="course-price-tag ${priceClass}">${priceText}</span>
+      </div>
+    </div>
+    <div class="course-detail-layout">
+      <div class="course-player" id="coursePlayer">
+        <div class="course-player-placeholder" id="playerArea">▶</div>
+        <div class="course-lesson-title" id="currentLessonTitle">${firstLesson ? esc(firstLesson.title) : '选择课时开始学习'}</div>
+        <div class="course-lesson-desc" id="currentLessonDesc"></div>
+        <div class="detail-content" id="lessonArticle" style="display:none"></div>
+      </div>
+      <div class="course-sidebar">
+        <div class="course-sidebar-header">课程目录 · ${lessons.length} 节</div>
+        ${lessons.map((l, i) => `
+          <div class="lesson-item ${i === 0 ? 'active' : ''}" data-lid="${l.id}" onclick="playLesson('${slug}', ${l.id}, this)">
+            <div class="lesson-num">${i + 1}</div>
+            <div class="lesson-info">
+              <div class="lesson-name">${esc(l.title)}</div>
+              <div class="lesson-meta">
+                <span>${l.lesson_type === 'video' ? '🎬 视频' : '📝 文字'}</span>
+                ${l.video_duration ? `<span>${formatDuration(l.video_duration)}</span>` : ''}
+                ${l.is_free ? '<span class="lesson-free">免费</span>' : ''}
+              </div>
+            </div>
+          </div>
+        `).join('')}
+      </div>
+    </div>
+  `;
+
+  // 自动加载第一个课时
+  if (firstLesson) playLesson(slug, firstLesson.id, panel.querySelector('.lesson-item'));
+}
+
+async function playLesson(courseSlug, lessonId, el) {
+  // 高亮当前课时
+  document.querySelectorAll('.lesson-item').forEach(l => l.classList.remove('active'));
+  if (el) el.classList.add('active');
+
+  const data = await apiFetch(`/courses/${courseSlug}/lessons/${lessonId}`);
+  if (!data) return;
+
+  const player = document.getElementById('playerArea');
+  const title = document.getElementById('currentLessonTitle');
+  const desc = document.getElementById('currentLessonDesc');
+  const article = document.getElementById('lessonArticle');
+
+  title.textContent = data.title;
+  desc.textContent = data.description || '';
+
+  if (data.lesson_type === 'video' && data.video_url) {
+    player.style.display = 'block';
+    article.style.display = 'none';
+    player.outerHTML = `<video id="playerArea" controls controlsList="nodownload noremoteplayback" oncontextmenu="return false" disablePictureInPicture disableRemotePlayback src="${esc(data.video_url)}" style="width:100%;aspect-ratio:16/9;border-radius:var(--radius-md);background:#000"></video>`;
+  } else if (data.article_content) {
+    player.style.display = 'none';
+    article.style.display = 'block';
+    article.innerHTML = marked.parse(data.article_content);
+    hardenVideoElements(article);
+    article.querySelectorAll('pre code').forEach(block => {
+      if (typeof Prism !== 'undefined') Prism.highlightElement(block);
+    });
+  } else {
+    player.style.display = 'block';
+    article.style.display = 'none';
+    if (player.tagName === 'VIDEO') {
+      player.outerHTML = `<div class="course-player-placeholder" id="playerArea">▶</div>`;
+    }
+  }
+}
+
+// ─── 专栏详情 ───
+async function openColumnDetail(slug) {
+  const panel = document.getElementById('detailPanel');
+  panel.className = 'detail-panel column-detail-panel';
+  panel.innerHTML = '<div class="loading-spinner" style="padding:60px"><div class="spinner"></div></div>';
+  openOverlay();
+
+  const data = await apiFetch(`/columns/${slug}`);
+  if (!data) { panel.innerHTML = '<div class="empty-state"><div class="empty-state-text">加载失败</div></div>'; return; }
+
+  const lessons = data.lessons || [];
+  const firstLesson = lessons[0] || null;
+  const coverUrl = (data.cover_url && data.cover_url.trim()) || DEFAULT_COLUMN_COVER_URL;
+  const bannerBg = `url(${esc(coverUrl)}) center/cover`;
+
+  panel.innerHTML = `
+    <div class="detail-banner" style="background:${bannerBg}">
+      <div class="detail-close" onclick="closeDetail()">✕</div>
+    </div>
+    <div class="detail-header" style="padding-bottom:12px">
+      <div class="detail-title">${esc(data.title)}</div>
+      <div class="detail-info">
+        ${data.category ? `<span class="tag">${esc(data.category)}</span>` : ''}
+        ${data.instructor ? `<span>${esc(data.instructor)}</span>` : ''}
+        <span>📚 ${data.lesson_count || lessons.length} 章</span>
+        ${data.updated_at ? `<span>最近更新 ${String(data.updated_at).substring(0,10)}</span>` : ''}
+      </div>
+    </div>
+    <div class="course-detail-layout column-detail-layout">
+      <div class="course-player column-reader" id="columnContent">
+        <div class="course-player-placeholder" id="columnPlayerArea">📖</div>
+        <div class="column-lesson-head">
+          <div class="column-lesson-kicker" id="columnLessonKicker">图文章节</div>
+          <div class="course-lesson-title" id="columnLessonTitle">${firstLesson ? esc(firstLesson.title) : '暂无章节'}</div>
+        </div>
+        <div class="detail-content" id="columnLessonArticle" style="display:none"></div>
+      </div>
+      <div class="course-sidebar column-sidebar">
+        <div class="course-sidebar-header">专栏目录 · ${lessons.length} 章</div>
+        ${lessons.length ? lessons.map((l, i) => `
+          <div class="lesson-item ${i === 0 ? 'active' : ''}" data-lid="${l.id}" onclick="playColumnLesson('${slug}', ${l.id}, this)">
+            <div class="lesson-num">${i + 1}</div>
+            <div class="lesson-info">
+              <div class="lesson-name">${esc(l.title)}</div>
+              <div class="lesson-meta">
+                <span>${l.lesson_type === 'video' ? '🎬 视频' : '📝 图文'}</span>
+                ${l.video_duration ? `<span>${formatDuration(l.video_duration)}</span>` : ''}
+                ${l.is_free ? '<span class="lesson-free">试看</span>' : ''}
+              </div>
+            </div>
+          </div>
+        `).join('') : '<div class="empty-state-text" style="padding:20px">章节整理中</div>'}
+      </div>
+    </div>
+  `;
+
+  if (firstLesson) playColumnLesson(slug, firstLesson.id, panel.querySelector('.lesson-item'));
+}
+
+async function playColumnLesson(columnSlug, lessonId, el) {
+  document.querySelectorAll('.lesson-item').forEach(l => l.classList.remove('active'));
+  if (el) el.classList.add('active');
+
+  const data = await apiFetch(`/columns/${columnSlug}/lessons/${lessonId}`);
+  if (!data) return;
+
+  let player = document.getElementById('columnPlayerArea');
+  const title = document.getElementById('columnLessonTitle');
+  const article = document.getElementById('columnLessonArticle');
+  const reader = document.getElementById('columnContent');
+  const kicker = document.getElementById('columnLessonKicker');
+  title.textContent = data.title || '';
+
+  if (data.lesson_type === 'video' && data.video_url) {
+    if (reader) reader.classList.remove('is-article');
+    if (reader) reader.classList.add('is-video');
+    if (kicker) kicker.textContent = '视频章节';
+    article.style.display = 'none';
+    if (player.tagName !== 'VIDEO') {
+      player.outerHTML = `<video id="columnPlayerArea" controls controlsList="nodownload noremoteplayback" oncontextmenu="return false" disablePictureInPicture disableRemotePlayback style="width:100%;aspect-ratio:16/9;border-radius:var(--radius-md);background:#000"></video>`;
+      player = document.getElementById('columnPlayerArea');
+    }
+    player.style.display = 'block';
+    player.src = data.video_url;
+    hardenVideoElements(player.parentNode);
+  } else {
+    if (reader) reader.classList.remove('is-video');
+    if (reader) reader.classList.add('is-article');
+    if (kicker) kicker.textContent = '图文章节';
+    if (player.tagName === 'VIDEO') {
+      player.outerHTML = `<div class="course-player-placeholder" id="columnPlayerArea">📖</div>`;
+      player = document.getElementById('columnPlayerArea');
+    }
+    player.style.display = 'none';
+    article.style.display = 'block';
+    article.innerHTML = data.article_content ? marked.parse(data.article_content) : '<div class="empty-state-text">内容整理中</div>';
+    hardenVideoElements(article);
+    article.querySelectorAll('pre code').forEach(block => {
+      if (typeof Prism !== 'undefined') Prism.highlightElement(block);
+    });
+    enhanceCodeBlocks(article);
+  }
+}
+
+// ─── 订阅 ───
+async function doSubscribe(slug) {
+  try {
+    const r = await fetch(API + '/subscribe', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ phone: PHONE, project_slug: slug, source_page: 'practice' })
+    });
+    const data = await r.json();
+    if (data.ok) {
+      showToast(data.message || '订阅成功');
+      const btn = document.getElementById('subBtn');
+      if (btn) { btn.textContent = '✓ 已订阅'; btn.classList.add('subscribed'); }
+    }
+  } catch (e) { showToast('订阅失败'); }
+}
+
+async function checkSubscribeStatus(slug) {
+  const data = await apiFetch(`/subscribe/check?phone=${PHONE}&project_slug=${slug}`);
+  if (data && data.subscribed) {
+    const btn = document.getElementById('subBtn');
+    if (btn) { btn.textContent = '✓ 已订阅'; btn.classList.add('subscribed'); }
+  }
+}
+
+// ─── 搜索 ───
+let searchTimer;
+function handleSearch(val) {
+  clearTimeout(searchTimer);
+  searchTimer = setTimeout(() => {
+    searchQuery = val.trim();
+    if (currentTab === 'experience') {
+      // 实战经验走后端搜索
+      expData.page = 1;
+      fetchExperience();
+    }
+    if (currentTab === 'camp' && campData.items.length) {
+      renderCamp(searchQuery ? filterBySearch(campData.items, searchQuery.toLowerCase()) : campData.items);
+    }
+    if (currentTab === 'video' && vidData.items.length) {
+      renderVideoCourses(searchQuery ? filterBySearch(vidData.items, searchQuery.toLowerCase()) : vidData.items);
+    }
+  }, 350);
+}
+
+function filterBySearch(items, q) {
+  return items.filter(p =>
+    (p.title && p.title.toLowerCase().includes(q)) ||
+    (p.description && p.description.toLowerCase().includes(q)) ||
+    (p.category && p.category.toLowerCase().includes(q)) ||
+    (p.instructor && p.instructor.toLowerCase().includes(q))
+  );
+}
+
+// ─── Overlay ───
+function openOverlay() {
+  document.getElementById('detailOverlay').classList.add('show');
+  document.body.style.overflow = 'hidden';
+}
+function closeDetail() {
+  document.getElementById('detailOverlay').classList.remove('show');
+  document.body.style.overflow = '';
+  const panel = document.getElementById('detailPanel');
+  if (panel) panel.className = 'detail-panel';
+}
+
+// ─── 工具函数 ───
+function esc(s) { const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
+function show(id) { const e = document.getElementById(id); if (e) e.style.display = ''; }
+function hide(id) { const e = document.getElementById(id); if (e) e.style.display = 'none'; }
+function formatDuration(sec) {
+  if (!sec) return '0分钟';
+  const h = Math.floor(sec / 3600);
+  const m = Math.floor((sec % 3600) / 60);
+  return h ? `${h}小时${m}分钟` : `${m}分钟`;
+}
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2500);
+}
+
+// ─── 点赞 ───
+async function loadLikeStatus(slug) {
+  if (!currentUserId) return;
+  const data = await apiFetch(`/like/status?user_id=${currentUserId}&project_slug=${slug}`);
+  if (!data) return;
+  const btn = document.getElementById('likeBtn');
+  const icon = document.getElementById('likeIcon');
+  const count = document.getElementById('likeCount');
+  if (count) count.textContent = data.count || 0;
+  if (data.liked && btn) { btn.classList.add('active'); if (icon) icon.textContent = '❤️'; }
+}
+
+async function toggleLike(slug) {
+  if (!currentUserId) { showToast('请先登录'); return; }
+  try {
+    const r = await fetch(API + '/like', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ user_id: currentUserId, project_slug: slug })
+    });
+    const data = await r.json();
+    const btn = document.getElementById('likeBtn');
+    const icon = document.getElementById('likeIcon');
+    const count = document.getElementById('likeCount');
+    if (count) count.textContent = data.count || 0;
+    if (btn) btn.classList.toggle('active', data.liked);
+    if (icon) icon.textContent = data.liked ? '❤️' : '👍';
+  } catch(e) { showToast('操作失败'); }
+}
+
+// ─── 评论 ───
+async function loadComments(slug) {
+  const data = await apiFetch(`/comments?project_slug=${slug}`);
+  if (!data) return;
+  const list = document.getElementById('commentList');
+  const total = document.getElementById('commentTotal');
+  const bar = document.getElementById('commentCountBar');
+  if (total) total.textContent = data.total ? `(${data.total})` : '';
+  if (bar) bar.textContent = data.total || 0;
+
+  if (!data.items || data.items.length === 0) {
+    list.innerHTML = '<li class="comment-empty">暂无评论 · 来说两句吧</li>';
+    return;
+  }
+  list.innerHTML = data.items.map(c => `
+    <li class="comment-item">
+      <div class="comment-author">
+        <div class="comment-avatar">${(c.username || '用户').charAt(0)}</div>
+        <span class="comment-name">${esc(c.username || '用户')}</span>
+        <span class="comment-time">${formatTime(c.created_at)}</span>
+      </div>
+      <div class="comment-text">${esc(c.content)}</div>
+    </li>
+  `).join('');
+}
+
+async function postComment(slug) {
+  if (!currentUserId) { showToast('请先登录'); return; }
+  const input = document.getElementById('commentInput');
+  const content = input.value.trim();
+  if (!content) { showToast('请输入评论内容'); return; }
+  try {
+    const r = await fetch(API + '/comments', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ user_id: currentUserId, username: currentUserName || '用户', project_slug: slug, content })
+    });
+    if (!r.ok) throw new Error();
+    input.value = '';
+    showToast('评论成功');
+    loadComments(slug);
+  } catch(e) { showToast('评论失败'); }
+}
+
+function formatTime(ts) {
+  if (!ts) return '';
+  const d = new Date(ts);
+  const now = new Date();
+  const diff = (now - d) / 1000;
+  if (diff < 60) return '刚刚';
+  if (diff < 3600) return Math.floor(diff / 60) + '分钟前';
+  if (diff < 86400) return Math.floor(diff / 3600) + '小时前';
+  if (diff < 604800) return Math.floor(diff / 86400) + '天前';
+  return d.toLocaleDateString('zh-CN');
+}
+
+// ─── 图片/文本工具 ───
+function _extractImg(p) {
+  return p && p.cover_color === 'admin-cover' && p.cover_image ? p.cover_image : DEFAULT_EXPERIENCE_COVER_URL;
+}
+function _isColor(s) { return s && s.startsWith('#') && s.length <= 9; }
+function _stripMd(s) { return s.replace(/!\[.*?\]\(.*?\)/g, '').replace(/[#*>\[\]`]/g, '').replace(/\n+/g, ' ').trim(); }
+
+// ─── ESC 关闭 ───
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') { closeDetail(); closePublish(); }
+});
+
+// ─── 权限检查 ───
+let userAccess = { allowed: false, canPublish: false };
+
+async function checkAccess() {
+  if (!currentUserId) {
+    // 未登录 → 显示遮罩
+    document.getElementById('accessWall').style.display = 'flex';
+    return;
+  }
+  const data = await apiFetch(`/access-check?user_id=${currentUserId}`);
+  if (!data) return;
+  userAccess = { allowed: data.allowed, canPublish: data.can_publish || false };
+
+  if (!data.allowed) {
+    document.getElementById('accessWall').style.display = 'flex';
+    document.getElementById('fabPublish').classList.remove('show');
+  } else {
+    document.getElementById('accessWall').style.display = 'none';
+    // 有发布权限 → 显示发布按钮
+    if (data.can_publish) {
+      updatePublishButton();
+    }
+  }
+}
+
+// ─── 发布编辑器 ───
+let selectedPubCat = 'AI';
+let lastFailedUpload = null;
+
+const PUBLISH_CONFIG = {
+  experience: {
+    title: '发布图文',
+    titleLabel: '图文标题',
+    contentLabel: '正文',
+    placeholder: '写一篇实战经验，可插入配图...',
+    submit: '发布图文',
+    allowImage: true,
+    allowVideo: false,
+    projectType: 'experience'
+  },
+  camp: {
+    title: '发布专栏',
+    titleLabel: '专栏标题',
+    contentLabel: '专栏内容',
+    placeholder: '写专栏正文，可插入配图和视频...',
+    submit: '发布专栏',
+    allowImage: true,
+    allowVideo: true,
+    projectType: 'camp'
+  },
+  video: {
+    title: '发布视频课程',
+    titleLabel: '课程标题',
+    contentLabel: '课程简介与视频',
+    placeholder: '先写课程简介，再上传一个 MP4/WebM 视频...',
+    submit: '发布课程',
+    allowImage: false,
+    allowVideo: true,
+    projectType: 'video'
+  }
+};
+
+function getPublishModeForTab() {
+  return currentTab === 'camp' ? 'camp' : (currentTab === 'video' ? 'video' : 'experience');
+}
+
+function updatePublishButton() {
+  const btn = document.getElementById('fabPublish');
+  if (!btn) return;
+  if (currentTab === 'camp') {
+    btn.classList.remove('show');
+    return;
+  }
+  const mode = getPublishModeForTab();
+  const cfg = PUBLISH_CONFIG[mode];
+  btn.title = cfg.title;
+  btn.textContent = mode === 'video' ? '🎬' : (mode === 'camp' ? '✚' : '✎');
+  if (userAccess.canPublish) btn.classList.add('show');
+}
+
+function configurePublishEditor(mode) {
+  publishMode = mode || getPublishModeForTab();
+  const cfg = PUBLISH_CONFIG[publishMode] || PUBLISH_CONFIG.experience;
+  document.querySelector('.publish-header-title').textContent = window._editSlug ? '编辑内容' : cfg.title;
+  document.getElementById('pubTitleLabel').textContent = cfg.titleLabel;
+  document.getElementById('pubContentLabel').textContent = cfg.contentLabel;
+  document.getElementById('pubContent').dataset.placeholder = cfg.placeholder;
+  document.getElementById('pubImageBtn').style.display = cfg.allowImage ? '' : 'none';
+  document.getElementById('pubVideoBtn').style.display = cfg.allowVideo ? '' : 'none';
+  document.getElementById('pubSubmitBtn').textContent = cfg.submit;
+}
+
+function authJsonHeaders() {
+  const headers = { 'Content-Type': 'application/json' };
+  if (TOKEN) headers.Authorization = 'Bearer ' + TOKEN;
+  return headers;
+}
+
+function mediaKindFromFile(file) {
+  const type = (file && file.type) || '';
+  if (type.startsWith('image/')) return 'image';
+  if (type.startsWith('video/')) return 'video';
+  const name = ((file && file.name) || '').toLowerCase();
+  if (/\.(png|jpe?g|gif|webp)$/.test(name)) return 'image';
+  if (/\.(mp4|webm)$/.test(name)) return 'video';
+  return '';
+}
+
+function openPublishEditor(mode) {
+  configurePublishEditor(mode || getPublishModeForTab());
+  document.getElementById('publishOverlay').classList.add('show');
+  document.body.style.overflow = 'hidden';
+  const editor = document.getElementById('pubContent');
+  // 绑定粘贴事件（只绑一次）
+  if (!editor._bound) {
+    editor.addEventListener('paste', handleEditorPaste);
+    editor.addEventListener('dragover', handleEditorDragOver);
+    editor.addEventListener('drop', handleEditorDrop);
+    editor._bound = true;
+  }
+}
+function closePublish() {
+  document.getElementById('publishOverlay').classList.remove('show');
+  document.body.style.overflow = '';
+  window._editSlug = null;
+  publishMode = getPublishModeForTab();
+  configurePublishEditor(publishMode);
+  setPublishUploadStatus('');
+}
+
+function selectPubCat(el) {
+  document.querySelectorAll('.publish-cat').forEach(c => c.classList.remove('active'));
+  el.classList.add('active');
+  selectedPubCat = el.dataset.cat;
+}
+
+function triggerImageUpload() {
+  document.getElementById('imageUploadInput').click();
+}
+
+function triggerVideoUpload() {
+  if (!PUBLISH_CONFIG[publishMode]?.allowVideo) {
+    showToast('实战经验版块主要发布图文，请到专栏或视频课程上传视频');
+    return;
+  }
+  document.getElementById('videoUploadInput').click();
+}
+
+async function handleImageUpload(input) {
+  if (!input.files || !input.files[0]) return;
+  if (!PUBLISH_CONFIG[publishMode]?.allowImage) {
+    showToast('视频课程版块主要上传视频');
+    input.value = '';
+    return;
+  }
+  await uploadAndInsertMedia(input.files[0], 'image');
+  input.value = '';
+}
+
+async function handleVideoUpload(input) {
+  if (!input.files || !input.files[0]) return;
+  if (!PUBLISH_CONFIG[publishMode]?.allowVideo) {
+    showToast('当前版块不支持上传视频');
+    input.value = '';
+    return;
+  }
+  await uploadAndInsertMedia(input.files[0], 'video');
+  input.value = '';
+}
+
+async function handleEditorPaste(e) {
+  const items = (e.clipboardData || e.originalEvent.clipboardData).items;
+  // 1. 检查是否有图片/视频文件（截图/本地复制/文件复制）
+  for (const item of items) {
+    if (item.type.startsWith('image/') || item.type.startsWith('video/')) {
+      e.preventDefault();
+      const file = item.getAsFile();
+      const kind = mediaKindFromFile(file);
+      if (file && kind) await uploadAndInsertMedia(file, kind);
+      return;
+    }
+  }
+  // 2. 检查粘贴的HTML里有没有外部图片（从网页/公众号复制）
+  const html = e.clipboardData.getData('text/html');
+  if (html) {
+    const tmp = document.createElement('div');
+    tmp.innerHTML = html;
+    const hasExternalImg = tmp.querySelector('img[src^="http"]');
+    if (hasExternalImg) {
+      if (!PUBLISH_CONFIG[publishMode]?.allowImage) {
+        showToast('当前版块不支持粘贴图片');
+        return;
+      }
+      e.preventDefault();
+      showToast('正在转存图片...');
+      // 按DOM顺序遍历，图文交错插入
+      const editor = document.getElementById('pubContent');
+      editor.focus();
+      await walkAndInsert(tmp, editor);
+      showToast('粘贴完成');
+      return;
+    }
+  }
+}
+
+function handleEditorDragOver(e) {
+  const files = e.dataTransfer && e.dataTransfer.files;
+  if (files && files.length) e.preventDefault();
+}
+
+async function handleEditorDrop(e) {
+  const files = Array.from((e.dataTransfer && e.dataTransfer.files) || []);
+  const mediaFiles = files
+    .map(file => ({ file, kind: mediaKindFromFile(file) }))
+    .filter(item => item.kind);
+  if (!mediaFiles.length) return;
+  e.preventDefault();
+  for (const item of mediaFiles) {
+    await uploadAndInsertMedia(item.file, item.kind);
+  }
+}
+
+async function walkAndInsert(sourceNode, editor) {
+  for (const node of sourceNode.childNodes) {
+    if (node.nodeType === 3) {
+      // 文本节点
+      const text = node.textContent;
+      if (text.trim()) {
+        document.execCommand('insertText', false, text);
+      }
+    } else if (node.nodeType === 1) {
+      const tag = node.tagName;
+      if (shouldPreserveHtmlNode(node) && !node.querySelector?.('img')) {
+        document.execCommand('insertHTML', false, safeEditorHtml(node));
+      } else if (tag === 'IMG') {
+        const src = node.getAttribute('src') || node.getAttribute('data-src') || '';
+        if (src && src.startsWith('http')) {
+          await proxyAndInsertImage(src);
+        }
+      } else if (tag === 'BR') {
+        document.execCommand('insertLineBreak');
+      } else if (tag === 'P' || tag === 'DIV' || tag === 'SECTION') {
+        // 块级元素：先递归处理子节点，再换行
+        await walkAndInsert(node, editor);
+        document.execCommand('insertLineBreak');
+      } else if (tag === 'STRONG' || tag === 'B') {
+        document.execCommand('bold');
+        await walkAndInsert(node, editor);
+        document.execCommand('bold');
+      } else if (tag === 'SPAN' || tag === 'A' || tag === 'EM' || tag === 'I') {
+        await walkAndInsert(node, editor);
+      } else {
+        // 其他标签：提取文本 + 递归处理
+        await walkAndInsert(node, editor);
+      }
+    }
+  }
+}
+
+async function proxyAndInsertImage(externalUrl) {
+  showToast('正在转存图片...');
+  setPublishUploadStatus('正在转存图片...');
+  try {
+    const r = await fetch(API + '/proxy-image', {
+      method: 'POST',
+      headers: authJsonHeaders(),
+      body: JSON.stringify({ image_url: externalUrl })
+    });
+    const data = await r.json().catch(() => ({}));
+    if (!r.ok) throw new Error(data.detail || 'proxy failed');
+    if (data.url) {
+      insertMediaNode(data.url, 'image');
+      setPublishUploadStatus('');
+      showToast('图片转存成功');
+    }
+  } catch(err) {
+    console.warn('proxy image failed:', externalUrl, err);
+    setPublishUploadStatus('图片转存失败，请手动上传', 'error');
+    showToast('图片转存失败，请手动上传');
+  }
+}
+
+function setPublishUploadStatus(msg, type) {
+  const el = document.getElementById('publishUploadStatus');
+  if (!el) return;
+  el.className = 'publish-upload-status' + (type === 'error' ? ' error' : '');
+  el.textContent = msg || '';
+}
+
+function setPublishUploadFailure(file, kind, msg) {
+  lastFailedUpload = { file, kind };
+  const el = document.getElementById('publishUploadStatus');
+  if (!el) return;
+  el.className = 'publish-upload-status error';
+  el.innerHTML = `${esc(msg || '上传失败')}<button type="button" onclick="retryLastUpload()">重试</button>`;
+}
+
+function retryLastUpload() {
+  if (!lastFailedUpload) return;
+  const item = lastFailedUpload;
+  lastFailedUpload = null;
+  uploadAndInsertMedia(item.file, item.kind);
+}
+
+function uploadMediaFile(file, kind) {
+  const formData = new FormData();
+  formData.append('file', file);
+  formData.append('kind', kind);
+
+  return new Promise((resolve, reject) => {
+    const xhr = new XMLHttpRequest();
+    xhr.open('POST', API + '/upload-media');
+    if (TOKEN) xhr.setRequestHeader('Authorization', 'Bearer ' + TOKEN);
+    xhr.upload.onprogress = (event) => {
+      if (!event.lengthComputable) {
+        setPublishUploadStatus('正在上传...');
+        return;
+      }
+      const percent = Math.round((event.loaded / event.total) * 100);
+      setPublishUploadStatus(`正在上传 ${percent}%`);
+    };
+    xhr.onload = () => {
+      let data = {};
+      try { data = JSON.parse(xhr.responseText || '{}'); } catch(e) {}
+      if (xhr.status >= 200 && xhr.status < 300 && data.url) {
+        resolve(data);
+      } else {
+        reject(new Error(data.detail || '上传失败'));
+      }
+    };
+    xhr.onerror = () => reject(new Error('网络异常，上传失败'));
+    xhr.send(formData);
+  });
+}
+
+function insertMediaNode(url, kind) {
+  const editor = document.getElementById('pubContent');
+  editor.focus();
+  const media = kind === 'video' ? document.createElement('video') : document.createElement('img');
+  media.src = url;
+  if (kind === 'video') {
+    media.controls = true;
+    media.preload = 'metadata';
+    media.setAttribute('playsinline', '');
+    media.setAttribute('controlsList', 'nodownload noremoteplayback');
+    media.setAttribute('oncontextmenu', 'return false');
+    media.setAttribute('disablePictureInPicture', '');
+    media.setAttribute('disableRemotePlayback', '');
+  }
+
+  const sel = window.getSelection();
+  if (sel && sel.rangeCount) {
+    const range = sel.getRangeAt(0);
+    range.deleteContents();
+    const before = document.createElement('br');
+    const after = document.createElement('br');
+    const frag = document.createDocumentFragment();
+    frag.appendChild(before);
+    frag.appendChild(media);
+    frag.appendChild(after);
+    range.insertNode(frag);
+    range.setStartAfter(after);
+    range.collapse(true);
+    sel.removeAllRanges();
+    sel.addRange(range);
+  } else {
+    editor.appendChild(document.createElement('br'));
+    editor.appendChild(media);
+    editor.appendChild(document.createElement('br'));
+  }
+}
+
+async function uploadAndInsertMedia(file, kind) {
+  const cfg = PUBLISH_CONFIG[publishMode] || PUBLISH_CONFIG.experience;
+  if (kind === 'image' && !cfg.allowImage) {
+    showToast('当前版块不支持上传图片');
+    return;
+  }
+  if (kind === 'video' && !cfg.allowVideo) {
+    showToast('当前版块不支持上传视频');
+    return;
+  }
+  const label = kind === 'video' ? '视频' : '图片';
+  showToast(`正在上传${label}...`);
+  setPublishUploadStatus(`正在上传${label}...`);
+  try {
+    const data = await uploadMediaFile(file, kind);
+    if (data.url) {
+      insertMediaNode(data.url, kind);
+      setPublishUploadStatus('');
+      showToast(`${label}插入成功`);
+    }
+  } catch(err) {
+    setPublishUploadFailure(file, kind, err.message || `${label}上传失败`);
+    showToast(`${label}上传失败`);
+  }
+}
+
+async function uploadAndInsertImage(file) {
+  return uploadAndInsertMedia(file, 'image');
+}
+
+// 从富文本编辑器提取 Markdown
+function mdAttr(s) {
+  return String(s || '').replace(/"/g, '&quot;');
+}
+
+function safeMdUrl(s) {
+  const raw = String(s || '').trim();
+  if (!raw || /^(javascript|data):/i.test(raw)) return '';
+  return raw;
+}
+
+function hasFeishuClass(node) {
+  return node.classList && Array.from(node.classList).some(c => c.startsWith('fs-'));
+}
+
+function safeEditorStyle(node) {
+  const styles = [];
+  const color = node.style && node.style.color;
+  const bg = node.style && node.style.backgroundColor;
+  const align = node.style && node.style.textAlign;
+  if (color && !/[;{}]/.test(color)) styles.push(`color:${color}`);
+  if (bg && !/[;{}]/.test(bg)) styles.push(`background-color:${bg}`);
+  if (['center', 'right'].includes(align)) styles.push(`text-align:${align}`);
+  return styles.join(';');
+}
+
+function safeEditorHtml(node) {
+  if (node.nodeType === 3) return esc(node.textContent || '');
+  if (node.nodeType !== 1) return '';
+  const rawTag = node.tagName.toLowerCase();
+  if (rawTag === 'br') return '<br>';
+  if (rawTag === 'hr') return '<hr>';
+  if (rawTag === 'img') {
+    const src = safeMdUrl(node.getAttribute('src') || node.src || '');
+    return src ? `<img src="${mdAttr(src)}" alt="${mdAttr(node.getAttribute('alt') || '图片')}">` : '';
+  }
+  if (rawTag === 'video') {
+    const src = safeMdUrl(node.getAttribute('src') || node.querySelector('source')?.getAttribute('src') || '');
+    return src ? `<video controls controlsList="nodownload noremoteplayback" oncontextmenu="return false" disablePictureInPicture disableRemotePlayback src="${mdAttr(src)}"></video>` : '';
+  }
+  const tagMap = { b: 'strong', i: 'em' };
+  const tag = tagMap[rawTag] || rawTag;
+  const allowed = new Set(['span','mark','u','strong','em','s','a','code','pre','p','div','ul','ol','li','blockquote','h1','h2','h3','h4','h5','h6','table','thead','tbody','tr','th','td']);
+  const inner = Array.from(node.childNodes).map(safeEditorHtml).join('');
+  if (!allowed.has(tag)) return inner;
+  let attrs = '';
+  const classes = Array.from(node.classList || []).filter(c => /^fs-[a-z0-9-]+$/i.test(c) || /^language-[a-z0-9-]+$/i.test(c));
+  if (classes.length) attrs += ` class="${mdAttr(classes.join(' '))}"`;
+  const style = safeEditorStyle(node);
+  if (style) attrs += ` style="${mdAttr(style)}"`;
+  if (tag === 'a') {
+    const href = safeMdUrl(node.getAttribute('href') || '');
+    if (!href) return inner;
+    attrs += ` href="${mdAttr(href)}" target="_blank" rel="noopener noreferrer"`;
+  }
+  return `<${tag}${attrs}>${inner}</${tag}>`;
+}
+
+function shouldPreserveHtmlNode(node) {
+  if (node.nodeType !== 1) return false;
+  const tag = node.tagName;
+  if (hasFeishuClass(node)) return true;
+  if (['SPAN', 'MARK', 'U', 'S', 'A'].includes(tag)) return true;
+  return Boolean(node.getAttribute('style') && /(color|background|text-align)/i.test(node.getAttribute('style')));
+}
+
+function firstVideoUrlFromEditor() {
+  const video = document.getElementById('pubContent').querySelector('video');
+  if (!video) return '';
+  return video.getAttribute('src') || video.querySelector('source')?.getAttribute('src') || '';
+}
+
+function editorPlainText() {
+  return (document.getElementById('pubContent').innerText || '').replace(/\s+/g, ' ').trim();
+}
+
+function editorToMarkdown() {
+  const editor = document.getElementById('pubContent');
+  let md = '';
+  function walk(node) {
+    if (node.nodeType === 3) { md += node.textContent; return; }
+    if (node.nodeType !== 1) return;
+    const tag = node.tagName;
+    if (shouldPreserveHtmlNode(node)) {
+      const html = safeEditorHtml(node);
+      if (html) md += (['DIV', 'P', 'BLOCKQUOTE', 'UL', 'OL', 'TABLE'].includes(tag) ? `\n${html}\n` : html);
+      return;
+    }
+    if (tag === 'BR') { md += '\n'; return; }
+    if (tag === 'IMG') {
+      const src = safeMdUrl(node.getAttribute('src') || node.src || '');
+      if (src) md += `\n![图片](${src})\n`;
+      return;
+    }
+    if (tag === 'VIDEO') {
+      const src = safeMdUrl(node.getAttribute('src') || node.querySelector('source')?.getAttribute('src') || '');
+      if (src) md += `\n<video controls controlsList="nodownload noremoteplayback" oncontextmenu="return false" disablePictureInPicture disableRemotePlayback src="${mdAttr(src)}"></video>\n`;
+      return;
+    }
+    if (/^H[1-6]$/.test(tag)) { md += `\n${'#'.repeat(Number(tag.slice(1)))} `; node.childNodes.forEach(walk); md += '\n'; return; }
+    if (tag === 'PRE') {
+      const code = node.querySelector('code');
+      const lang = Array.from((code || node).classList || []).find(c => c.startsWith('language-'))?.replace('language-', '') || '';
+      md += `\n\`\`\`${lang}\n${(code || node).innerText.replace(/\n+$/, '')}\n\`\`\`\n`;
+      return;
+    }
+    if (tag === 'B' || tag === 'STRONG') { md += '**'; node.childNodes.forEach(walk); md += '**'; return; }
+    if (tag === 'I' || tag === 'EM') { md += '*'; node.childNodes.forEach(walk); md += '*'; return; }
+    if (tag === 'S' || tag === 'DEL') { md += '~~'; node.childNodes.forEach(walk); md += '~~'; return; }
+    if (tag === 'A') {
+      const href = safeMdUrl(node.getAttribute('href') || '');
+      const before = md.length;
+      node.childNodes.forEach(walk);
+      const label = md.slice(before);
+      md = md.slice(0, before) + (href ? `[${label}](${href})` : label);
+      return;
+    }
+    if (tag === 'BLOCKQUOTE') { md += '> '; node.childNodes.forEach(walk); md += '\n'; return; }
+    if (tag === 'LI') { md += '- '; node.childNodes.forEach(walk); md += '\n'; return; }
+    if (tag === 'HR') { md += '\n---\n'; return; }
+    if (tag === 'DIV' || tag === 'P') { node.childNodes.forEach(walk); md += '\n'; return; }
+    node.childNodes.forEach(walk);
+  }
+  editor.childNodes.forEach(walk);
+  return md.trim();
+}
+
+async function submitPublish() {
+  const mode = publishMode || getPublishModeForTab();
+  const title = document.getElementById('pubTitle').value.trim();
+  const content = editorToMarkdown();
+  if (!title) { showToast('请输入标题'); return; }
+  if (mode !== 'video' && !content) { showToast('请输入正文'); return; }
+  if (mode === 'video' && !firstVideoUrlFromEditor()) { showToast('请先上传课程视频'); return; }
+
+  const btn = document.getElementById('pubSubmitBtn');
+  const originalText = btn.textContent;
+  btn.disabled = true; btn.textContent = '发布中...';
+
+  try {
+    let r;
+    if (mode === 'video') {
+      r = await fetch(API + '/course-publish', {
+        method: 'POST',
+        headers: authJsonHeaders(),
+        body: JSON.stringify({
+          title,
+          description: editorPlainText(),
+          category: selectedPubCat,
+          video_url: firstVideoUrlFromEditor(),
+          video_duration: 0,
+          instructor: currentUserName || '用户'
+        })
+      });
+    } else if (window._editSlug) {
+      // 编辑模式
+      r = await fetch(API + `/projects/${window._editSlug}`, {
+        method: 'PUT',
+        headers: authJsonHeaders(),
+        body: JSON.stringify({ user_id: currentUserId, title, content, category: selectedPubCat })
+      });
+    } else {
+      // 新发布
+      r = await fetch(API + '/publish', {
+        method: 'POST',
+        headers: authJsonHeaders(),
+        body: JSON.stringify({
+          user_id: currentUserId, username: currentUserName || '用户',
+          title, content, category: selectedPubCat, project_type: PUBLISH_CONFIG[mode].projectType
+        })
+      });
+    }
+    const data = await r.json();
+    if (data.ok) {
+      showToast(window._editSlug ? '修改成功！' : '发布成功！');
+      closePublish();
+      document.getElementById('pubTitle').value = '';
+      document.getElementById('pubContent').innerHTML = '';
+      window._editSlug = null;
+      configurePublishEditor(getPublishModeForTab());
+      if (mode === 'camp') {
+        campData.loaded = false;
+        loadCamp();
+      } else if (mode === 'video') {
+        vidData.loaded = false;
+        loadVideo();
+      } else {
+        expData.loaded = false;
+        loadExperience();
+      }
+    } else {
+      showToast(data.detail || '操作失败');
+    }
+  } catch(e) { showToast('操作失败'); }
+
+  btn.disabled = false; btn.textContent = originalText;
+}
+
+// ─── 初始化 ───
+(async () => {
+  await loadUserInfo();
+  await checkAccess();
+  // 加载页面设置
+  try {
+    const s = await apiFetch('/settings');
+    if (s) {
+      if (s.slogan) document.getElementById('heroSlogan').textContent = s.slogan;
+      if (s.hero_desc) document.getElementById('heroDesc').textContent = s.hero_desc;
+    }
+  } catch(e) {}
+  loadExperience();
+})();
+</script>
+</body>
+</html>

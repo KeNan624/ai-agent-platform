@@ -1,0 +1,1143 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>阿川 AI 超级助手 — 一个人就是一个团队</title>
+<meta name="description" content="一个人就是一个团队，五种专业能力随时开启">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Noto+Serif+SC:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&family=Inter:wght@400;500&display=swap" rel="stylesheet">
+
+<style>
+  /* ═══════════════════════════════════════════ */
+  /*  TOKENS                                     */
+  /* ═══════════════════════════════════════════ */
+  :root{
+    --bg: #F3EFE4;
+    --bg-tint: #EBE6D7;
+    --bg-card: #EFEADC;
+    --ink: #1A1814;
+    --ink-mid: #48433B;
+    --ink-soft: #6B6558;
+    --ink-mute: #A39B8A;
+    --gold: #9A7A3D;
+    --gold-soft: #B89A5D;
+    --line: rgba(26,24,20,.12);
+    --line-strong: rgba(26,24,20,.28);
+
+    --serif-en: 'Instrument Serif', 'Cormorant Garamond', Georgia, serif;
+    --serif-cn: 'Noto Serif SC', 'Songti SC', 'STSong', serif;
+    --mono: 'JetBrains Mono', ui-monospace, 'SF Mono', Consolas, monospace;
+    --sans: 'Inter', -apple-system, BlinkMacSystemFont, 'PingFang SC', sans-serif;
+
+    --ease: cubic-bezier(.2,.65,.25,1);
+    --ease-long: cubic-bezier(.16,.84,.28,1);
+  }
+
+  *{margin:0;padding:0;box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{
+    font-family: var(--sans);
+    color: var(--ink);
+    background: var(--bg);
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+    overflow-x: hidden;
+  }
+  a{color: inherit; text-decoration: none}
+  button{font-family: inherit; cursor: pointer; border: none; background: none; color: inherit}
+
+  body::before{
+    content: '';
+    position: fixed; inset: 0;
+    pointer-events: none; z-index: 1;
+    background-image:
+      radial-gradient(ellipse at 20% 20%, rgba(154,122,61,.04), transparent 45%),
+      radial-gradient(ellipse at 80% 80%, rgba(26,24,20,.03), transparent 45%);
+  }
+
+  /* ═══════════════════════════════════════════ */
+  /*  NAV                                        */
+  /* ═══════════════════════════════════════════ */
+  .nav{
+    position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+    padding: 24px 40px;
+    display: flex; align-items: center; justify-content: space-between;
+    transition: background .4s var(--ease), padding .4s var(--ease), border-color .4s var(--ease);
+    border-bottom: 1px solid transparent;
+  }
+  .nav.scrolled{
+    background: rgba(243,239,228,.9);
+    backdrop-filter: saturate(1.4) blur(16px);
+    -webkit-backdrop-filter: saturate(1.4) blur(16px);
+    padding: 14px 40px;
+    border-bottom-color: var(--line);
+  }
+  .brand{
+    display: flex; align-items: center; gap: 14px;
+    font-family: var(--serif-cn);
+    font-size: 22px; font-weight: 500; letter-spacing: .01em;
+    color: var(--ink);
+    transition: font-size .4s var(--ease);
+  }
+  .nav.scrolled .brand{ font-size: 18px; }
+  .brand-mark{
+    width: 40px; height: 40px; border-radius: 6px;
+    background: var(--ink); color: var(--bg);
+    display: grid; place-items: center;
+    font-family: var(--serif-cn);
+    font-size: 20px; font-weight: 600;
+    transition: all .4s var(--ease);
+  }
+  .nav.scrolled .brand-mark{ width: 32px; height: 32px; font-size: 16px; }
+
+  .nav-right{ display: flex; align-items: center; gap: 28px; }
+  .nav-login{
+    font-family: var(--mono);
+    font-size: 11.5px; letter-spacing: .1em; text-transform: uppercase;
+    color: var(--ink-mid);
+    padding: 8px 4px;
+    position: relative;
+    transition: color .25s var(--ease);
+  }
+  .nav-login::after{
+    content: '';
+    position: absolute; left: 4px; right: 4px; bottom: 4px;
+    height: 1px; background: var(--ink);
+    transform: scaleX(0); transform-origin: left;
+    transition: transform .3s var(--ease);
+  }
+  .nav-login:hover{ color: var(--ink); }
+  .nav-login:hover::after{ transform: scaleX(1); }
+
+  /* ═══════════════════════════════════════════ */
+  /*  BUTTONS                                    */
+  /* ═══════════════════════════════════════════ */
+  .btn{
+    display: inline-flex; align-items: center; gap: 10px;
+    padding: 12px 22px;
+    font-family: var(--sans);
+    font-size: 14px; font-weight: 500; letter-spacing: .02em;
+    color: var(--ink);
+    background: var(--bg);
+    border: 1px solid var(--ink);
+    border-radius: 999px;
+    transition: all .3s var(--ease);
+    white-space: nowrap;
+  }
+  .btn .arrow{
+    font-family: var(--serif-en);
+    font-size: 16px; font-style: italic;
+    transition: transform .3s var(--ease);
+  }
+  .btn:hover{
+    background: var(--ink);
+    color: var(--bg);
+    transform: translateY(-1px);
+  }
+  .btn:hover .arrow{ transform: translate(3px,-2px); }
+
+  .btn-text{
+    display: inline-flex; align-items: center; gap: 6px;
+    font-family: var(--mono);
+    font-size: 11.5px; letter-spacing: .1em; text-transform: uppercase;
+    color: var(--ink-mid);
+    padding: 4px 0;
+    position: relative;
+    transition: color .25s var(--ease);
+  }
+  .btn-text::after{
+    content: '';
+    position: absolute; left: 0; right: 0; bottom: 0;
+    height: 1px; background: var(--ink-mid);
+    transform: scaleX(.2); transform-origin: left;
+    transition: transform .3s var(--ease);
+  }
+  .btn-text:hover{ color: var(--ink); }
+  .btn-text:hover::after{ transform: scaleX(1); background: var(--ink); }
+  .btn-text .arrow{
+    font-family: var(--serif-en);
+    font-style: italic; font-size: 14px;
+    transition: transform .3s var(--ease);
+  }
+  .btn-text:hover .arrow{ transform: translate(2px,-1px); }
+
+  /* ═══════════════════════════════════════════ */
+  /*  SECTION 1 · HERO (centered)                */
+  /* ═══════════════════════════════════════════ */
+  .hero{
+    min-height: 100vh;
+    position: relative;
+    padding: 140px 40px 80px;
+    max-width: 1440px;
+    margin: 0 auto;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    text-align: center;
+    overflow: hidden;
+  }
+
+  .hero-ghost-num{
+    position: absolute;
+    top: 10vh; right: -6vw;
+    font-family: var(--serif-en);
+    font-style: italic;
+    font-size: clamp(320px, 50vw, 720px);
+    line-height: 0.8;
+    color: var(--ink);
+    opacity: 0.04;
+    pointer-events: none;
+    user-select: none;
+    z-index: 0;
+    letter-spacing: -.04em;
+  }
+
+  .hero-eyebrow{
+    display: flex; align-items: center; gap: 14px;
+    font-family: var(--mono);
+    font-size: 11px; letter-spacing: .22em;
+    color: var(--ink-mid);
+    text-transform: uppercase;
+    margin-bottom: 56px;
+    opacity: 0; transform: translateY(12px);
+    animation: rise 1s var(--ease) .2s forwards;
+    z-index: 1;
+  }
+  .hero-eyebrow::before,
+  .hero-eyebrow::after{
+    content: ''; display: block;
+    width: 48px; height: 1px;
+    background: var(--ink-mid);
+  }
+
+  .hero-title{
+    font-family: var(--serif-cn);
+    font-weight: 500;
+    font-size: clamp(64px, 11vw, 180px);
+    line-height: 1.0;
+    letter-spacing: -.025em;
+    color: var(--ink);
+    z-index: 1;
+    position: relative;
+  }
+  .hero-title .ln{
+    display: block;
+    opacity: 0;
+    transform: translateY(40px);
+    animation: riseLong 1.3s var(--ease-long) forwards;
+  }
+  .hero-title .ln-1{ animation-delay: .3s; }
+  .hero-title .ln-2{
+    animation-delay: .45s;
+    margin-top: .08em;
+  }
+  .hero-title .period{
+    color: var(--gold);
+    animation: blinkPeriod 3.2s ease-in-out infinite;
+  }
+  @keyframes blinkPeriod{
+    0%, 60%, 100%{ opacity: 1; }
+    72%{ opacity: .35; }
+  }
+
+  .hero-divider{
+    margin: 64px 0 40px;
+    width: 80px; height: 1px;
+    background: var(--line-strong);
+    opacity: 0;
+    animation: fadeIn 1s var(--ease) .75s forwards;
+    z-index: 1;
+  }
+
+  .hero-sub{
+    font-family: var(--serif-cn);
+    font-size: clamp(16px, 1.6vw, 22px);
+    color: var(--ink-soft);
+    letter-spacing: .01em;
+    line-height: 1.55;
+    opacity: 0;
+    animation: rise 1.2s var(--ease) .9s forwards;
+    z-index: 1;
+  }
+  .hero-sub em{
+    font-family: var(--serif-en);
+    font-style: italic;
+    color: var(--gold);
+    font-size: 1.12em;
+    font-weight: 400;
+  }
+
+  .hero-cta-wrap{
+    margin-top: 48px;
+    opacity: 0;
+    animation: rise 1.2s var(--ease) 1.05s forwards;
+    z-index: 1;
+  }
+
+  .scroll-hint{
+    position: absolute;
+    bottom: 40px; left: 50%;
+    transform: translateX(-50%);
+    font-family: var(--mono);
+    font-size: 10px; letter-spacing: .3em;
+    color: var(--ink-mute);
+    text-transform: uppercase;
+    display: flex; flex-direction: column; align-items: center; gap: 10px;
+    opacity: 0;
+    animation: fadeIn 1s var(--ease) 1.4s forwards;
+  }
+  .scroll-hint::after{
+    content: ''; display: block;
+    width: 1px; height: 32px;
+    background: var(--ink-mute);
+    animation: scrollLineDown 2.6s ease-in-out infinite;
+    transform-origin: top;
+  }
+  @keyframes scrollLineDown{
+    0%, 100%{ transform: scaleY(.3); }
+    50%{ transform: scaleY(1); }
+  }
+
+  @keyframes rise{ to { opacity: 1; transform: translateY(0); } }
+  @keyframes riseLong{ to { opacity: 1; transform: translateY(0); } }
+  @keyframes fadeIn{ to { opacity: 1; } }
+
+  /* ═══════════════════════════════════════════ */
+  /*  SECTION 2 · ABILITIES                      */
+  /* ═══════════════════════════════════════════ */
+  .abilities{
+    position: relative;
+    padding: 140px 40px 160px;
+    max-width: 1440px;
+    margin: 0 auto;
+  }
+
+  .abilities-head{
+    text-align: center;
+    margin-bottom: 96px;
+  }
+  .abilities-eyebrow{
+    font-family: var(--mono);
+    font-size: 11px; letter-spacing: .25em;
+    color: var(--ink-mute);
+    text-transform: uppercase;
+    margin-bottom: 32px;
+    display: inline-flex; align-items: center; gap: 14px;
+  }
+  .abilities-eyebrow::before,
+  .abilities-eyebrow::after{
+    content: ''; display: block;
+    width: 32px; height: 1px;
+    background: var(--ink-mute);
+  }
+  .abilities-title{
+    font-family: var(--serif-cn);
+    font-weight: 500;
+    font-size: clamp(48px, 7vw, 104px);
+    line-height: 1;
+    letter-spacing: -.025em;
+    color: var(--ink);
+    margin-bottom: 22px;
+  }
+  .abilities-title .period{
+    color: var(--gold);
+  }
+  .abilities-sub{
+    font-family: var(--serif-cn);
+    font-size: clamp(17px, 1.5vw, 21px);
+    color: var(--ink-soft);
+    letter-spacing: .01em;
+  }
+
+  .abilities-grid{
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    border-top: 1px solid var(--line-strong);
+    border-bottom: 1px solid var(--line-strong);
+  }
+  .ability{
+    padding: 56px 28px 56px 0;
+    border-right: 1px solid var(--line);
+    position: relative;
+    transition: all .4s var(--ease);
+  }
+  .ability:last-child{ border-right: none; padding-right: 0; }
+  .ability:first-child{ padding-left: 0; }
+  .ability:not(:first-child){ padding-left: 28px; }
+
+  .ability::before{
+    content: '';
+    position: absolute;
+    top: -1px; left: 0;
+    width: 0; height: 1px;
+    background: var(--ink);
+    transition: width .6s var(--ease-long);
+  }
+  .ability:hover::before{ width: 100%; }
+
+  .ability-name{
+    font-family: var(--serif-cn);
+    font-size: clamp(28px, 2.6vw, 40px);
+    font-weight: 500;
+    letter-spacing: -.015em;
+    line-height: 1;
+    color: var(--ink);
+    margin-bottom: 28px;
+  }
+  .ability-desc{
+    font-family: var(--serif-cn);
+    font-size: 15.5px;
+    line-height: 1.7;
+    color: var(--ink-soft);
+    letter-spacing: .005em;
+  }
+
+  /* ═══════════════════════════════════════════ */
+  /*  SECTION 3 · ECOSYSTEM (scys-inspired)      */
+  /* ═══════════════════════════════════════════ */
+  .ecosystem{
+    position: relative;
+    padding: 140px 40px 160px;
+    max-width: 1440px;
+    margin: 0 auto;
+  }
+
+  .eco-head{
+    margin-bottom: 96px;
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 80px;
+    align-items: end;
+    padding-bottom: 56px;
+    border-bottom: 1px solid var(--line-strong);
+  }
+  .eco-eyebrow{
+    font-family: var(--mono);
+    font-size: 11px; letter-spacing: .22em;
+    color: var(--ink-mute);
+    text-transform: uppercase;
+    writing-mode: vertical-rl;
+    align-self: stretch;
+  }
+  .eco-eyebrow::before{
+    content: ''; display: block;
+    width: 1px; height: 28px;
+    background: var(--ink-mute);
+    margin: 0 auto 14px;
+  }
+  .eco-title{
+    font-family: var(--serif-cn);
+    font-weight: 500;
+    font-size: clamp(44px, 6vw, 88px);
+    line-height: 1.05;
+    letter-spacing: -.02em;
+    color: var(--ink);
+  }
+  .eco-title em{
+    font-family: var(--serif-en);
+    font-style: italic;
+    color: var(--gold);
+    font-weight: 400;
+    font-size: 1.06em;
+  }
+  .eco-title .period{ color: var(--gold); }
+
+  .eco-grid{
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 0;
+    border-bottom: 1px solid var(--line);
+  }
+  .eco-card{
+    padding: 48px 36px 48px 0;
+    border-right: 1px solid var(--line);
+    position: relative;
+    transition: background .4s var(--ease);
+    display: flex; flex-direction: column;
+    min-height: 440px;
+  }
+  .eco-card:last-child{ border-right: none; padding-right: 0; }
+  .eco-card:first-child{ padding-left: 0; }
+  .eco-card:not(:first-child){ padding-left: 36px; }
+
+  .eco-card::before{
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+    background: var(--ink);
+    transform: scaleX(0); transform-origin: left;
+    transition: transform .6s var(--ease-long);
+  }
+  .eco-card:hover::before{ transform: scaleX(1); }
+
+  .eco-icon{
+    font-size: 26px;
+    margin-bottom: 40px;
+    opacity: .85;
+  }
+  .eco-tag{
+    font-family: var(--mono);
+    font-size: 10.5px; letter-spacing: .18em;
+    color: var(--ink-mute);
+    text-transform: uppercase;
+    margin-bottom: 20px;
+  }
+  .eco-name{
+    font-family: var(--serif-cn);
+    font-size: clamp(28px, 2.4vw, 36px);
+    font-weight: 500;
+    letter-spacing: -.01em;
+    line-height: 1.1;
+    color: var(--ink);
+    margin-bottom: 18px;
+  }
+  .eco-intro{
+    font-family: var(--serif-cn);
+    font-size: 14.5px;
+    line-height: 1.65;
+    color: var(--ink-soft);
+    margin-bottom: 28px;
+    letter-spacing: .005em;
+  }
+  .eco-list{
+    list-style: none;
+    margin-bottom: 32px;
+    flex: 1;
+  }
+  .eco-list li{
+    font-family: var(--serif-cn);
+    font-size: 13.5px;
+    line-height: 2;
+    color: var(--ink-mid);
+    padding-left: 16px;
+    position: relative;
+    letter-spacing: .01em;
+  }
+  .eco-list li::before{
+    content: '';
+    position: absolute;
+    left: 0; top: 1em;
+    width: 6px; height: 1px;
+    background: var(--ink-mute);
+  }
+  .eco-action{
+    margin-top: auto;
+  }
+
+  /* Data strip */
+  .eco-stats{
+    margin-top: 96px;
+    padding: 64px 40px;
+    text-align: center;
+    position: relative;
+  }
+  .eco-stats::before,
+  .eco-stats::after{
+    content: '';
+    position: absolute;
+    left: 50%; transform: translateX(-50%);
+    width: 80px; height: 1px;
+    background: var(--line-strong);
+  }
+  .eco-stats::before{ top: 0; }
+  .eco-stats::after{ bottom: 0; }
+
+  .stats-label{
+    font-family: var(--mono);
+    font-size: 10.5px; letter-spacing: .25em;
+    color: var(--ink-mute);
+    text-transform: uppercase;
+    margin-bottom: 32px;
+  }
+  .stats-row{
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 48px;
+    max-width: 920px;
+    margin: 0 auto;
+  }
+  .stat{
+    display: flex; flex-direction: column; align-items: center;
+    gap: 10px;
+  }
+  .stat-num{
+    font-family: var(--serif-en);
+    font-style: italic;
+    font-weight: 400;
+    font-size: clamp(44px, 5vw, 72px);
+    line-height: 1;
+    color: var(--gold);
+    letter-spacing: -.01em;
+  }
+  .stat-label{
+    font-family: var(--serif-cn);
+    font-size: 14px;
+    color: var(--ink-mid);
+    letter-spacing: .02em;
+    text-align: center;
+    line-height: 1.5;
+  }
+
+  /* ═══════════════════════════════════════════ */
+  /*  SECTION 4 · CLOSING                        */
+  /* ═══════════════════════════════════════════ */
+  .closing{
+    position: relative;
+    padding: 160px 40px 100px;
+    max-width: 1440px;
+    margin: 0 auto;
+    text-align: center;
+    overflow: hidden;
+  }
+  .closing-ghost-num{
+    position: absolute;
+    top: 50%; left: 50%;
+    transform: translate(-50%,-45%);
+    font-family: var(--serif-en);
+    font-style: italic;
+    font-size: clamp(380px, 60vw, 900px);
+    line-height: 0.8;
+    color: var(--ink);
+    opacity: 0.035;
+    pointer-events: none;
+    user-select: none;
+    z-index: 0;
+    letter-spacing: -.04em;
+  }
+
+  .closing-quote{
+    position: relative; z-index: 1;
+    font-family: var(--serif-cn);
+    font-weight: 500;
+    font-size: clamp(44px, 6.5vw, 92px);
+    line-height: 1.2;
+    letter-spacing: -.02em;
+    color: var(--ink);
+    max-width: 18ch;
+    margin: 0 auto 28px;
+  }
+  .closing-quote em{
+    font-family: var(--serif-en);
+    font-style: italic;
+    color: var(--gold);
+    font-weight: 400;
+    font-size: 1.08em;
+  }
+  .closing-quote .period{ color: var(--gold); }
+
+  .closing-sub{
+    position: relative; z-index: 1;
+    font-family: var(--serif-cn);
+    font-size: clamp(16px, 1.4vw, 19px);
+    color: var(--ink-soft);
+    margin-bottom: 56px;
+    letter-spacing: .01em;
+  }
+
+  .closing-cta{
+    position: relative; z-index: 1;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 20px;
+    flex-wrap: wrap;
+  }
+  .closing-meta{
+    position: relative; z-index: 1;
+    margin-top: 28px;
+    font-family: var(--mono);
+    font-size: 11px; letter-spacing: .15em;
+    color: var(--ink-mute);
+    text-transform: uppercase;
+  }
+
+  /* ═══════════════════════════════════════════ */
+  /*  FOOTER                                     */
+  /* ═══════════════════════════════════════════ */
+  footer{
+    border-top: 1px solid var(--line);
+    padding: 72px 40px 36px;
+    max-width: 1440px;
+    margin: 0 auto;
+    position: relative;
+    z-index: 2;
+  }
+  .foot-grid{
+    display: grid;
+    grid-template-columns: 2fr 1fr 1fr 1fr 1fr;
+    gap: 48px;
+    margin-bottom: 56px;
+  }
+  .foot-brand{
+    font-family: var(--serif-cn);
+    font-size: 20px;
+    font-weight: 500;
+    color: var(--ink);
+    margin-bottom: 14px;
+  }
+  .foot-desc{
+    font-family: var(--serif-cn);
+    font-size: 13.5px;
+    color: var(--ink-soft);
+    line-height: 1.7;
+    max-width: 28ch;
+  }
+  .foot-col-title{
+    font-family: var(--mono);
+    font-size: 10.5px; letter-spacing: .2em;
+    color: var(--ink-mute);
+    text-transform: uppercase;
+    margin-bottom: 20px;
+  }
+  .foot-links{
+    list-style: none;
+    display: flex; flex-direction: column; gap: 10px;
+  }
+  .foot-links a{
+    font-family: var(--serif-cn);
+    font-size: 14px;
+    color: var(--ink-mid);
+    transition: color .2s var(--ease);
+  }
+  .foot-links a:hover{ color: var(--ink); }
+  .foot-bottom{
+    border-top: 1px solid var(--line);
+    padding-top: 28px;
+    display: flex; justify-content: space-between; align-items: center;
+    font-family: var(--mono);
+    font-size: 10.5px; letter-spacing: .12em;
+    color: var(--ink-mute);
+    text-transform: uppercase;
+  }
+
+  /* ═══════════════════════════════════════════ */
+  /*  REVEAL                                     */
+  /* ═══════════════════════════════════════════ */
+  .reveal{
+    opacity: 0;
+    transform: translateY(32px);
+    transition: opacity 1s var(--ease-long), transform 1s var(--ease-long);
+  }
+  .reveal.in{ opacity: 1; transform: translateY(0); }
+  .reveal.d1{ transition-delay: .08s; }
+  .reveal.d2{ transition-delay: .18s; }
+  .reveal.d3{ transition-delay: .28s; }
+  .reveal.d4{ transition-delay: .38s; }
+  .reveal.d5{ transition-delay: .48s; }
+
+  /* ═══════════════════════════════════════════ */
+  /*  RESPONSIVE                                 */
+  /* ═══════════════════════════════════════════ */
+  @media (max-width: 1100px){
+    .eco-grid{ grid-template-columns: repeat(2, 1fr); }
+    .eco-card{
+      border-right: 1px solid var(--line);
+      border-bottom: 1px solid var(--line);
+      min-height: 400px;
+      padding: 40px 28px !important;
+    }
+    .eco-card:nth-child(2n){ border-right: none; }
+    .eco-card:nth-last-child(-n+2){ border-bottom: none; }
+  }
+
+  @media (max-width: 960px){
+    .abilities-grid{
+      grid-template-columns: repeat(2, 1fr);
+      border: 1px solid var(--line-strong);
+      border-left: none; border-right: none;
+    }
+    .ability{
+      padding: 36px 20px !important;
+      border-right: 1px solid var(--line);
+      border-bottom: 1px solid var(--line);
+      min-height: 200px;
+    }
+    .ability:nth-child(2n){ border-right: none; }
+    .ability:last-child{ border-bottom: none; }
+
+    .eco-head{
+      grid-template-columns: 1fr;
+      gap: 24px;
+    }
+    .eco-eyebrow{
+      writing-mode: horizontal-tb;
+    }
+    .eco-eyebrow::before{
+      width: 28px; height: 1px; margin: 0 0 0 0;
+      display: inline-block; vertical-align: middle;
+      margin-right: 12px;
+    }
+
+    .stats-row{ gap: 32px; }
+  }
+
+  @media (max-width: 768px){
+    .nav{ padding: 16px 20px; }
+    .nav.scrolled{ padding: 12px 20px; }
+    .brand{ font-size: 17px; gap: 10px; }
+    .brand-mark{ width: 32px; height: 32px; font-size: 16px; }
+    .nav.scrolled .brand{ font-size: 15px; }
+    .nav.scrolled .brand-mark{ width: 28px; height: 28px; font-size: 14px; }
+
+    .hero{ padding: 120px 20px 60px; }
+    .hero-ghost-num{ opacity: .03; }
+    .hero-eyebrow{ margin-bottom: 36px; }
+    .hero-eyebrow::before,
+    .hero-eyebrow::after{ width: 28px; }
+    .hero-divider{ margin: 48px 0 28px; }
+
+    .abilities{ padding: 100px 20px 100px; }
+    .abilities-head{ margin-bottom: 64px; }
+    .abilities-grid{ grid-template-columns: 1fr; }
+    .ability{
+      border-right: none !important;
+      border-bottom: 1px solid var(--line);
+      min-height: 180px; padding: 32px 0 !important;
+    }
+    .ability:last-child{ border-bottom: none; }
+
+    .ecosystem{ padding: 100px 20px 100px; }
+    .eco-head{ margin-bottom: 56px; padding-bottom: 32px; }
+    .eco-grid{ grid-template-columns: 1fr; border-bottom: none; }
+    .eco-card{
+      border-right: none !important;
+      border-bottom: 1px solid var(--line);
+      padding: 40px 0 !important;
+      min-height: auto;
+    }
+    .eco-card:last-child{ border-bottom: none; }
+    .eco-card::before{ display: none; }
+    .eco-stats{ margin-top: 64px; padding: 48px 20px; }
+    .stats-row{
+      grid-template-columns: 1fr;
+      gap: 32px;
+    }
+
+    .closing{ padding: 100px 20px 60px; }
+
+    footer{ padding: 56px 20px 28px; }
+    .foot-grid{
+      grid-template-columns: 1fr 1fr;
+      gap: 32px;
+    }
+    .foot-grid > *:first-child{
+      grid-column: span 2;
+      margin-bottom: 12px;
+    }
+    .foot-bottom{
+      flex-direction: column;
+      gap: 12px;
+      align-items: flex-start;
+    }
+
+    .scroll-hint{ bottom: 24px; }
+  }
+
+  @media (prefers-reduced-motion: reduce){
+    *, *::before, *::after{
+      animation-duration: .01ms !important;
+      transition-duration: .01ms !important;
+    }
+  }
+</style>
+</head>
+<body>
+
+<!-- ═════════════════════════════════════════════ -->
+<!-- NAV                                           -->
+<!-- ═════════════════════════════════════════════ -->
+<nav class="nav" id="nav">
+  <a href="/" class="brand">
+    <span class="brand-mark">阿</span>
+    <span>阿川 AI 超级助手</span>
+  </a>
+  <div class="nav-right">
+    <a href="login.html" class="nav-login">Log in</a>
+  </div>
+</nav>
+
+<!-- ═════════════════════════════════════════════ -->
+<!-- 1. HERO                                       -->
+<!-- ═════════════════════════════════════════════ -->
+<section class="hero">
+  <div class="hero-ghost-num" aria-hidden="true">1</div>
+
+  <div class="hero-eyebrow">阿川同学 · 2026</div>
+
+  <h1 class="hero-title">
+    <span class="ln ln-1">一个人</span>
+    <span class="ln ln-2">就是一个团队</span>
+  </h1>
+
+  <div class="hero-divider"></div>
+
+  <p class="hero-sub">
+    五种专业能力，<em>随时开启</em>
+  </p>
+
+  <div class="hero-cta-wrap">
+    <a href="login.html" class="btn">
+      账号登录
+      <span class="arrow">→</span>
+    </a>
+  </div>
+
+  <div class="scroll-hint">Scroll</div>
+</section>
+
+<!-- ═════════════════════════════════════════════ -->
+<!-- 2. ABILITIES                                  -->
+<!-- ═════════════════════════════════════════════ -->
+<section class="abilities">
+  <div class="abilities-head">
+    <div class="abilities-eyebrow reveal d1">能力 ABILITIES</div>
+    <h2 class="abilities-title reveal d2">协同处理</h2>
+    <p class="abilities-sub reveal d3">五项专业能力，一次到位</p>
+  </div>
+
+  <div class="abilities-grid">
+    <div class="ability reveal d1">
+      <div class="ability-name">内容</div>
+      <p class="ability-desc">公众号、小红书、长文<br>从一个选题，到一篇能发的成稿</p>
+    </div>
+    <div class="ability reveal d2">
+      <div class="ability-name">设计</div>
+      <p class="ability-desc">封面、海报、配图<br>描述一次，成品直出</p>
+    </div>
+    <div class="ability reveal d3">
+      <div class="ability-name">视频</div>
+      <p class="ability-desc">脚本、分镜、口播<br>平台节奏各有各的，都拿捏得准</p>
+    </div>
+    <div class="ability reveal d4">
+      <div class="ability-name">编程</div>
+      <p class="ability-desc">不懂代码，也能让电脑替你跑腿<br>网页、脚本、小工具</p>
+    </div>
+    <div class="ability reveal d5">
+      <div class="ability-name">副业</div>
+      <p class="ability-desc">选题库、数据拆解、选品思路<br>把爱好变成一份收入</p>
+    </div>
+  </div>
+</section>
+
+<!-- ═════════════════════════════════════════════ -->
+<!-- 3. ECOSYSTEM (scys-inspired)                  -->
+<!-- ═════════════════════════════════════════════ -->
+<section class="ecosystem">
+  <div class="eco-head">
+    <div class="eco-eyebrow reveal d1">NO. 03 — 生态 / ECOSYSTEM</div>
+    <h2 class="eco-title reveal d2">
+      不止一个工具<br>
+      一个陪你变富的<em>生态</em>
+    </h2>
+  </div>
+
+  <div class="eco-grid">
+    <!-- 情报 -->
+    <div class="eco-card reveal d1">
+      <div class="eco-icon">📡</div>
+      <div class="eco-tag">Intel / 信息差</div>
+      <h3 class="eco-name">情报</h3>
+      <p class="eco-intro">每日更新的 AI 风向标，帮你抓住别人还没看见的机会</p>
+      <ul class="eco-list">
+        <li>AI 工具榜单</li>
+        <li>新玩法速报</li>
+        <li>副业情报局</li>
+        <li>热点选题库</li>
+      </ul>
+      <div class="eco-action">
+        <a href="login.html" class="btn-text">
+          每日订阅 <span class="arrow">→</span>
+        </a>
+      </div>
+    </div>
+
+    <!-- 亲选 -->
+    <div class="eco-card reveal d2">
+      <div class="eco-icon">📚</div>
+      <div class="eco-tag">Knowledge / 知识</div>
+      <h3 class="eco-name">亲选</h3>
+      <p class="eco-intro">阿川亲自整理的实战干货，少走三年弯路</p>
+      <ul class="eco-list">
+        <li>爆款选题 100 条</li>
+        <li>副业起步图谱</li>
+        <li>变现案例拆解</li>
+        <li>工具避坑指南</li>
+      </ul>
+      <div class="eco-action">
+        <a href="login.html" class="btn-text">
+          免费领取 <span class="arrow">→</span>
+        </a>
+      </div>
+    </div>
+
+    <!-- 实战 -->
+    <div class="eco-card reveal d3">
+      <div class="eco-icon">🚢</div>
+      <div class="eco-tag">Project / 项目</div>
+      <h3 class="eco-name">实战</h3>
+      <p class="eco-intro">和一群人一起下水，项目陪跑，把想法跑到收入</p>
+      <ul class="eco-list">
+        <li>小红书起号营</li>
+        <li>AI 写作实战</li>
+        <li>公众号训练营</li>
+        <li>副业落地陪跑</li>
+      </ul>
+      <div class="eco-action">
+        <a href="login.html" class="btn-text">
+          查看招募 <span class="arrow">→</span>
+        </a>
+      </div>
+    </div>
+
+    <!-- 同行 -->
+    <div class="eco-card reveal d4">
+      <div class="eco-icon">👥</div>
+      <div class="eco-tag">Circle / 圈子</div>
+      <h3 class="eco-name">同行</h3>
+      <p class="eco-intro">五百万读者关注的「阿川同学」，和一群人一起慢慢变富</p>
+      <ul class="eco-list">
+        <li>公众号 · 阿川同学</li>
+        <li>视频号 · 阿川同学</li>
+        <li>抖音 · 小红书矩阵</li>
+        <li>会员专属圈子</li>
+      </ul>
+      <div class="eco-action">
+        <a href="login.html" class="btn-text">
+          关注阿川 <span class="arrow">→</span>
+        </a>
+      </div>
+    </div>
+  </div>
+
+  <!-- Stats -->
+  <div class="eco-stats">
+    <div class="stats-label reveal d1">真实数据 / by the numbers</div>
+    <div class="stats-row">
+      <div class="stat reveal d1">
+        <div class="stat-num">2000+</div>
+        <div class="stat-label">实战项目教程</div>
+      </div>
+      <div class="stat reveal d2">
+        <div class="stat-num">10,000+</div>
+        <div class="stat-label">互联网轻创业成员</div>
+      </div>
+      <div class="stat reveal d3">
+        <div class="stat-num">5,000,000+</div>
+        <div class="stat-label">全网读者</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═════════════════════════════════════════════ -->
+<!-- 4. CLOSING                                    -->
+<!-- ═════════════════════════════════════════════ -->
+<section class="closing">
+  <div class="closing-ghost-num" aria-hidden="true">·</div>
+
+  <h2 class="closing-quote reveal d1">
+    开启自己的<br>
+    <em>超级个体</em>之路
+  </h2>
+
+  <p class="closing-sub reveal d2">
+    无需下载 · 手机号登录 · 打开即用
+  </p>
+
+  <div class="closing-cta reveal d3">
+    <a href="login.html" class="btn">
+      账号登录
+      <span class="arrow">→</span>
+    </a>
+  </div>
+
+  <div class="closing-meta reveal d4">— made by 阿川 —</div>
+</section>
+
+<!-- ═════════════════════════════════════════════ -->
+<!-- FOOTER                                        -->
+<!-- ═════════════════════════════════════════════ -->
+<footer>
+  <div class="foot-grid">
+    <div>
+      <div class="foot-brand">阿川 AI 超级助手</div>
+      <p class="foot-desc">一个人就是一个团队<br>五种专业能力，随时开启</p>
+    </div>
+    <div>
+      <div class="foot-col-title">产品</div>
+      <ul class="foot-links">
+        <li><a href="login.html">AI 超级助手</a></li>
+        <li><a href="login.html">情报订阅</a></li>
+        <li><a href="login.html">会员权益</a></li>
+      </ul>
+    </div>
+    <div>
+      <div class="foot-col-title">内容</div>
+      <ul class="foot-links">
+        <li><a href="#">公众号</a></li>
+        <li><a href="#">视频号</a></li>
+        <li><a href="#">抖音 · 小红书</a></li>
+      </ul>
+    </div>
+    <div>
+      <div class="foot-col-title">关于</div>
+      <ul class="foot-links">
+        <li><a href="#">阿川是谁</a></li>
+        <li><a href="#">用户故事</a></li>
+        <li><a href="#">合作咨询</a></li>
+      </ul>
+    </div>
+    <div>
+      <div class="foot-col-title">联系</div>
+      <ul class="foot-links">
+        <li><a href="#">邮箱</a></li>
+        <li><a href="#">商务</a></li>
+      </ul>
+    </div>
+  </div>
+  <div class="foot-bottom">
+    <span>© 2026 阿川同学</span>
+    <span>crafted with care</span>
+  </div>
+</footer>
+
+<script>
+  const nav = document.getElementById('nav');
+  window.addEventListener('scroll', () => {
+    nav.classList.toggle('scrolled', window.scrollY > 20);
+  }, { passive: true });
+
+  const revealEls = document.querySelectorAll('.reveal');
+  const io = new IntersectionObserver((entries) => {
+    entries.forEach(e => {
+      if (e.isIntersecting) {
+        e.target.classList.add('in');
+        io.unobserve(e.target);
+      }
+    });
+  }, { threshold: 0.12, rootMargin: '0px 0px -60px 0px' });
+  revealEls.forEach(el => io.observe(el));
+
+  // Logged-in state
+  try {
+    const token = localStorage.getItem('token');
+    if (token && token !== 'null' && token !== 'undefined') {
+      document.querySelectorAll('a[href="login.html"]').forEach(a => {
+        a.setAttribute('href', 'choose.html');
+        const t = a.textContent.trim();
+        if (t.startsWith('账号登录')) {
+          a.innerHTML = '进入工作台 <span class="arrow">→</span>';
+        } else if (t === 'Log in') {
+          a.textContent = 'Workspace';
+        }
+      });
+    }
+  } catch (e) {}
+</script>
+
+</body>
+</html>

@@ -1,0 +1,1526 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>阿川 AI · 课程管理后台</title>
+<style>
+/* ═══════════ CSS 变量 · 同 choose.html 色系 ═══════════ */
+:root {
+  --bg:        #FAFAF7;
+  --bg-warm:   #FAF6EC;
+  --card:      #FFFFFF;
+  --border:    #E4DECF;
+  --accent:    #C26B3F;
+  --accent-hover: #A8552F;
+  --text:      #1A1814;
+  --text-sub:  #5C5647;
+  --text-muted:#9A9485;
+  --danger:    #D94F4F;
+  --danger-hover:#BF3636;
+  --success:   #3BA55D;
+  --tag-bg:    #F5F0E6;
+  --shadow:    0 1px 4px rgba(26,24,20,.08);
+  --shadow-lg: 0 8px 32px rgba(26,24,20,.12);
+  --radius:    10px;
+  --radius-sm: 6px;
+  --font:      'Noto Serif SC','Inter','PingFang SC','Microsoft YaHei',sans-serif;
+}
+
+/* ═══════════ Reset ═══════════ */
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{font-size:15px}
+body{
+  font-family:var(--font);
+  background:var(--bg);
+  color:var(--text);
+  line-height:1.6;
+  min-height:100vh;
+}
+a{color:var(--accent);text-decoration:none}
+button{cursor:pointer;font-family:inherit}
+input,select,textarea{font-family:inherit;font-size:.93rem}
+
+/* ═══════════ 顶栏 ═══════════ */
+.topbar{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:14px 28px;
+  background:var(--card);
+  border-bottom:1px solid var(--border);
+  position:sticky;top:0;z-index:100;
+}
+.topbar-left{display:flex;align-items:center;gap:12px}
+.topbar-logo{font-size:1.15rem;font-weight:700;color:var(--text)}
+.topbar-logo span{color:var(--accent)}
+.topbar-badge{
+  font-size:.72rem;padding:2px 8px;
+  background:var(--accent);color:#fff;
+  border-radius:20px;font-weight:600;
+}
+.topbar-user{
+  font-size:.85rem;color:var(--text-sub);
+  display:flex;align-items:center;gap:8px;
+}
+.topbar-user .avatar{
+  width:28px;height:28px;border-radius:50%;
+  background:var(--accent);color:#fff;
+  display:flex;align-items:center;justify-content:center;
+  font-size:.75rem;font-weight:700;
+}
+
+/* ═══════════ 主容器 ═══════════ */
+.container{
+  max-width:1100px;margin:0 auto;
+  padding:28px 24px 60px;
+}
+body.embedded{background:#FAFAF7;min-height:auto}
+body.embedded .topbar{display:none}
+body.embedded .container{max-width:none;padding:0}
+body.embedded .toolbar{padding:0 0 16px;margin-bottom:0}
+body.embedded .login-overlay{position:absolute}
+
+/* ═══════════ 工具栏 ═══════════ */
+.toolbar{
+  display:flex;align-items:center;justify-content:space-between;
+  margin-bottom:20px;flex-wrap:wrap;gap:12px;
+}
+.toolbar h2{font-size:1.2rem;font-weight:700}
+.toolbar-actions{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.cos-config-panel{
+  background:var(--card);
+  border:1px solid var(--border);
+  border-radius:var(--radius);
+  box-shadow:var(--shadow);
+  padding:18px 20px;
+  margin-bottom:20px;
+}
+.cos-config-head{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;margin-bottom:14px}
+.cos-config-head h3{font-size:1rem;font-weight:700;margin-bottom:2px}
+.cos-config-head p{font-size:.78rem;color:var(--text-muted)}
+.cos-badge{
+  font-size:.72rem;font-weight:700;
+  padding:3px 10px;border-radius:999px;
+  background:var(--tag-bg);color:var(--text-sub);
+  white-space:nowrap;
+}
+.cos-badge.ok{background:#E8F5E9;color:#2E7D32}
+.cos-badge.warn{background:#FFF4E0;color:#9A5A16}
+.cos-config-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px 16px}
+.cos-actions{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:14px}
+.cos-actions .form-hint{flex:1}
+.btn{
+  display:inline-flex;align-items:center;gap:6px;
+  padding:8px 18px;border-radius:var(--radius-sm);
+  font-size:.88rem;font-weight:600;border:none;
+  transition:all .15s;
+}
+.btn-primary{background:var(--accent);color:#fff}
+.btn-primary:hover{background:var(--accent-hover)}
+.btn-video{background:var(--text);color:#fff}
+.btn-video:hover{background:#3A342A}
+.btn-outline{background:transparent;color:var(--text-sub);border:1px solid var(--border)}
+.btn-outline:hover{border-color:var(--accent);color:var(--accent)}
+.btn-danger{background:var(--danger);color:#fff}
+.btn-danger:hover{background:var(--danger-hover)}
+.btn-sm{padding:5px 12px;font-size:.8rem}
+.btn-ghost{background:none;border:none;color:var(--text-sub);padding:4px 8px;font-size:.85rem}
+.btn-ghost:hover{color:var(--accent)}
+
+/* ═══════════ 课程表格 ═══════════ */
+.course-table{
+  width:100%;
+  background:var(--card);
+  border:1px solid var(--border);
+  border-radius:var(--radius);
+  overflow:hidden;
+  box-shadow:var(--shadow);
+}
+.course-table table{width:100%;border-collapse:collapse}
+.course-table th{
+  text-align:left;padding:12px 16px;
+  font-size:.78rem;font-weight:600;
+  color:var(--text-muted);
+  background:var(--bg-warm);
+  border-bottom:1px solid var(--border);
+  text-transform:uppercase;letter-spacing:.5px;
+}
+.course-table td{
+  padding:12px 16px;
+  border-bottom:1px solid #f0ebe0;
+  font-size:.88rem;vertical-align:middle;
+}
+.course-table tr:last-child td{border-bottom:none}
+.course-table tr:hover td{background:#FDFCF9}
+
+.cover-cell{width:56px}
+.cover-thumb{
+  width:48px;height:32px;border-radius:4px;
+  object-fit:cover;background:var(--tag-bg);
+  display:flex;align-items:center;justify-content:center;
+  font-size:1.2rem;overflow:hidden;
+}
+.cover-thumb img{width:100%;height:100%;object-fit:cover}
+
+.status-badge{
+  display:inline-block;padding:2px 10px;border-radius:20px;
+  font-size:.75rem;font-weight:600;
+}
+.status-draft{background:#F5F0E6;color:#8B7D5E}
+.status-published{background:#E8F5E9;color:#2E7D32}
+.status-archived{background:#F3E5E5;color:#9E3A3A}
+
+.actions-cell{white-space:nowrap}
+.actions-cell button{margin-right:4px}
+
+.empty-state{
+  text-align:center;padding:60px 20px;color:var(--text-muted);
+}
+.empty-state .icon{font-size:2.5rem;margin-bottom:12px}
+.empty-state p{font-size:.92rem}
+
+/* ═══════════ 弹窗 ═══════════ */
+.modal-overlay{
+  position:fixed;inset:0;
+  background:rgba(26,24,20,.45);
+  backdrop-filter:blur(4px);
+  z-index:200;display:none;
+  align-items:flex-start;justify-content:center;
+  padding:40px 16px;overflow-y:auto;
+}
+.modal-overlay.active{display:flex}
+
+.modal{
+  background:var(--card);
+  border-radius:12px;
+  width:100%;max-width:720px;
+  box-shadow:var(--shadow-lg);
+  animation:modalIn .2s ease;
+}
+@keyframes modalIn{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
+
+.modal-header{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:18px 24px;border-bottom:1px solid var(--border);
+}
+.modal-header h3{font-size:1.05rem;font-weight:700}
+.modal-close{
+  width:32px;height:32px;border-radius:50%;
+  border:none;background:none;font-size:1.2rem;
+  color:var(--text-muted);display:flex;
+  align-items:center;justify-content:center;
+}
+.modal-close:hover{background:var(--tag-bg);color:var(--text)}
+
+.modal-body{padding:24px}
+.modal-footer{
+  display:flex;justify-content:flex-end;gap:10px;
+  padding:16px 24px;border-top:1px solid var(--border);
+}
+
+/* ═══════════ 表单 ═══════════ */
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.form-group{display:flex;flex-direction:column;gap:4px}
+.form-group.full{grid-column:1/-1}
+.form-group label{font-size:.8rem;font-weight:600;color:var(--text-sub)}
+.form-group input,
+.form-group select,
+.form-group textarea{
+  padding:9px 12px;border:1px solid var(--border);
+  border-radius:var(--radius-sm);
+  background:var(--bg);color:var(--text);
+  transition:border-color .15s;
+}
+.form-group input:focus,
+.form-group select:focus,
+.form-group textarea:focus{
+  outline:none;border-color:var(--accent);
+}
+.form-group textarea{resize:vertical;min-height:72px}
+.form-hint{font-size:.72rem;color:var(--text-muted)}
+.upload-row{display:flex;gap:8px;align-items:center}
+.upload-row input{flex:1;min-width:0}
+.media-preview{margin-top:6px;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--bg-warm);overflow:hidden;display:none}
+.media-preview img{display:block;width:100%;max-height:160px;object-fit:cover}
+.media-preview video{display:block;width:100%;max-height:220px;background:#111}
+.media-preview-note{padding:7px 10px;border-top:1px solid var(--border);font-size:.74rem;color:var(--text-muted)}
+.upload-status{min-height:18px;font-size:.75rem;color:var(--text-muted)}
+.upload-status.error{color:var(--danger)}
+
+/* ═══════════ 课时管理区域 ═══════════ */
+.lessons-section{margin-top:24px}
+.lessons-section h4{
+  font-size:.92rem;font-weight:700;margin-bottom:12px;
+  display:flex;align-items:center;gap:8px;
+}
+.lessons-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:12px}
+.lessons-head h4{margin-bottom:0}
+.lessons-section h4 .count{
+  font-size:.72rem;font-weight:600;
+  background:var(--tag-bg);color:var(--text-sub);
+  padding:1px 8px;border-radius:10px;
+}
+
+.lesson-list{
+  border:1px solid var(--border);
+  border-radius:var(--radius-sm);
+  overflow:hidden;
+}
+.lesson-item{
+  display:flex;align-items:center;gap:10px;
+  padding:10px 14px;
+  border-bottom:1px solid #f0ebe0;
+  background:var(--card);
+  transition:background .1s;
+}
+.lesson-item:last-child{border-bottom:none}
+.lesson-item:hover{background:#FDFCF9}
+.lesson-item.dragging{opacity:.5;background:var(--bg-warm)}
+
+.lesson-drag{
+  cursor:grab;color:var(--text-muted);font-size:1rem;
+  flex-shrink:0;width:20px;text-align:center;
+  user-select:none;
+}
+.lesson-drag:active{cursor:grabbing}
+
+.lesson-num{
+  font-size:.75rem;font-weight:700;color:var(--text-muted);
+  width:24px;text-align:center;flex-shrink:0;
+}
+.lesson-info{flex:1;min-width:0}
+.lesson-title{font-size:.85rem;font-weight:600;color:var(--text)}
+.lesson-meta{font-size:.72rem;color:var(--text-muted);margin-top:1px}
+.lesson-meta span{margin-right:8px}
+.lesson-badges{display:flex;gap:4px;margin-top:2px}
+.badge-free{
+  font-size:.65rem;padding:1px 6px;
+  background:#E8F5E9;color:#2E7D32;
+  border-radius:8px;font-weight:600;
+}
+.badge-type{
+  font-size:.65rem;padding:1px 6px;
+  background:var(--tag-bg);color:var(--text-sub);
+  border-radius:8px;font-weight:600;
+}
+
+.lesson-actions{display:flex;gap:4px;flex-shrink:0}
+
+.add-lesson-bar{
+  display:flex;align-items:center;justify-content:center;
+  padding:12px;border:2px dashed var(--border);
+  border-radius:var(--radius-sm);
+  margin-top:10px;cursor:pointer;
+  color:var(--text-muted);font-size:.85rem;font-weight:600;
+  transition:all .15s;
+}
+.add-lesson-bar:hover{
+  border-color:var(--accent);color:var(--accent);
+  background:rgba(194,107,63,.04);
+}
+
+/* ═══════════ 课时编辑弹窗（内嵌小弹窗） ═══════════ */
+.lesson-form-overlay{
+  position:fixed;inset:0;
+  background:rgba(26,24,20,.35);
+  z-index:300;display:none;
+  align-items:center;justify-content:center;
+  padding:20px;
+}
+.lesson-form-overlay.active{display:flex}
+.lesson-form-box{
+  background:var(--card);
+  border-radius:12px;
+  width:100%;max-width:520px;
+  box-shadow:var(--shadow-lg);
+  animation:modalIn .2s ease;
+}
+
+/* ═══════════ Toast ═══════════ */
+.toast-container{
+  position:fixed;top:20px;right:20px;z-index:999;
+  display:flex;flex-direction:column;gap:8px;
+}
+.toast{
+  padding:10px 18px;border-radius:var(--radius-sm);
+  font-size:.85rem;font-weight:600;color:#fff;
+  animation:toastIn .25s ease;
+  box-shadow:var(--shadow-lg);
+}
+.toast-success{background:var(--success)}
+.toast-error{background:var(--danger)}
+@keyframes toastIn{from{opacity:0;transform:translateX(20px)}to{opacity:1;transform:translateX(0)}}
+
+/* ═══════════ 确认弹窗 ═══════════ */
+.confirm-overlay{
+  position:fixed;inset:0;background:rgba(26,24,20,.45);
+  z-index:400;display:none;
+  align-items:center;justify-content:center;
+}
+.confirm-overlay.active{display:flex}
+.confirm-box{
+  background:var(--card);border-radius:12px;
+  padding:28px;max-width:380px;width:100%;
+  text-align:center;box-shadow:var(--shadow-lg);
+  animation:modalIn .2s ease;
+}
+.confirm-box .icon{font-size:2rem;margin-bottom:10px}
+.confirm-box h4{font-size:1rem;margin-bottom:6px}
+.confirm-box p{font-size:.85rem;color:var(--text-sub);margin-bottom:20px}
+.confirm-box .btn-group{display:flex;gap:10px;justify-content:center}
+
+/* ═══════════ 登录遮罩 ═══════════ */
+.login-overlay{
+  position:fixed;inset:0;background:var(--bg);
+  z-index:500;display:flex;
+  align-items:center;justify-content:center;
+}
+.login-box{
+  text-align:center;max-width:360px;width:100%;padding:20px;
+}
+.login-box h2{font-size:1.3rem;margin-bottom:8px}
+.login-box p{font-size:.88rem;color:var(--text-sub);margin-bottom:24px}
+.login-box .form-group{margin-bottom:12px;text-align:left}
+.login-box input{width:100%}
+.login-box .btn{width:100%;justify-content:center;padding:11px;font-size:.95rem}
+.login-error{color:var(--danger);font-size:.8rem;margin-top:8px}
+
+/* ═══════════ Loading ═══════════ */
+.loading{
+  display:flex;align-items:center;justify-content:center;
+  padding:40px;color:var(--text-muted);font-size:.88rem;
+}
+.spinner{
+  width:20px;height:20px;border:2px solid var(--border);
+  border-top-color:var(--accent);border-radius:50%;
+  animation:spin .6s linear infinite;margin-right:8px;
+}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* ═══════════ 响应式 ═══════════ */
+@media(max-width:680px){
+  .form-grid{grid-template-columns:1fr}
+  .cos-config-grid{grid-template-columns:1fr}
+  .cos-config-head,.cos-actions{flex-direction:column;align-items:stretch}
+  .topbar{padding:12px 16px}
+  .container{padding:16px 12px 40px}
+  .course-table{overflow-x:auto}
+}
+</style>
+</head>
+<body>
+
+<!-- ═══════════ 登录遮罩 ═══════════ -->
+<div class="login-overlay" id="loginOverlay">
+  <div class="login-box">
+    <h2>📚 课程管理后台</h2>
+    <p>请登录管理员账号</p>
+    <div class="form-group">
+      <label>手机号</label>
+      <input type="tel" id="loginPhone" placeholder="管理员手机号" maxlength="11">
+    </div>
+    <div class="form-group">
+      <label>验证码</label>
+      <div style="display:flex;gap:8px">
+        <input type="text" id="loginCode" placeholder="6 位验证码" maxlength="6" style="flex:1">
+        <button class="btn btn-outline" id="sendCodeBtn" onclick="sendCode()">发送验证码</button>
+      </div>
+    </div>
+    <button class="btn btn-primary" onclick="doLogin()" style="margin-top:12px">登录</button>
+    <div class="login-error" id="loginError"></div>
+  </div>
+</div>
+
+<!-- ═══════════ 顶栏 ═══════════ -->
+<div class="topbar">
+  <div class="topbar-left">
+    <div class="topbar-logo"><span>阿川 AI</span> · 课程管理</div>
+    <span class="topbar-badge">Admin</span>
+  </div>
+  <div class="topbar-user" id="topbarUser">
+    <div class="avatar">A</div>
+    <span id="adminPhone">-</span>
+    <button class="btn-ghost" onclick="logout()" title="退出登录">退出</button>
+  </div>
+</div>
+
+<!-- ═══════════ 主内容 ═══════════ -->
+<div class="container">
+  <div class="toolbar">
+    <h2>📚 课程列表</h2>
+    <div class="toolbar-actions">
+      <button class="btn btn-video" onclick="quickUploadVideo()">上传视频</button>
+      <button class="btn btn-primary" onclick="openCourseModal()">＋ 新建课程</button>
+    </div>
+  </div>
+
+  <section class="cos-config-panel" id="cosConfigPanel">
+    <div class="cos-config-head">
+      <div>
+        <h3>云存储 COS 配置</h3>
+        <p>保存后课程封面、课时视频和实战区媒体上传会立即使用这里的配置。</p>
+      </div>
+      <span class="cos-badge warn" id="cosConfigBadge">检测中</span>
+    </div>
+    <div class="cos-config-grid">
+      <div class="form-group">
+        <label>SecretId *</label>
+        <input type="password" id="cos_secret_id" placeholder="AKID...">
+        <span class="form-hint" id="cos_secret_id_hint"></span>
+      </div>
+      <div class="form-group">
+        <label>SecretKey *</label>
+        <input type="password" id="cos_secret_key" placeholder="请输入 SecretKey">
+        <span class="form-hint" id="cos_secret_key_hint"></span>
+      </div>
+      <div class="form-group">
+        <label>地域 Region *</label>
+        <input type="text" id="cos_region" placeholder="ap-guangzhou">
+      </div>
+      <div class="form-group">
+        <label>Bucket *</label>
+        <input type="text" id="cos_bucket" placeholder="your-bucket-1250000000">
+      </div>
+      <div class="form-group full">
+        <label>访问域名</label>
+        <input type="text" id="cos_public_base_url" placeholder="https://cdn.example.com">
+        <span class="form-hint">留空使用 COS 默认公网域名；私有桶签名播放暂未启用。</span>
+      </div>
+      <div class="form-group">
+        <label>图片上限 MB</label>
+        <input type="number" id="cos_image_max_mb" min="1" placeholder="10">
+      </div>
+      <div class="form-group">
+        <label>视频上限 MB</label>
+        <input type="number" id="cos_video_max_mb" min="1" placeholder="300">
+      </div>
+    </div>
+    <div class="cos-actions">
+      <span class="form-hint">SecretId / SecretKey 留空表示保持原值；不会在页面回显明文。</span>
+      <button class="btn btn-primary" id="saveCosConfigBtn" onclick="saveCosConfig()">保存 COS 配置</button>
+    </div>
+  </section>
+
+  <div id="courseListWrap">
+    <div class="loading"><div class="spinner"></div>加载中…</div>
+  </div>
+</div>
+
+<!-- ═══════════ Toast 容器 ═══════════ -->
+<div class="toast-container" id="toastContainer"></div>
+
+<!-- ═══════════ 课程编辑弹窗 ═══════════ -->
+<div class="modal-overlay" id="courseModal">
+  <div class="modal">
+    <div class="modal-header">
+      <h3 id="courseModalTitle">新建课程</h3>
+      <button class="modal-close" onclick="closeCourseModal()">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-grid">
+        <div class="form-group">
+          <label>课程名称 *</label>
+          <input type="text" id="f_title" placeholder="如：AI 数字人实战课">
+        </div>
+        <div class="form-group">
+          <label>Slug *</label>
+          <input type="text" id="f_slug" placeholder="如：ai-digital-human">
+          <span class="form-hint">URL 标识 · 仅限小写字母/数字/短横线</span>
+        </div>
+        <div class="form-group">
+          <label>分类</label>
+          <select id="f_category">
+            <option value="">未分类</option>
+            <option value="AI变现">AI变现</option>
+            <option value="自媒体">自媒体</option>
+            <option value="电商">电商</option>
+            <option value="效率工具">效率工具</option>
+            <option value="编程开发">编程开发</option>
+            <option value="设计创意">设计创意</option>
+            <option value="其他">其他</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>讲师</label>
+          <input type="text" id="f_instructor" placeholder="讲师名">
+        </div>
+        <div class="form-group full">
+          <label>课程简介</label>
+          <textarea id="f_description" placeholder="课程简要描述（500字以内）" maxlength="500"></textarea>
+        </div>
+        <div class="form-group">
+          <label>封面图链接</label>
+          <div class="upload-row">
+            <input type="text" id="f_cover_url" placeholder="https://...（外链或 COS 链接）" oninput="updateCourseCoverPreview()">
+            <button type="button" class="btn btn-outline btn-sm" onclick="triggerCourseCoverUpload()">上传</button>
+          </div>
+          <input type="file" id="courseCoverUpload" accept="image/*" style="display:none" onchange="handleCourseCoverUpload(this)">
+          <div id="courseCoverPreview" class="media-preview"></div>
+          <div id="courseCoverUploadStatus" class="upload-status"></div>
+        </div>
+        <div class="form-group">
+          <label>封面 Emoji</label>
+          <input type="text" id="f_cover_emoji" placeholder="如：📹" maxlength="4">
+          <span class="form-hint">无封面图时显示</span>
+        </div>
+        <div class="form-group">
+          <label>价格（元）</label>
+          <input type="number" id="f_price" value="0" min="0" step="0.01">
+        </div>
+        <div class="form-group">
+          <label>状态</label>
+          <select id="f_status">
+            <option value="draft">草稿</option>
+            <option value="published">已发布</option>
+            <option value="archived">已归档</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>排序（小在前）</label>
+          <input type="number" id="f_sort_order" value="0" min="0">
+        </div>
+      </div>
+
+      <!-- 课时管理（仅编辑模式显示） -->
+      <div class="lessons-section" id="lessonsSection" style="display:none">
+        <div class="lessons-head">
+          <h4>📋 课时管理 <span class="count" id="lessonCount">0</span></h4>
+          <button type="button" class="btn btn-video btn-sm" onclick="openLessonModal()">上传视频</button>
+        </div>
+        <div class="lesson-list" id="lessonList"></div>
+        <div class="add-lesson-bar" onclick="openLessonModal()">＋ 上传视频 / 添加课时</div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeCourseModal()">取消</button>
+      <button class="btn btn-primary" id="courseSubmitBtn" onclick="saveCourse()">保存</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════ 课时编辑弹窗 ═══════════ -->
+<div class="lesson-form-overlay" id="lessonModal">
+  <div class="lesson-form-box">
+    <div class="modal-header">
+      <h3 id="lessonModalTitle">添加课时</h3>
+      <button class="modal-close" onclick="closeLessonModal()">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-grid">
+        <div class="form-group full">
+          <label>课时标题 *</label>
+          <input type="text" id="lf_title" placeholder="如：第一课：入门概览">
+        </div>
+        <div class="form-group full">
+          <label>课时简介</label>
+          <textarea id="lf_description" placeholder="课时描述" maxlength="500"></textarea>
+        </div>
+        <div class="form-group">
+          <label>类型</label>
+          <select id="lf_lesson_type">
+            <option value="video">视频课</option>
+            <option value="article">图文课</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>时长（秒）</label>
+          <input type="number" id="lf_video_duration" value="0" min="0">
+          <span class="form-hint">视频课填秒数 · 如 750 = 12分30秒</span>
+        </div>
+        <div class="form-group full">
+          <label>视频链接</label>
+          <div class="upload-row">
+            <input type="text" id="lf_video_url" placeholder="https://...（外链或 COS 链接）" oninput="updateLessonVideoPreview()">
+            <button type="button" class="btn btn-outline btn-sm" onclick="triggerLessonVideoUpload()">上传视频</button>
+          </div>
+          <input type="file" id="lessonVideoUpload" accept="video/mp4,video/webm" style="display:none" onchange="handleLessonVideoUpload(this)">
+          <div id="lessonVideoPreview" class="media-preview"></div>
+          <div id="lessonVideoUploadStatus" class="upload-status"></div>
+        </div>
+        <div class="form-group">
+          <label>排序（小在前）</label>
+          <input type="number" id="lf_sort_order" value="0" min="0">
+        </div>
+        <div class="form-group">
+          <label>选项</label>
+          <div style="display:flex;gap:16px;padding-top:6px">
+            <label style="font-size:.85rem;display:flex;align-items:center;gap:4px;cursor:pointer">
+              <input type="checkbox" id="lf_is_free"> 免费试看
+            </label>
+            <label style="font-size:.85rem;display:flex;align-items:center;gap:4px;cursor:pointer">
+              <input type="checkbox" id="lf_is_published" checked> 已发布
+            </label>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeLessonModal()">取消</button>
+      <button class="btn btn-primary" id="lessonSubmitBtn" onclick="saveLesson()">保存课时</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════ 确认弹窗 ═══════════ -->
+<div class="confirm-overlay" id="confirmOverlay">
+  <div class="confirm-box">
+    <div class="icon" id="confirmIcon">⚠️</div>
+    <h4 id="confirmTitle">确认删除？</h4>
+    <p id="confirmMsg">此操作不可撤销</p>
+    <div class="btn-group">
+      <button class="btn btn-outline" onclick="closeConfirm()">取消</button>
+      <button class="btn btn-danger" id="confirmBtn">确认删除</button>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ═══════════════════════════════════════════
+   全局状态
+   ═══════════════════════════════════════════ */
+const API = location.protocol === 'file:' ? 'http://localhost:8000' : location.origin;
+const DEFAULT_COURSE_COVER_URL = `${location.protocol === 'file:' ? 'http://localhost:8000' : ''}/static/assets/default-course-cover.jpg`;
+const EMBED_MODE = new URLSearchParams(location.search).get('embed') === '1';
+if (EMBED_MODE) document.body.classList.add('embedded');
+let TOKEN = localStorage.getItem('admin_token') || '';
+let COURSES = [];
+let CURRENT_COURSE_ID = null;   // 正在编辑的课程 id（null = 新建）
+let CURRENT_LESSONS = [];       // 当前课程的课时列表
+let CURRENT_LESSON_ID = null;   // 正在编辑的课时 id（null = 新建）
+let LESSON_UPLOADING = false;
+let COS_ITEMS_BY_KEY = {};
+const COS_CONFIG_FIELDS = [
+  { key: 'COS_SECRET_ID', id: 'cos_secret_id', secret: true, required: true },
+  { key: 'COS_SECRET_KEY', id: 'cos_secret_key', secret: true, required: true },
+  { key: 'COS_REGION', id: 'cos_region', required: true },
+  { key: 'COS_BUCKET', id: 'cos_bucket', required: true },
+  { key: 'COS_PUBLIC_BASE_URL', id: 'cos_public_base_url' },
+  { key: 'PRACTICE_IMAGE_MAX_MB', id: 'cos_image_max_mb' },
+  { key: 'PRACTICE_VIDEO_MAX_MB', id: 'cos_video_max_mb' },
+];
+
+/* ═══════════════════════════════════════════
+   登录
+   ═══════════════════════════════════════════ */
+function checkLogin() {
+  if (TOKEN) {
+    document.getElementById('loginOverlay').style.display = 'none';
+    loadCourses();
+    loadCosConfig();
+    // 从 token 解析手机号
+    try {
+      const payload = JSON.parse(atob(TOKEN.split('.')[1]));
+      document.getElementById('adminPhone').textContent = payload.phone || '-';
+    } catch(e) {}
+  }
+}
+
+let codeTimer = 0;
+async function sendCode() {
+  const phone = document.getElementById('loginPhone').value.trim();
+  if (!/^1\d{10}$/.test(phone)) {
+    document.getElementById('loginError').textContent = '请输入正确的手机号';
+    return;
+  }
+  const btn = document.getElementById('sendCodeBtn');
+  btn.disabled = true;
+  try {
+    const r = await fetch(`${API}/auth/send-code`, {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({phone})
+    });
+    const data = await r.json().catch(() => ({}));
+    if (!r.ok) throw new Error(data.detail || '发送失败');
+    toast('验证码已发送', 'success');
+    let sec = data.resend_seconds || 60;
+    codeTimer = setInterval(() => {
+      sec--;
+      btn.textContent = `${sec}s`;
+      if (sec <= 0) { clearInterval(codeTimer); btn.textContent = '发送验证码'; btn.disabled = false; }
+    }, 1000);
+  } catch(e) {
+    btn.disabled = false;
+    document.getElementById('loginError').textContent = e.message;
+  }
+}
+
+async function doLogin() {
+  const phone = document.getElementById('loginPhone').value.trim();
+  const code  = document.getElementById('loginCode').value.trim();
+  if (!phone || !code) {
+    document.getElementById('loginError').textContent = '请填写手机号和验证码';
+    return;
+  }
+  try {
+    const r = await fetch(`${API}/auth/login`, {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({phone, code})
+    });
+    const data = await r.json();
+    if (!r.ok) throw new Error(data.detail || '登录失败');
+    TOKEN = data.access_token || data.token;
+    localStorage.setItem('admin_token', TOKEN);
+    document.getElementById('loginOverlay').style.display = 'none';
+    document.getElementById('adminPhone').textContent = phone;
+    loadCourses();
+    loadCosConfig();
+  } catch(e) {
+    document.getElementById('loginError').textContent = e.message;
+  }
+}
+
+function logout() {
+  TOKEN = '';
+  localStorage.removeItem('admin_token');
+  location.reload();
+}
+
+/* ═══════════════════════════════════════════
+   API 请求封装
+   ═══════════════════════════════════════════ */
+async function api(path, method = 'GET', body = null) {
+  const opts = {
+    method,
+    headers: {
+      'Authorization': `Bearer ${TOKEN}`,
+      'Content-Type': 'application/json'
+    }
+  };
+  if (body) opts.body = JSON.stringify(body);
+  const r = await fetch(`${API}${path}`, opts);
+  if (r.status === 401 || r.status === 403) {
+    toast('权限不足或登录过期', 'error');
+    logout();
+    throw new Error('Unauthorized');
+  }
+  if (r.status === 204) return null;
+  const data = await r.json();
+  if (!r.ok) throw new Error(data.detail || '请求失败');
+  return data;
+}
+
+function updateCosBadge(itemsByKey = null) {
+  const badge = document.getElementById('cosConfigBadge');
+  if (!badge) return;
+  const ok = COS_CONFIG_FIELDS
+    .filter(f => f.required)
+    .every(f => itemsByKey?.[f.key]?.has_value);
+  badge.textContent = ok ? '已配置' : '未配置完整';
+  badge.className = 'cos-badge ' + (ok ? 'ok' : 'warn');
+}
+
+async function loadCosConfig() {
+  try {
+    const data = await api('/admin/api-config');
+    const itemsByKey = {};
+    (data.items || []).forEach(item => { itemsByKey[item.key] = item; });
+    COS_ITEMS_BY_KEY = itemsByKey;
+    COS_CONFIG_FIELDS.forEach(field => {
+      const item = itemsByKey[field.key] || {};
+      const input = document.getElementById(field.id);
+      if (!input) return;
+      if (field.secret) {
+        input.value = '';
+        input.placeholder = item.has_value
+          ? `已配置：${item.masked_value || '******'}（留空不修改）`
+          : (field.key === 'COS_SECRET_ID' ? 'AKID...' : '请输入 SecretKey');
+        const hint = document.getElementById(`${field.id}_hint`);
+        if (hint) hint.textContent = item.has_value ? `当前来源：${item.source === 'database' ? '后台配置' : item.source}` : '尚未配置';
+      } else {
+        input.value = item.value || '';
+      }
+    });
+    updateCosBadge(itemsByKey);
+  } catch(e) {
+    updateCosBadge(null);
+  }
+}
+
+async function saveCosConfig() {
+  const btn = document.getElementById('saveCosConfigBtn');
+  const settings = {};
+  COS_CONFIG_FIELDS.forEach(field => {
+    const input = document.getElementById(field.id);
+    if (!input) return;
+    const value = input.value.trim();
+    if (field.secret) {
+      if (value) settings[field.key] = value;
+    } else {
+      settings[field.key] = value;
+    }
+  });
+
+  const requiredPlain = COS_CONFIG_FIELDS
+    .filter(f => f.required && !f.secret)
+    .filter(f => !(document.getElementById(f.id)?.value || '').trim());
+  if (requiredPlain.length) {
+    toast('请填写 COS Region 和 Bucket', 'error');
+    return;
+  }
+  const missingSecrets = COS_CONFIG_FIELDS
+    .filter(f => f.required && f.secret)
+    .filter(f => !(document.getElementById(f.id)?.value || '').trim() && !COS_ITEMS_BY_KEY[f.key]?.has_value);
+  if (missingSecrets.length) {
+    toast('请填写 COS SecretId 和 SecretKey', 'error');
+    return;
+  }
+
+  if (btn) { btn.disabled = true; btn.textContent = '保存中…'; }
+  try {
+    const data = await api('/admin/api-config', 'PUT', { settings, clear_keys: [] });
+    toast('COS 配置已保存', 'success');
+    const itemsByKey = {};
+    (data.items || []).forEach(item => { itemsByKey[item.key] = item; });
+    COS_ITEMS_BY_KEY = itemsByKey;
+    updateCosBadge(itemsByKey);
+    loadCosConfig();
+  } catch(e) {
+    toast(e.message || '保存 COS 配置失败', 'error');
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = '保存 COS 配置'; }
+  }
+}
+
+function setUploadStatus(id, msg, isError = false) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.className = 'upload-status' + (isError ? ' error' : '');
+  el.textContent = msg || '';
+}
+
+function uploadCourseMedia(file, kind, statusId) {
+  const formData = new FormData();
+  const uploadId = (window.crypto?.randomUUID?.() || `upload-${Date.now()}-${Math.random().toString(16).slice(2)}`);
+  formData.append('file', file);
+  formData.append('kind', kind);
+  formData.append('upload_id', uploadId);
+  return new Promise((resolve, reject) => {
+    const xhr = new XMLHttpRequest();
+    let finished = false;
+    let serverWaitTimer = null;
+    let polling = false;
+    let serverWaitStartedAt = 0;
+    const stopServerWait = () => {
+      if (serverWaitTimer) clearInterval(serverWaitTimer);
+      serverWaitTimer = null;
+    };
+    const completeOk = (data) => {
+      if (finished) return;
+      finished = true;
+      stopServerWait();
+      resolve(data);
+      try { if (xhr.readyState !== 4) xhr.abort(); } catch(e) {}
+    };
+    const completeError = (message) => {
+      if (finished) return;
+      finished = true;
+      stopServerWait();
+      reject(new Error(message));
+      try { if (xhr.readyState !== 4) xhr.abort(); } catch(e) {}
+    };
+    const pollServerStatus = async () => {
+      if (finished || polling) return;
+      polling = true;
+      try {
+        const r = await fetch(`${API}/admin/courses/upload-status/${encodeURIComponent(uploadId)}`, {
+          headers: { 'Authorization': `Bearer ${TOKEN}` }
+        });
+        if (r.status === 404) return;
+        const data = await r.json().catch(() => ({}));
+        if (data.status === 'ok' && data.result?.url) completeOk(data.result);
+        if (data.status === 'error') completeError(data.detail || '上传失败');
+      } catch(e) {
+        // The original XHR is still the source of truth; polling is only a recovery path.
+      } finally {
+        polling = false;
+      }
+    };
+    const startServerWait = () => {
+      if (serverWaitTimer) return;
+      serverWaitStartedAt = Date.now();
+      serverWaitTimer = setInterval(() => {
+        const seconds = Math.max(1, Math.round((Date.now() - serverWaitStartedAt) / 1000));
+        setUploadStatus(statusId, `文件已传到服务器，正在写入云存储…已等待 ${seconds}s`);
+        if (seconds % 3 === 0) pollServerStatus();
+        if (seconds >= 180) completeError('写入云存储等待过久，请重新上传；若文件很大，建议压缩后再试');
+      }, 1000);
+    };
+    const finish = () => {
+      if (finished || xhr.readyState !== 4) return;
+      let data = {};
+      try { data = JSON.parse(xhr.responseText || '{}'); } catch(e) {}
+      if (xhr.status >= 200 && xhr.status < 300 && data.url) {
+        completeOk(data);
+      } else {
+        completeError(data.detail || `上传失败（HTTP ${xhr.status || '未知'}）`);
+      }
+    };
+    xhr.open('POST', `${API}/admin/courses/upload`);
+    xhr.timeout = 30 * 60 * 1000;
+    xhr.setRequestHeader('Authorization', `Bearer ${TOKEN}`);
+    xhr.upload.onprogress = (event) => {
+      if (!event.lengthComputable) {
+        setUploadStatus(statusId, '正在上传…');
+        return;
+      }
+      const percent = Math.round((event.loaded / event.total) * 100);
+      setUploadStatus(
+        statusId,
+        percent >= 100 ? '文件已传到服务器，正在写入云存储…' : `正在上传 ${percent}%`
+      );
+      if (percent >= 100) startServerWait();
+    };
+    xhr.onload = finish;
+    xhr.onreadystatechange = finish;
+    xhr.onloadend = finish;
+    xhr.onerror = () => completeError('网络异常，上传失败');
+    xhr.onabort = () => { if (!finished) completeError('上传已取消'); };
+    xhr.ontimeout = () => completeError('上传超时，请检查网络或减小视频文件');
+    xhr.send(formData);
+  });
+}
+
+function triggerCourseCoverUpload() {
+  document.getElementById('courseCoverUpload').click();
+}
+
+async function handleCourseCoverUpload(input) {
+  if (!input.files || !input.files[0]) return;
+  try {
+    const data = await uploadCourseMedia(input.files[0], 'image', 'courseCoverUploadStatus');
+    document.getElementById('f_cover_url').value = data.url;
+    updateCourseCoverPreview();
+    setUploadStatus('courseCoverUploadStatus', '');
+    toast('封面已上传', 'success');
+  } catch(e) {
+    setUploadStatus('courseCoverUploadStatus', e.message, true);
+    toast(e.message, 'error');
+  } finally {
+    input.value = '';
+  }
+}
+
+function updateCourseCoverPreview() {
+  const url = document.getElementById('f_cover_url').value.trim();
+  const preview = document.getElementById('courseCoverPreview');
+  if (!preview) return;
+  if (!url) {
+    preview.style.display = 'block';
+    preview.innerHTML = `<img src="${DEFAULT_COURSE_COVER_URL}" alt="默认课程封面"><div class="media-preview-note">未上传封面时，前台会使用这张默认图</div>`;
+    return;
+  }
+  preview.style.display = 'block';
+  preview.innerHTML = `<img src="${esc(url)}" alt="课程封面" onerror="this.parentNode.style.display='none'">`;
+}
+
+function triggerLessonVideoUpload() {
+  document.getElementById('lessonVideoUpload').click();
+}
+
+async function handleLessonVideoUpload(input) {
+  if (!input.files || !input.files[0]) return;
+  LESSON_UPLOADING = true;
+  setUploadStatus('lessonVideoUploadStatus', '准备上传视频…');
+  try {
+    const data = await uploadCourseMedia(input.files[0], 'video', 'lessonVideoUploadStatus');
+    document.getElementById('lf_video_url').value = data.url;
+    updateLessonVideoPreview();
+    setUploadStatus('lessonVideoUploadStatus', '视频已上传，可以保存课时');
+    toast('视频已上传', 'success');
+  } catch(e) {
+    setUploadStatus('lessonVideoUploadStatus', e.message, true);
+    toast(e.message, 'error');
+  } finally {
+    LESSON_UPLOADING = false;
+    input.value = '';
+  }
+}
+
+function updateLessonVideoPreview() {
+  const url = document.getElementById('lf_video_url').value.trim();
+  const preview = document.getElementById('lessonVideoPreview');
+  if (!preview) return;
+  if (!url) {
+    preview.style.display = 'none';
+    preview.innerHTML = '';
+    return;
+  }
+  preview.style.display = 'block';
+  preview.innerHTML = `<video src="${esc(url)}" ${videoAttrs()} preload="metadata"></video>`;
+}
+
+/* ═══════════════════════════════════════════
+   课程列表
+   ═══════════════════════════════════════════ */
+async function loadCourses() {
+  const wrap = document.getElementById('courseListWrap');
+  wrap.innerHTML = '<div class="loading"><div class="spinner"></div>加载中…</div>';
+  try {
+    COURSES = await api('/admin/courses');
+    renderCourseTable();
+  } catch(e) {
+    wrap.innerHTML = `<div class="empty-state"><div class="icon">⚠️</div><p>加载失败：${e.message}</p></div>`;
+  }
+}
+
+function renderCourseTable() {
+  const wrap = document.getElementById('courseListWrap');
+  if (!COURSES || COURSES.length === 0) {
+    wrap.innerHTML = `
+      <div class="empty-state">
+        <div class="icon">📚</div>
+        <p>还没有课程 · 点击「新建课程」开始</p>
+      </div>`;
+    return;
+  }
+  const statusMap = {
+    draft:     ['草稿','status-draft'],
+    published: ['已发布','status-published'],
+    archived:  ['已归档','status-archived'],
+  };
+  const rows = COURSES.map(c => {
+    const [sLabel, sCls] = statusMap[c.status] || ['未知','status-draft'];
+    const coverUrl = (c.cover_url && c.cover_url.trim()) || DEFAULT_COURSE_COVER_URL;
+    const cover = `<img src="${esc(coverUrl)}" alt="" onerror="this.onerror=null;this.src='${DEFAULT_COURSE_COVER_URL}'">`;
+    const dur = c.total_duration ? formatDuration(c.total_duration) : '-';
+    return `<tr>
+      <td class="cover-cell"><div class="cover-thumb">${cover}</div></td>
+      <td><strong>${esc(c.title)}</strong><br><span style="font-size:.75rem;color:var(--text-muted)">${esc(c.slug)}</span></td>
+      <td>${esc(c.category || '-')}</td>
+      <td>${c.instructor || '-'}</td>
+      <td>${c.lesson_count || 0} 课时<br><span style="font-size:.75rem;color:var(--text-muted)">${dur}</span></td>
+      <td>${c.price > 0 ? '¥'+c.price : '<span style="color:var(--success)">免费</span>'}</td>
+      <td><span class="status-badge ${sCls}">${sLabel}</span></td>
+      <td>${c.view_count || 0}</td>
+      <td class="actions-cell">
+        <button class="btn btn-video btn-sm" onclick="quickUploadVideo(${c.id})">上传视频</button>
+        <button class="btn btn-outline btn-sm" onclick="toggleCoursePublish(${c.id},${!c.is_published})">${c.is_published ? '下架' : '发布'}</button>
+        <button class="btn btn-outline btn-sm" onclick="editCourse(${c.id})">编辑</button>
+        <button class="btn btn-ghost btn-sm" style="color:var(--danger)" onclick="confirmDeleteCourse(${c.id},'${esc(c.title)}')">删除</button>
+      </td>
+    </tr>`;
+  }).join('');
+
+  wrap.innerHTML = `
+    <div class="course-table">
+      <table>
+        <thead><tr>
+          <th>封面</th><th>课程名</th><th>分类</th><th>讲师</th>
+          <th>课时</th><th>价格</th><th>状态</th><th>浏览</th><th>操作</th>
+        </tr></thead>
+        <tbody>${rows}</tbody>
+      </table>
+    </div>`;
+}
+
+/* ═══════════════════════════════════════════
+   课程弹窗 · 新建 / 编辑
+   ═══════════════════════════════════════════ */
+function openCourseModal(courseData = null) {
+  CURRENT_COURSE_ID = courseData ? courseData.id : null;
+  document.getElementById('courseModalTitle').textContent = courseData ? '编辑课程' : '新建课程';
+
+  // 填充表单
+  document.getElementById('f_title').value       = courseData?.title || '';
+  document.getElementById('f_slug').value        = courseData?.slug || '';
+  document.getElementById('f_category').value    = courseData?.category || '';
+  document.getElementById('f_instructor').value  = courseData?.instructor || '';
+  document.getElementById('f_description').value = courseData?.description || '';
+  document.getElementById('f_cover_url').value   = courseData?.cover_url || '';
+  document.getElementById('f_cover_emoji').value = courseData?.cover_emoji || '';
+  document.getElementById('f_price').value       = courseData?.price ?? 0;
+  document.getElementById('f_status').value      = courseData?.status || 'draft';
+  document.getElementById('f_sort_order').value  = courseData?.sort_order ?? 0;
+  setUploadStatus('courseCoverUploadStatus', '');
+  updateCourseCoverPreview();
+
+  // 课时区域
+  const lessonsSection = document.getElementById('lessonsSection');
+  if (courseData) {
+    lessonsSection.style.display = 'block';
+    loadLessons(courseData.id);
+  } else {
+    lessonsSection.style.display = 'none';
+    CURRENT_LESSONS = [];
+  }
+
+  document.getElementById('courseModal').classList.add('active');
+}
+
+function closeCourseModal() {
+  document.getElementById('courseModal').classList.remove('active');
+  CURRENT_COURSE_ID = null;
+}
+
+async function editCourse(id) {
+  try {
+    // 从列表里找数据
+    const c = COURSES.find(x => x.id === id);
+    if (c) openCourseModal(c);
+  } catch(e) {
+    toast('加载失败: ' + e.message, 'error');
+  }
+}
+
+async function toggleCoursePublish(id, publish) {
+  try {
+    await api(`/admin/courses/${id}`, 'PUT', {
+      status: publish ? 'published' : 'draft',
+      is_published: publish
+    });
+    toast(publish ? '课程已发布，前台可见' : '课程已下架，前台不可见', 'success');
+    loadCourses();
+  } catch(e) {
+    toast(e.message || '操作失败', 'error');
+  }
+}
+
+function quickUploadVideo(courseId = null) {
+  if (!COURSES || COURSES.length === 0) {
+    toast('请先新建课程，再上传视频', 'error');
+    openCourseModal();
+    return;
+  }
+
+  let target = courseId ? COURSES.find(x => x.id === courseId) : null;
+  if (!target && COURSES.length === 1) {
+    target = COURSES[0];
+  }
+  if (!target) {
+    const options = COURSES.map((c, i) => `${i + 1}. ${c.title}`).join('\n');
+    const picked = parseInt(prompt(`选择要上传视频的课程编号：\n${options}`, '1') || '', 10);
+    if (!picked || !COURSES[picked - 1]) return;
+    target = COURSES[picked - 1];
+  }
+
+  openCourseModal(target);
+  setTimeout(() => {
+    openLessonModal();
+    toast(`正在为「${target.title}」添加视频课时`, 'success');
+  }, 120);
+}
+
+async function saveCourse() {
+  const title = document.getElementById('f_title').value.trim();
+  const slug  = document.getElementById('f_slug').value.trim();
+  if (!title || !slug) { toast('课程名称和 Slug 必填', 'error'); return; }
+  if (!/^[a-z0-9-]+$/.test(slug)) { toast('Slug 仅限小写字母、数字、短横线', 'error'); return; }
+
+  const body = {
+    title,
+    slug,
+    category:    document.getElementById('f_category').value || null,
+    instructor:  document.getElementById('f_instructor').value.trim() || null,
+    description: document.getElementById('f_description').value.trim() || null,
+    cover_url:   document.getElementById('f_cover_url').value.trim() || null,
+    cover_emoji: document.getElementById('f_cover_emoji').value.trim() || null,
+    price:       parseFloat(document.getElementById('f_price').value) || 0,
+    status:      document.getElementById('f_status').value,
+    sort_order:  parseInt(document.getElementById('f_sort_order').value) || 0,
+  };
+
+  // is_published 跟 status 同步
+  body.is_published = body.status === 'published';
+
+  const btn = document.getElementById('courseSubmitBtn');
+  btn.disabled = true; btn.textContent = '保存中…';
+
+  try {
+    if (CURRENT_COURSE_ID) {
+      await api(`/admin/courses/${CURRENT_COURSE_ID}`, 'PUT', body);
+      toast('课程已更新', 'success');
+    } else {
+      const newCourse = await api('/admin/courses', 'POST', body);
+      toast('课程已创建', 'success');
+      // 创建后切到编辑模式
+      CURRENT_COURSE_ID = newCourse.id;
+      document.getElementById('courseModalTitle').textContent = '编辑课程';
+      document.getElementById('lessonsSection').style.display = 'block';
+      loadLessons(newCourse.id);
+    }
+    loadCourses();
+  } catch(e) {
+    toast(e.message, 'error');
+  } finally {
+    btn.disabled = false; btn.textContent = '保存';
+  }
+}
+
+/* ═══════════════════════════════════════════
+   删除课程
+   ═══════════════════════════════════════════ */
+function confirmDeleteCourse(id, title) {
+  showConfirm(
+    '⚠️',
+    `确认删除「${title}」？`,
+    '课程及其所有课时将被永久删除',
+    async () => {
+      try {
+        await api(`/admin/courses/${id}`, 'DELETE');
+        toast('已删除', 'success');
+        loadCourses();
+      } catch(e) {
+        toast(e.message, 'error');
+      }
+    }
+  );
+}
+
+/* ═══════════════════════════════════════════
+   课时管理
+   ═══════════════════════════════════════════ */
+async function loadLessons(courseId) {
+  const list = document.getElementById('lessonList');
+  list.innerHTML = '<div class="loading" style="padding:16px"><div class="spinner"></div>加载课时…</div>';
+  try {
+    CURRENT_LESSONS = await api(`/admin/courses/${courseId}/lessons`);
+    renderLessons();
+  } catch(e) {
+    list.innerHTML = `<div style="padding:16px;color:var(--danger);font-size:.85rem">加载失败: ${e.message}</div>`;
+  }
+}
+
+function renderLessons() {
+  const list = document.getElementById('lessonList');
+  document.getElementById('lessonCount').textContent = CURRENT_LESSONS.length;
+
+  if (CURRENT_LESSONS.length === 0) {
+    list.innerHTML = '<div style="padding:20px;text-align:center;color:var(--text-muted);font-size:.85rem">暂无课时 · 点击下方添加</div>';
+    return;
+  }
+
+  list.innerHTML = CURRENT_LESSONS.map((l, i) => {
+    const dur = l.video_duration ? formatDuration(l.video_duration) : '';
+    const typeLabel = l.lesson_type === 'article' ? '图文' : '视频';
+    return `
+      <div class="lesson-item" draggable="true"
+           ondragstart="dragStart(event,${i})"
+           ondragover="dragOver(event)"
+           ondrop="dropLesson(event,${i})"
+           ondragend="dragEnd(event)">
+        <span class="lesson-drag">⋮⋮</span>
+        <span class="lesson-num">${String(i+1).padStart(2,'0')}</span>
+        <div class="lesson-info">
+          <div class="lesson-title">${esc(l.title)}</div>
+          <div class="lesson-meta">
+            <span class="badge-type">${typeLabel}</span>
+            ${dur ? `<span>🎬 ${dur}</span>` : ''}
+            ${l.is_free ? '<span class="badge-free">免费</span>' : ''}
+            ${!l.is_published ? '<span style="color:var(--text-muted)">· 未发布</span>' : ''}
+          </div>
+        </div>
+        <div class="lesson-actions">
+          <button class="btn btn-ghost btn-sm" onclick="editLesson(${l.id})">编辑</button>
+          <button class="btn btn-ghost btn-sm" style="color:var(--danger)" onclick="confirmDeleteLesson(${l.id},'${esc(l.title)}')">删除</button>
+        </div>
+      </div>`;
+  }).join('');
+}
+
+/* ═══════════ 课时拖拽排序 ═══════════ */
+let dragFromIdx = null;
+function dragStart(e, idx) { dragFromIdx = idx; e.currentTarget.classList.add('dragging'); }
+function dragOver(e) { e.preventDefault(); }
+function dragEnd(e) { e.currentTarget.classList.remove('dragging'); }
+
+async function dropLesson(e, toIdx) {
+  e.preventDefault();
+  if (dragFromIdx === null || dragFromIdx === toIdx) return;
+  const item = CURRENT_LESSONS.splice(dragFromIdx, 1)[0];
+  CURRENT_LESSONS.splice(toIdx, 0, item);
+  dragFromIdx = null;
+  renderLessons();
+  // 发送排序请求
+  const items = CURRENT_LESSONS.map((l, idx) => ({ id: l.id, sort_order: idx * 10 }));
+  try {
+    await api('/admin/courses/lessons/reorder', 'PUT', { items });
+    toast('排序已保存', 'success');
+  } catch(e) {
+    toast('排序保存失败', 'error');
+    loadLessons(CURRENT_COURSE_ID);
+  }
+}
+
+/* ═══════════ 课时弹窗 ═══════════ */
+function openLessonModal(lessonData = null) {
+  CURRENT_LESSON_ID = lessonData ? lessonData.id : null;
+  document.getElementById('lessonModalTitle').textContent = lessonData ? '编辑课时' : '添加课时';
+
+  document.getElementById('lf_title').value          = lessonData?.title || '';
+  document.getElementById('lf_description').value    = lessonData?.description || '';
+  document.getElementById('lf_lesson_type').value    = lessonData?.lesson_type || 'video';
+  document.getElementById('lf_video_duration').value = lessonData?.video_duration ?? 0;
+  document.getElementById('lf_video_url').value      = lessonData?.video_url || '';
+  document.getElementById('lf_sort_order').value     = lessonData?.sort_order ?? (CURRENT_LESSONS.length * 10);
+  document.getElementById('lf_is_free').checked      = lessonData?.is_free ?? false;
+  document.getElementById('lf_is_published').checked = lessonData?.is_published ?? true;
+  LESSON_UPLOADING = false;
+  const submitBtn = document.getElementById('lessonSubmitBtn');
+  if (submitBtn) { submitBtn.disabled = false; submitBtn.textContent = '保存课时'; }
+  setUploadStatus('lessonVideoUploadStatus', '');
+  updateLessonVideoPreview();
+
+  document.getElementById('lessonModal').classList.add('active');
+}
+
+function closeLessonModal() {
+  document.getElementById('lessonModal').classList.remove('active');
+  CURRENT_LESSON_ID = null;
+}
+
+function editLesson(id) {
+  const l = CURRENT_LESSONS.find(x => x.id === id);
+  if (l) openLessonModal(l);
+}
+
+async function saveLesson() {
+  const title = document.getElementById('lf_title').value.trim();
+  if (!title) { toast('课时标题必填', 'error'); return; }
+  if (!CURRENT_COURSE_ID) { toast('请先保存课程，再添加课时', 'error'); return; }
+  if (LESSON_UPLOADING) {
+    const msg = '视频还在上传或写入云存储，拿到链接后才能保存';
+    setUploadStatus('lessonVideoUploadStatus', msg, true);
+    toast(msg, 'error');
+    return;
+  }
+
+  const body = {
+    title,
+    description:    document.getElementById('lf_description').value.trim() || null,
+    lesson_type:    document.getElementById('lf_lesson_type').value,
+    video_duration: parseInt(document.getElementById('lf_video_duration').value) || 0,
+    video_url:      document.getElementById('lf_video_url').value.trim() || null,
+    sort_order:     parseInt(document.getElementById('lf_sort_order').value) || 0,
+    is_free:        document.getElementById('lf_is_free').checked,
+    is_published:   document.getElementById('lf_is_published').checked,
+  };
+  if (body.lesson_type === 'video' && !body.video_url) {
+    const msg = '请先上传视频，或填写可播放的视频链接';
+    setUploadStatus('lessonVideoUploadStatus', msg, true);
+    toast(msg, 'error');
+    return;
+  }
+
+  const btn = document.getElementById('lessonSubmitBtn');
+  if (btn) { btn.disabled = true; btn.textContent = '保存中…'; }
+  try {
+    if (CURRENT_LESSON_ID) {
+      await api(`/admin/courses/lessons/${CURRENT_LESSON_ID}`, 'PUT', body);
+      toast('课时已更新', 'success');
+    } else {
+      await api(`/admin/courses/${CURRENT_COURSE_ID}/lessons`, 'POST', body);
+      toast('课时已添加', 'success');
+    }
+    const course = COURSES.find(c => c.id === CURRENT_COURSE_ID);
+    if (course && !course.is_published) {
+      toast('课时已保存，但课程仍是草稿；点击课程行的「发布」后前台才会显示', 'error');
+    }
+    closeLessonModal();
+    loadLessons(CURRENT_COURSE_ID);
+    loadCourses(); // 刷新列表中的课时数
+  } catch(e) {
+    toast(e.message, 'error');
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = '保存课时'; }
+  }
+}
+
+function confirmDeleteLesson(id, title) {
+  showConfirm(
+    '⚠️',
+    `确认删除课时「${title}」？`,
+    '此操作不可撤销',
+    async () => {
+      try {
+        await api(`/admin/courses/lessons/${id}`, 'DELETE');
+        toast('课时已删除', 'success');
+        loadLessons(CURRENT_COURSE_ID);
+        loadCourses();
+      } catch(e) {
+        toast(e.message, 'error');
+      }
+    }
+  );
+}
+
+/* ═══════════════════════════════════════════
+   确认弹窗
+   ═══════════════════════════════════════════ */
+function showConfirm(icon, title, msg, onConfirm) {
+  document.getElementById('confirmIcon').textContent  = icon;
+  document.getElementById('confirmTitle').textContent = title;
+  document.getElementById('confirmMsg').textContent   = msg;
+  const btn = document.getElementById('confirmBtn');
+  btn.onclick = () => { closeConfirm(); onConfirm(); };
+  document.getElementById('confirmOverlay').classList.add('active');
+}
+function closeConfirm() {
+  document.getElementById('confirmOverlay').classList.remove('active');
+}
+
+/* ═══════════════════════════════════════════
+   Toast
+   ═══════════════════════════════════════════ */
+function toast(msg, type = 'success') {
+  const c = document.getElementById('toastContainer');
+  const el = document.createElement('div');
+  el.className = `toast toast-${type}`;
+  el.textContent = msg;
+  c.appendChild(el);
+  setTimeout(() => { el.style.opacity = '0'; setTimeout(() => el.remove(), 300); }, 2500);
+}
+
+/* ═══════════════════════════════════════════
+   工具函数
+   ═══════════════════════════════════════════ */
+function esc(s) {
+  if (!s) return '';
+  const d = document.createElement('div');
+  d.textContent = s;
+  return d.innerHTML;
+}
+
+function videoAttrs() {
+  return 'controls controlsList="nodownload noremoteplayback" oncontextmenu="return false" disablePictureInPicture disableRemotePlayback';
+}
+
+function formatDuration(sec) {
+  if (!sec) return '';
+  const h = Math.floor(sec / 3600);
+  const m = Math.floor((sec % 3600) / 60);
+  const s = sec % 60;
+  if (h > 0) return `${h}h${String(m).padStart(2,'0')}m`;
+  return `${m}:${String(s).padStart(2,'0')}`;
+}
+
+/* ═══════════ 自动生成 slug ═══════════ */
+document.getElementById('f_title').addEventListener('input', function() {
+  if (!CURRENT_COURSE_ID) {
+    // 简单的 slug 生成：拼音降级 → 用 title 的小写
+    const slug = this.value.trim()
+      .toLowerCase()
+      .replace(/[^a-z0-9\u4e00-\u9fff]+/g, '-')
+      .replace(/[\u4e00-\u9fff]+/g, match => match) // 保留中文暂时
+      .replace(/^-|-$/g, '');
+    // 如果用户没手动改过 slug，自动填
+    const slugField = document.getElementById('f_slug');
+    if (!slugField.dataset.manual) {
+      // 对中文不做自动转换，只处理英文
+      const cleanSlug = this.value.trim()
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, '-')
+        .replace(/^-|-$/g, '');
+      if (cleanSlug) slugField.value = cleanSlug;
+    }
+  }
+});
+document.getElementById('f_slug').addEventListener('input', function() {
+  this.dataset.manual = '1';
+});
+
+/* ═══════════ 初始化 ═══════════ */
+checkLogin();
+</script>
+</body>
+</html>

@@ -1,0 +1,658 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>个人中心 · 阿川 AI 超级助手</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Noto+Serif+SC:wght@400;500;600&family=JetBrains+Mono:wght@400;500&family=Inter:wght@400;500&display=swap" rel="stylesheet">
+
+<style>
+  :root{
+    --bg: #F3EFE4;
+    --bg-tint: #EBE6D7;
+    --bg-card: #FAF6EC;
+    --ink: #1A1814;
+    --ink-mid: #48433B;
+    --ink-soft: #6B6558;
+    --ink-mute: #A39B8A;
+    --gold: #9A7A3D;
+    --line: rgba(26,24,20,.14);
+    --line-strong: rgba(26,24,20,.28);
+    --ok: #4A8A5C;
+    --err: #B24A3B;
+
+    --serif-en: 'Instrument Serif', Georgia, serif;
+    --serif-cn: 'Noto Serif SC', 'Songti SC', serif;
+    --mono: 'JetBrains Mono', ui-monospace, 'SF Mono', Consolas, monospace;
+    --sans: 'Inter', -apple-system, BlinkMacSystemFont, 'PingFang SC', sans-serif;
+
+    --ease: cubic-bezier(.2,.65,.25,1);
+  }
+
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{
+    font-family: var(--sans);
+    color: var(--ink);
+    background: var(--bg);
+    min-height: 100vh;
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+  }
+  a{color: inherit; text-decoration: none}
+  button{font-family: inherit; cursor: pointer; border: none; background: none; color: inherit}
+
+  /* Top bar */
+  .topbar{
+    position: sticky; top: 0; z-index: 20;
+    padding: 20px 36px;
+    display: flex; align-items: center; justify-content: space-between;
+    background: rgba(243,239,228,.85);
+    backdrop-filter: blur(10px);
+    border-bottom: 1px solid var(--line);
+  }
+  .brand{
+    display: flex; align-items: center; gap: 12px;
+    font-family: var(--serif-cn);
+    font-size: 17px; font-weight: 500;
+  }
+  .brand-mark{
+    width: 32px; height: 32px; border-radius: 5px;
+    background: var(--ink); color: var(--bg);
+    display: grid; place-items: center;
+    font-family: var(--serif-cn);
+    font-size: 16px; font-weight: 600;
+  }
+  .back-link{
+    display: inline-flex; align-items: center; gap: 6px;
+    font-family: var(--mono);
+    font-size: 11px; letter-spacing: .18em;
+    color: var(--ink-mid);
+    text-transform: uppercase;
+    transition: color .25s var(--ease);
+  }
+  .back-link:hover{ color: var(--ink); }
+  .back-link .arr{
+    font-family: var(--serif-en); font-size: 13px; font-style: italic;
+    transition: transform .25s var(--ease);
+  }
+  .back-link:hover .arr{ transform: translateX(-3px); }
+
+  /* Page header */
+  .page-head{
+    max-width: 680px;
+    margin: 60px auto 40px;
+    padding: 0 24px;
+    text-align: center;
+  }
+  .eyebrow{
+    font-family: var(--mono);
+    font-size: 11px; letter-spacing: .22em;
+    color: var(--ink-mid);
+    text-transform: uppercase;
+    display: inline-flex; align-items: center; gap: 14px;
+    margin-bottom: 16px;
+  }
+  .eyebrow::before, .eyebrow::after{
+    content: ''; width: 30px; height: 1px; background: var(--ink-mid);
+  }
+  .page-title{
+    font-family: var(--serif-cn);
+    font-weight: 500;
+    font-size: 44px;
+    line-height: 1.1;
+    letter-spacing: -.02em;
+  }
+  .page-title .period{
+    color: var(--gold);
+    animation: blinkPeriod 3.4s ease-in-out infinite;
+  }
+  @keyframes blinkPeriod{
+    0%,60%,100%{ opacity: 1; }
+    72%{ opacity: .35; }
+  }
+
+  /* Container */
+  .container{
+    max-width: 680px;
+    margin: 0 auto;
+    padding: 0 24px 80px;
+  }
+
+  /* Avatar card */
+  .avatar-card{
+    background: var(--bg-card);
+    border: 1px solid var(--line);
+    border-radius: 18px;
+    padding: 28px;
+    margin-bottom: 16px;
+    display: flex; align-items: center; gap: 20px;
+  }
+  .avatar-circle{
+    width: 64px; height: 64px;
+    border-radius: 50%;
+    background: var(--ink);
+    color: var(--bg);
+    display: grid; place-items: center;
+    font-family: var(--serif-en);
+    font-style: italic;
+    font-size: 26px;
+    flex-shrink: 0;
+  }
+  .user-info{ flex: 1; min-width: 0; }
+  .user-info h2{
+    font-family: var(--serif-cn);
+    font-size: 20px; font-weight: 500;
+    margin-bottom: 4px;
+    color: var(--ink);
+  }
+  .user-info .phone{
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--ink-soft);
+    letter-spacing: .05em;
+  }
+  .plan-pill{
+    padding: 6px 14px;
+    border-radius: 999px;
+    font-family: var(--mono);
+    font-size: 10.5px;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+    border: 1px solid transparent;
+    flex-shrink: 0;
+  }
+  .plan-pill.free{
+    background: transparent;
+    color: var(--ink-mute);
+    border-color: var(--line-strong);
+  }
+  .plan-pill.paid{
+    background: var(--gold);
+    color: var(--bg);
+  }
+
+  /* Section card */
+  .section-card{
+    background: var(--bg-card);
+    border: 1px solid var(--line);
+    border-radius: 18px;
+    margin-bottom: 16px;
+    overflow: hidden;
+  }
+  .section-title{
+    font-family: var(--mono);
+    font-size: 10.5px; letter-spacing: .2em;
+    color: var(--ink-mute);
+    text-transform: uppercase;
+    padding: 18px 24px 10px;
+    display: flex; align-items: center; gap: 10px;
+  }
+  .section-title::before{
+    content: ''; width: 16px; height: 1px; background: var(--ink-mute);
+  }
+
+  /* Stat grid */
+  .stat-grid{
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+  }
+  .stat-cell{
+    padding: 6px 24px 20px;
+  }
+  .stat-cell + .stat-cell{ border-left: 1px solid var(--line); }
+  .stat-label{
+    font-family: var(--mono);
+    font-size: 10px; letter-spacing: .1em;
+    color: var(--ink-mute);
+    text-transform: uppercase;
+    margin-bottom: 6px;
+  }
+  .stat-value{
+    font-family: var(--serif-en);
+    font-size: 34px;
+    color: var(--ink);
+    line-height: 1;
+    margin-bottom: 4px;
+  }
+  .stat-sub{
+    font-family: var(--serif-cn);
+    font-size: 12px;
+    color: var(--ink-soft);
+  }
+
+  /* Progress */
+  .progress-wrap{
+    padding: 14px 24px 22px;
+    border-top: 1px solid var(--line);
+  }
+  .progress-header{
+    display: flex; justify-content: space-between;
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--ink-soft);
+    margin-bottom: 8px;
+  }
+  .progress-bar{
+    height: 4px;
+    background: var(--line);
+    border-radius: 999px;
+    overflow: hidden;
+  }
+  .progress-fill{
+    height: 100%;
+    background: linear-gradient(90deg, var(--gold), var(--ok));
+    border-radius: 999px;
+    transition: width .6s var(--ease);
+  }
+
+  /* Menu row */
+  .menu-row{
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 16px 24px;
+    cursor: pointer;
+    transition: background .15s var(--ease);
+    color: var(--ink);
+  }
+  .menu-row:hover{ background: var(--bg-tint); }
+  .menu-row + .menu-row{ border-top: 1px solid var(--line); }
+  .menu-row-left{
+    display: flex; align-items: center; gap: 14px;
+    min-width: 0; flex: 1;
+  }
+  .menu-icon{
+    width: 36px; height: 36px;
+    border-radius: 10px;
+    display: grid; place-items: center;
+    font-size: 15px;
+    flex-shrink: 0;
+  }
+  .menu-icon.gold{ background: rgba(154,122,61,.12); color: var(--gold); }
+  .menu-icon.ink{ background: rgba(26,24,20,.06); color: var(--ink); }
+  .menu-icon.red{ background: rgba(178,74,59,.1); color: var(--err); }
+  .menu-label{
+    font-family: var(--serif-cn);
+    font-size: 15px; font-weight: 500;
+    color: var(--ink);
+    margin-bottom: 2px;
+  }
+  .menu-sub{
+    font-family: var(--serif-cn);
+    font-size: 12.5px;
+    color: var(--ink-soft);
+  }
+  .menu-tag{
+    display: inline-block;
+    padding: 3px 10px;
+    font-family: var(--mono);
+    font-size: 9.5px;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+    background: var(--gold);
+    color: var(--bg);
+    border-radius: 999px;
+  }
+  .menu-arrow{
+    color: var(--ink-mute);
+    font-size: 18px;
+    font-family: var(--serif-en);
+    font-style: italic;
+    margin-left: 10px;
+    flex-shrink: 0;
+    transition: transform .2s var(--ease);
+  }
+  .menu-row:hover .menu-arrow{ transform: translateX(3px); color: var(--ink); }
+
+  /* Danger button */
+  .danger-btn{
+    width: 100%;
+    padding: 16px 24px;
+    display: flex; align-items: center; justify-content: center;
+    gap: 10px;
+    font-family: var(--serif-cn);
+    font-size: 14.5px;
+    font-weight: 500;
+    color: var(--err);
+    background: transparent;
+    transition: background .15s var(--ease);
+  }
+  .danger-btn:hover{ background: rgba(178,74,59,.06); }
+
+  /* Confirm modal */
+  .confirm-overlay{
+    position: fixed; inset: 0;
+    background: rgba(26,24,20,.4);
+    backdrop-filter: blur(8px);
+    display: none;
+    align-items: center; justify-content: center;
+    z-index: 100;
+    padding: 20px;
+  }
+  .confirm-overlay.active{ display: flex; }
+  .confirm-box{
+    background: var(--bg-card);
+    border-radius: 16px;
+    padding: 32px 28px 24px;
+    max-width: 360px; width: 100%;
+    text-align: center;
+  }
+  .confirm-box h3{
+    font-family: var(--serif-cn);
+    font-size: 20px; font-weight: 500;
+    margin-bottom: 8px;
+  }
+  .confirm-box p{
+    font-family: var(--serif-cn);
+    font-size: 13px;
+    color: var(--ink-soft);
+    line-height: 1.6;
+    margin-bottom: 24px;
+  }
+  .confirm-btns{
+    display: flex; gap: 12px;
+  }
+  .btn-cancel, .btn-confirm-logout{
+    flex: 1;
+    padding: 12px 16px;
+    border-radius: 999px;
+    font-family: inherit;
+    font-size: 13.5px;
+    font-weight: 500;
+    transition: all .2s var(--ease);
+  }
+  .btn-cancel{
+    background: transparent;
+    border: 1px solid var(--line-strong);
+    color: var(--ink);
+  }
+  .btn-cancel:hover{ background: var(--bg-tint); }
+  .btn-confirm-logout{
+    background: var(--err);
+    color: #fff;
+    border: 1px solid var(--err);
+  }
+  .btn-confirm-logout:hover{ background: #8a4a3b; border-color: #8a4a3b; }
+
+  /* Toast */
+  .toast{
+    position: fixed; bottom: 32px; left: 50%;
+    transform: translate(-50%, 20px);
+    padding: 12px 24px;
+    background: var(--ink);
+    color: var(--bg);
+    border-radius: 999px;
+    font-size: 13px;
+    opacity: 0;
+    pointer-events: none;
+    transition: all .3s var(--ease);
+    z-index: 200;
+  }
+  .toast.show{
+    opacity: 1;
+    transform: translate(-50%, 0);
+  }
+
+  @media (max-width: 640px){
+    .topbar{ padding: 14px 18px; }
+    .page-head{ margin: 40px auto 30px; }
+    .page-title{ font-size: 34px; }
+    .avatar-card{ padding: 22px; gap: 14px; flex-wrap: wrap; }
+    .plan-pill{ order: 3; }
+  }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <a href="choose.html" class="brand">
+    <span class="brand-mark">阿</span>
+    <span>阿川 AI 超级助手</span>
+  </a>
+  <a href="choose.html" class="back-link">
+    <span class="arr">←</span>
+    Back
+  </a>
+</div>
+
+<div class="page-head">
+  <div class="eyebrow">Profile · 个人中心</div>
+  <h1 class="page-title">你的账户<span class="period">。</span></h1>
+</div>
+
+<div class="container">
+
+  <!-- Avatar -->
+  <div class="avatar-card">
+    <div class="avatar-circle" id="avatarCircle">?</div>
+    <div class="user-info">
+      <h2 id="userName">加载中…</h2>
+      <p class="phone" id="userPhone"></p>
+    </div>
+    <span class="plan-pill free" id="planPill">Free</span>
+  </div>
+
+  <!-- Usage stats -->
+  <div class="section-card">
+    <div class="section-title">本期用量</div>
+    <div class="stat-grid">
+      <div class="stat-cell">
+        <div class="stat-label">已使用</div>
+        <div class="stat-value" id="statUsed">—</div>
+        <div class="stat-sub">次对话</div>
+      </div>
+      <div class="stat-cell">
+        <div class="stat-label">剩余可用</div>
+        <div class="stat-value" id="statRemain">—</div>
+        <div class="stat-sub" id="statPeriod">次</div>
+      </div>
+    </div>
+    <div class="progress-wrap">
+      <div class="progress-header">
+        <span>使用进度</span>
+        <span id="progressText">—</span>
+      </div>
+      <div class="progress-bar">
+        <div class="progress-fill" id="progressFill" style="width:0%"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Membership -->
+  <div class="section-card">
+    <div class="section-title">会员状态</div>
+    <a class="menu-row" href="member.html">
+      <div class="menu-row-left">
+        <div class="menu-icon gold">💎</div>
+        <div>
+          <div class="menu-label" id="memberLabel">免费版</div>
+          <div class="menu-sub" id="memberSub">升级解锁更多能力</div>
+        </div>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px;">
+        <span class="menu-tag" id="upgradeTag">升级</span>
+        <span class="menu-arrow">→</span>
+      </div>
+    </a>
+    <div class="menu-row" style="cursor:default;">
+      <div class="menu-row-left">
+        <div class="menu-icon ink">🤖</div>
+        <div>
+          <div class="menu-label">可用模型</div>
+          <div class="menu-sub" id="modelList">DeepSeek</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Settings -->
+  <div class="section-card">
+    <div class="section-title">设置</div>
+    <a class="menu-row" href="member.html">
+      <div class="menu-row-left">
+        <div class="menu-icon gold">✨</div>
+        <div>
+          <div class="menu-label">升级会员</div>
+          <div class="menu-sub">解锁 Claude Sonnet / Opus</div>
+        </div>
+      </div>
+      <span class="menu-arrow">→</span>
+    </a>
+    <div class="menu-row" onclick="copyPhone()">
+      <div class="menu-row-left">
+        <div class="menu-icon ink">📋</div>
+        <div>
+          <div class="menu-label">复制手机号</div>
+          <div class="menu-sub" id="copyPhoneSub">点击复制</div>
+        </div>
+      </div>
+      <span class="menu-arrow">→</span>
+    </div>
+  </div>
+
+  <!-- Logout -->
+  <div class="section-card">
+    <button class="danger-btn" onclick="showLogoutConfirm()">
+      退出登录
+    </button>
+  </div>
+
+</div>
+
+<!-- Logout confirm modal -->
+<div class="confirm-overlay" id="logoutConfirm">
+  <div class="confirm-box">
+    <h3>退出登录</h3>
+    <p>退出后需要重新验证手机号才能登录</p>
+    <div class="confirm-btns">
+      <button class="btn-cancel" onclick="hideLogoutConfirm()">取消</button>
+      <button class="btn-confirm-logout" onclick="doLogout()">退出</button>
+    </div>
+  </div>
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
+<script>
+  const API = 'http://localhost:8000';
+  const token = localStorage.getItem('token');  // 修复：统一使用 token（原 auth_token 是 bug）
+
+  if (!token) { location.replace('login.html'); }
+
+  let realPhone = '';
+
+  function showToast(msg) {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.classList.add('show');
+    setTimeout(() => t.classList.remove('show'), 2200);
+  }
+
+  async function loadProfile() {
+    try {
+      // Load user info
+      const r1 = await fetch(API + '/auth/me', {
+        headers: { 'Authorization': 'Bearer ' + token }
+      });
+      if (r1.status === 401) {
+        localStorage.removeItem('token');
+        location.replace('login.html');
+        return;
+      }
+      const user = await r1.json();
+
+      const phone = user.phone || '';
+      realPhone = phone;
+      const initial = phone ? phone.slice(-4, -3).toUpperCase() || '?' : '?';
+      document.getElementById('avatarCircle').textContent = initial;
+      document.getElementById('userName').textContent = user.nickname || ('用户 ' + phone.slice(-4));
+      const masked = phone.replace(/(\d{3})\d{4}(\d{4})/, '$1 **** $2');
+      document.getElementById('userPhone').textContent = masked;
+      document.getElementById('copyPhoneSub').textContent = masked;
+
+      // Load member info
+      const r2 = await fetch(API + '/member/info', {
+        headers: { 'Authorization': 'Bearer ' + token }
+      });
+      const m = await r2.json();
+
+      const plan = m.plan_type || 'free';
+      const used = m.used || 0;
+      const quota = m.quota || 10;
+      const remaining = m.remaining !== undefined ? m.remaining : (quota - used);
+      const period = m.period || 'daily';
+
+      document.getElementById('statUsed').textContent = used;
+      document.getElementById('statRemain').textContent = remaining;
+      document.getElementById('statPeriod').textContent = period === 'daily' ? '次 · 今日' : '次 · 本月';
+
+      const pct = quota > 0 ? Math.min(100, Math.round(used / quota * 100)) : 0;
+      document.getElementById('progressFill').style.width = pct + '%';
+      document.getElementById('progressText').textContent = used + ' / ' + quota;
+
+      const pill = document.getElementById('planPill');
+      if (plan === 'free') {
+        pill.className = 'plan-pill free';
+        pill.textContent = 'Free';
+      } else {
+        pill.className = 'plan-pill paid';
+        pill.textContent = plan === 'yearly' ? 'Yearly 💎' : 'Monthly ✨';
+      }
+
+      const memberLabel = document.getElementById('memberLabel');
+      const memberSub = document.getElementById('memberSub');
+      const upgradeTag = document.getElementById('upgradeTag');
+
+      if (plan === 'free') {
+        memberLabel.textContent = '免费版';
+        memberSub.textContent = '升级解锁更多能力';
+        upgradeTag.style.display = 'inline-block';
+      } else {
+        memberLabel.textContent = plan === 'yearly' ? '年度会员' : '月度会员';
+        const exp = m.expire_at ? new Date(m.expire_at).toLocaleDateString('zh-CN') : '';
+        memberSub.textContent = exp ? '到期时间：' + exp : '有效会员';
+        upgradeTag.textContent = '续费';
+      }
+
+      const models = m.allowed_models || ['deepseek-chat'];
+      const modelNames = models.map(x => ({
+        'deepseek-chat': 'DeepSeek',
+        'claude-sonnet-4-6': 'Claude Sonnet',
+        'claude-opus-4-6': 'Claude Opus'
+      }[x] || x));
+      document.getElementById('modelList').textContent = modelNames.join(' · ');
+
+    } catch (e) {
+      console.error(e);
+    }
+  }
+
+  function copyPhone() {
+    if (realPhone) {
+      navigator.clipboard.writeText(realPhone).catch(() => {});
+      showToast('已复制手机号');
+    }
+  }
+
+  function showLogoutConfirm() {
+    document.getElementById('logoutConfirm').classList.add('active');
+  }
+  function hideLogoutConfirm() {
+    document.getElementById('logoutConfirm').classList.remove('active');
+  }
+  function doLogout() {
+    localStorage.removeItem('token');
+    location.replace('login.html');
+  }
+
+  document.getElementById('logoutConfirm').addEventListener('click', function (e) {
+    if (e.target === this) hideLogoutConfirm();
+  });
+
+  loadProfile();
+</script>
+
+</body>
+</html>

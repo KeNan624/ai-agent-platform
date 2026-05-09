@@ -1,0 +1,594 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>项目详情 · 阿川 AI 超级助手</title>
+    <!-- marked.js · 用于渲染 Markdown -->
+    <script src="https://cdn.jsdelivr.net/npm/marked@11.1.1/marked.min.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        html, body {
+            background: #F3EFE4;
+            font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Helvetica Neue", sans-serif;
+            color: #1A1814;
+            min-height: 100vh;
+            line-height: 1.6;
+        }
+
+        a { color: #8a6d3b; }
+
+        /* ====== 顶部栏 · 跟 practice.html 保持一致 ====== */
+        .topbar {
+            position: sticky;
+            top: 0;
+            background: rgba(250, 247, 242, 0.92);
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid rgba(26,24,20,.14);
+            padding: 14px 32px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            z-index: 100;
+        }
+        .topbar-left { display: flex; align-items: center; gap: 20px; }
+        .back-btn {
+            display: flex; align-items: center; gap: 6px;
+            padding: 6px 14px; border: 1px solid rgba(26,24,20,.14);
+            border-radius: 20px; font-size: 13px; color: #48433B;
+            cursor: pointer; transition: all 0.2s; background: white;
+        }
+        .back-btn:hover { background: #EBE6D7; border-color: rgba(26,24,20,.28); }
+        .logo { font-size: 15px; font-weight: 600; letter-spacing: 2px; color: #3d3426; }
+
+        /* ====== 预览模式横幅 ====== */
+        .preview-banner {
+            background: #fff7e6;
+            border-bottom: 1px solid #f0d8a8;
+            color: #8a6d3b;
+            text-align: center;
+            padding: 8px 16px;
+            font-size: 13px;
+        }
+
+        /* ====== Hero 区 ====== */
+        .hero {
+            max-width: 920px;
+            margin: 32px auto 0;
+            padding: 0 32px;
+        }
+        .hero-cover {
+            height: 220px;
+            border-radius: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 96px;
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 4px 20px rgba(26,24,20,.08);
+        }
+        .hero-cover-1 { background: linear-gradient(135deg, #6a8caf 0%, #8faec9 100%); }
+        .hero-cover-2 { background: linear-gradient(135deg, #c89b5a 0%, #e0b87a 100%); }
+        .hero-cover-3 { background: linear-gradient(135deg, #d47878 0%, #e89a9a 100%); }
+        .hero-cover-4 { background: linear-gradient(135deg, #2d3e3e 0%, #4a6868 100%); }
+        .hero-cover-5 { background: linear-gradient(135deg, #fdf5e6 0%, #EBE6D7 100%); }
+
+        .hero-status {
+            position: absolute;
+            top: 16px; right: 16px;
+            background: rgba(255, 255, 255, 0.95);
+            color: #1A1814;
+            padding: 6px 14px;
+            border-radius: 20px;
+            font-size: 13px;
+            font-weight: 500;
+        }
+        .status-waitlist { background: rgba(45, 38, 26, 0.95) !important; color: white !important; }
+
+        .hero-meta {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 16px 24px;
+            margin-top: 20px;
+            color: #48433B;
+            font-size: 14px;
+        }
+        .hero-meta-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        /* Hero 标签徽章 */
+        .hero-tags {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px 8px;
+            margin-top: 14px;
+        }
+        .hero-tag {
+            font-size: 12px;
+            padding: 3px 10px;
+            border-radius: 12px;
+            background: #F3EFE4;
+            color: #8a6d3b;
+            line-height: 1.6;
+        }
+        .hero-tag.tag-platform { background: #f0eadc; color: #6a5530; }
+        .hero-tag.tag-category { background: #ede7d4; color: #806529; }
+        .hero-tag.tag-skill    { background: #fdf8ee; color: #8a6d3b; border: 1px solid #ece4cf; }
+
+        .hero-title {
+            margin-top: 12px;
+            font-size: 30px;
+            font-weight: 700;
+            color: #1A1814;
+            line-height: 1.3;
+        }
+        .hero-desc {
+            margin-top: 10px;
+            font-size: 16px;
+            color: #48433B;
+        }
+
+        /* ====== Markdown 正文区 ====== */
+        .content {
+            max-width: 920px;
+            margin: 32px auto;
+            padding: 40px 48px;
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 2px 12px rgba(26,24,20,.06);
+        }
+        .markdown-body {
+            color: #1A1814;
+            font-size: 16px;
+            line-height: 1.8;
+        }
+        .markdown-body h1 {
+            font-size: 26px; margin: 0 0 20px; padding-bottom: 12px;
+            border-bottom: 1px solid rgba(26,24,20,.1);
+        }
+        .markdown-body h2 {
+            font-size: 22px; margin: 32px 0 14px; color: #3d3426;
+        }
+        .markdown-body h3 {
+            font-size: 18px; margin: 24px 0 10px;
+        }
+        .markdown-body p { margin: 12px 0; }
+        .markdown-body ul, .markdown-body ol { margin: 12px 0; padding-left: 24px; }
+        .markdown-body li { margin: 6px 0; }
+        .markdown-body blockquote {
+            margin: 16px 0;
+            padding: 12px 16px;
+            border-left: 3px solid #d4a574;
+            background: #fdf8ee;
+            color: #48433B;
+            font-style: italic;
+        }
+        .markdown-body code {
+            background: #EBE6D7;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-family: Menlo, Monaco, monospace;
+            font-size: 14px;
+        }
+        .markdown-body pre {
+            background: #fdf8ee;
+            border: 1px solid #EBE6D7;
+            border-radius: 8px;
+            padding: 16px;
+            overflow-x: auto;
+            margin: 16px 0;
+        }
+        .markdown-body pre code {
+            background: none;
+            padding: 0;
+        }
+        .markdown-body img, .markdown-body video {
+            max-width: 100%;
+            border-radius: 8px;
+            margin: 14px 0;
+        }
+        .markdown-body video {
+            width: 100%;
+            background: #111;
+            aspect-ratio: 16/9;
+            display: block;
+        }
+        .markdown-body table {
+            border-collapse: collapse;
+            width: 100%;
+            margin: 16px 0;
+        }
+        .markdown-body th, .markdown-body td {
+            border: 1px solid rgba(26,24,20,.14);
+            padding: 8px 12px;
+            text-align: left;
+        }
+        .markdown-body th {
+            background: #fdf8ee;
+            font-weight: 600;
+        }
+        .markdown-body hr {
+            border: none;
+            border-top: 1px solid rgba(26,24,20,.1);
+            margin: 24px 0;
+        }
+        .markdown-body strong { color: #3d3426; }
+        /* 飞书导入样式 */
+        .fs-fg-1,.fs-fg-8{color:#C75B3A}.fs-fg-2,.fs-fg-9{color:#B66A21}.fs-fg-3,.fs-fg-10{color:#9A7A3D}.fs-fg-4,.fs-fg-11{color:#3D7C62}.fs-fg-5,.fs-fg-12{color:#3F75B5}.fs-fg-6,.fs-fg-13{color:#7B5BB8}.fs-fg-7,.fs-fg-14{color:#6B6558}.fs-fg-15{color:#8A5A24}.fs-fg-16{color:#2F7F87}.fs-fg-17{color:#3B4758}
+        .fs-fg-1 strong,.fs-fg-2 strong,.fs-fg-3 strong,.fs-fg-4 strong,.fs-fg-5 strong,.fs-fg-6 strong,.fs-fg-7 strong,.fs-fg-8 strong,.fs-fg-9 strong,.fs-fg-10 strong,.fs-fg-11 strong,.fs-fg-12 strong,.fs-fg-13 strong,.fs-fg-14 strong,.fs-fg-15 strong,.fs-fg-16 strong,.fs-fg-17 strong{color:inherit}
+        .fs-bg-1,.fs-bg-8{background:#FCEEE8}.fs-bg-2,.fs-bg-9{background:#FFF2DF}.fs-bg-3,.fs-bg-10{background:#FFF8D9}.fs-bg-4,.fs-bg-11{background:#E8F2EC}.fs-bg-5,.fs-bg-12{background:#EAF3FF}.fs-bg-6,.fs-bg-13{background:#F1EAFE}.fs-bg-7,.fs-bg-14{background:#F0EDE6}.fs-bg-15{background:#F5EFDE}.fs-bg-16{background:#E7F4F4}.fs-bg-17{background:#E9EDF2}
+        span[class*="fs-bg-"]{padding:1px 4px;border-radius:4px}.fs-block-highlight{display:block;padding:10px 12px;border-radius:8px;margin:12px 0}.fs-align-center{text-align:center}.fs-align-right{text-align:right}
+        .fs-callout{display:flex;gap:10px;margin:18px 0;padding:14px 16px;border:1px solid #D9C99E;border-left-width:4px;border-radius:8px;background:#F8F1DF;color:#48433B;font-style:normal}
+        .fs-callout-icon{width:24px;line-height:1.7;flex:0 0 auto}.fs-callout-content{flex:1;min-width:0}.fs-callout-content>:last-child{margin-bottom:0}
+        .fs-callout-bg-1,.fs-callout-bg-8{background:#FCEEE8}.fs-callout-bg-2,.fs-callout-bg-9{background:#FFF2DF}.fs-callout-bg-3,.fs-callout-bg-10{background:#FFF8D9}.fs-callout-bg-4,.fs-callout-bg-11{background:#E8F2EC}.fs-callout-bg-5,.fs-callout-bg-12{background:#EAF3FF}.fs-callout-bg-6,.fs-callout-bg-13{background:#F1EAFE}.fs-callout-bg-7,.fs-callout-bg-14{background:#F0EDE6}.fs-callout-bg-15{background:#F5EFDE}.fs-callout-bg-16{background:#E7F4F4}.fs-callout-bg-17{background:#E9EDF2}
+        .fs-callout-border-1,.fs-callout-border-8{border-color:#E59A87}.fs-callout-border-2,.fs-callout-border-9{border-color:#E7B46F}.fs-callout-border-3,.fs-callout-border-10{border-color:#E2C75A}.fs-callout-border-4,.fs-callout-border-11{border-color:#8DC3A9}.fs-callout-border-5,.fs-callout-border-12{border-color:#8EB9E6}.fs-callout-border-6,.fs-callout-border-13{border-color:#B9A3E5}.fs-callout-border-7,.fs-callout-border-14{border-color:#C7BFAF}.fs-callout-border-15{border-color:#D9C99E}.fs-callout-border-16{border-color:#9ACED0}.fs-callout-border-17{border-color:#B8C1CD}.fs-quote-container{font-style:normal}
+
+        /* ====== 底部预约区 · 跟 practice.html 视觉对齐 ====== */
+        .subscribe {
+            max-width: 920px;
+            margin: 0 auto 60px;
+            padding: 28px 32px;
+            background: linear-gradient(135deg, #fdf5e6 0%, #EBE6D7 100%);
+            border-radius: 16px;
+            display: flex;
+            align-items: center;
+            gap: 24px;
+            flex-wrap: wrap;
+        }
+        .subscribe-icon { font-size: 36px; }
+        .subscribe-text { flex: 1; min-width: 240px; }
+        .subscribe-title { font-size: 18px; font-weight: 600; color: #3d3426; margin-bottom: 6px; }
+        .subscribe-desc { font-size: 13px; color: #8a7d6a; }
+        .subscribe-form { display: flex; gap: 8px; flex-wrap: wrap; }
+        .subscribe-input {
+            padding: 10px 14px;
+            border: 1px solid rgba(26,24,20,.14);
+            border-radius: 8px;
+            font-size: 14px;
+            outline: none;
+            min-width: 180px;
+            background: white;
+        }
+        .subscribe-input:focus { border-color: #d4a574; }
+        .subscribe-btn {
+            padding: 10px 24px;
+            background: #1A1814;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.2s;
+        }
+        .subscribe-btn:hover:not(:disabled) { background: #3d3426; }
+        .subscribe-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+
+        /* ====== 加载中 / 错误占位 ====== */
+        .placeholder {
+            max-width: 920px;
+            margin: 80px auto;
+            padding: 60px 20px;
+            text-align: center;
+            color: #9A8F7C;
+            background: white;
+            border-radius: 16px;
+        }
+
+        /* ====== Toast ====== */
+        .toast {
+            position: fixed;
+            bottom: 60px;
+            left: 50%;
+            transform: translateX(-50%) translateY(100px);
+            background: rgba(26, 24, 20, 0.95);
+            color: white;
+            padding: 12px 24px;
+            border-radius: 24px;
+            font-size: 14px;
+            opacity: 0;
+            transition: all 0.3s;
+            z-index: 9999;
+            max-width: 90vw;
+        }
+        .toast.show { transform: translateX(-50%) translateY(0); opacity: 1; }
+
+        /* ====== 响应式 ====== */
+        @media (max-width: 720px) {
+            .topbar { padding: 12px 16px; }
+            .hero { padding: 0 16px; margin-top: 20px; }
+            .hero-cover { height: 160px; font-size: 72px; }
+            .hero-title { font-size: 24px; }
+            .content { padding: 24px 20px; margin: 20px 16px; }
+            .subscribe { margin: 0 16px 40px; padding: 20px; }
+        }
+    </style>
+</head>
+<body>
+    <!-- 顶部栏 -->
+    <div class="topbar">
+        <div class="topbar-left">
+            <div class="back-btn" onclick="goBack()">← 返回实战区</div>
+            <div class="logo">阿川 AI 超级助手</div>
+        </div>
+    </div>
+
+    <!-- 预览横幅（仅草稿状态显示） -->
+    <div class="preview-banner" id="previewBanner" style="display:none;">
+        🔒 当前为预览模式（项目尚未发布）
+    </div>
+
+    <!-- Hero 区 -->
+    <div class="hero" id="hero" style="display:none;">
+        <div class="hero-cover" id="heroCover">
+            <span id="heroEmoji">📌</span>
+            <div class="hero-status" id="heroStatus">即将开营</div>
+        </div>
+        <div class="hero-title" id="heroTitle"></div>
+        <div class="hero-desc" id="heroDesc"></div>
+        <!-- 标签徽章 -->
+        <div class="hero-tags" id="heroTags"></div>
+        <div class="hero-meta">
+            <div class="hero-meta-item">🗓 <span id="heroDate">开营时间待定</span></div>
+            <div class="hero-meta-item">👁 <span id="heroViews">0</span> 次浏览</div>
+        </div>
+    </div>
+
+    <!-- Markdown 正文 -->
+    <div class="content" id="content" style="display:none;">
+        <div class="markdown-body" id="mdBody"></div>
+    </div>
+
+    <!-- 底部预约 -->
+    <div class="subscribe" id="subscribe" style="display:none;">
+        <div class="subscribe-icon">📮</div>
+        <div class="subscribe-text">
+            <div class="subscribe-title" id="subscribeTitle">开营第一时间通知你</div>
+            <div class="subscribe-desc">留下手机号，开营当天给你发送入群邀请</div>
+        </div>
+        <div class="subscribe-form">
+            <input class="subscribe-input" type="tel" id="phoneInput" placeholder="输入手机号" maxlength="11">
+            <button class="subscribe-btn" id="subscribeBtn" onclick="submitSubscribe()">立即预约</button>
+        </div>
+    </div>
+
+    <!-- 加载/错误占位 -->
+    <div class="placeholder" id="placeholder">加载中...</div>
+
+    <!-- Toast -->
+    <div class="toast" id="toast"></div>
+
+    <script>
+        // ===== 登录校验 =====
+        const token = localStorage.getItem('token');
+        if (!token) {
+            window.location.href = 'login.html';
+        }
+
+        // ===== URL 参数解析 =====
+        const urlParams = new URLSearchParams(window.location.search);
+        const slug = urlParams.get('slug');
+        const isPreview = urlParams.get('preview') === '1';
+
+        if (!slug) {
+            document.getElementById('placeholder').textContent = '缺少 slug 参数';
+            throw new Error('missing slug');
+        }
+
+        // ===== 状态文案映射 =====
+        const STATUS_LABEL = {
+            upcoming: '即将开营',
+            recruiting: '招募中',
+            running: '进行中',
+            done: '已结营',
+            waitlist: '敬请期待',
+        };
+        const STATUS_CLASS = {
+            upcoming: '',
+            recruiting: '',
+            running: '',
+            done: 'status-waitlist',
+            waitlist: 'status-waitlist',
+        };
+
+        // ===== 加载详情 =====
+        async function loadDetail() {
+            try {
+                const url = `/practice/projects/${encodeURIComponent(slug)}` + (isPreview ? '?preview=1' : '');
+                const res = await fetch(url, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                if (!res.ok) {
+                    const errData = await res.json().catch(() => ({}));
+                    document.getElementById('placeholder').textContent = errData.detail || '加载失败';
+                    return;
+                }
+                const p = await res.json();
+                renderDetail(p);
+                // 浏览数 +1（非预览模式才统计）
+                if (!isPreview) {
+                    fetch(`/practice/projects/${encodeURIComponent(slug)}/view`, {
+                        method: 'POST',
+                        headers: { 'Authorization': `Bearer ${token}` }
+                    }).catch(() => {});
+                }
+            } catch (e) {
+                console.error('loadDetail failed:', e);
+                document.getElementById('placeholder').textContent = '网络错误，请刷新重试';
+            }
+        }
+
+        function renderDetail(p) {
+            // 隐藏加载占位，显示主体
+            document.getElementById('placeholder').style.display = 'none';
+            document.getElementById('hero').style.display = '';
+            document.getElementById('content').style.display = '';
+
+            // 玩法库不显示底部预约（玩法库是长期可读的资料，不需要预约开营通知）
+            const isPlaybook = p.project_type === 'playbook';
+            document.getElementById('subscribe').style.display = isPlaybook ? 'none' : 'flex';
+
+            // 预览横幅
+            if (isPreview && !p.is_published) {
+                document.getElementById('previewBanner').style.display = '';
+            }
+
+            // 标题
+            document.title = `${p.title} · 阿川 AI 超级助手`;
+
+            // Hero
+            const cover = document.getElementById('heroCover');
+            cover.classList.add(`hero-cover-${p.cover_color || '1'}`);
+            document.getElementById('heroEmoji').textContent = p.cover_emoji || '📌';
+
+            const statusEl = document.getElementById('heroStatus');
+            statusEl.textContent = STATUS_LABEL[p.status] || p.status;
+            const statusCls = STATUS_CLASS[p.status];
+            if (statusCls) statusEl.classList.add(statusCls);
+
+            document.getElementById('heroTitle').textContent = p.title;
+            document.getElementById('heroDesc').textContent = p.description || '';
+
+            // 玩法库不显示"开营时间"，改为"长期可读"
+            const dateEl = document.getElementById('heroDate');
+            const dateRow = dateEl.closest('.hero-meta-item');
+            if (isPlaybook) {
+                if (dateRow) dateRow.innerHTML = '🌱 长期可读';
+            } else {
+                dateEl.textContent = p.start_date || '开营时间待定';
+            }
+            document.getElementById('heroViews').textContent = p.view_count || 0;
+
+            // 标签徽章
+            const tags = p.tags || [];
+            const heroTagsEl = document.getElementById('heroTags');
+            if (tags.length === 0) {
+                heroTagsEl.style.display = 'none';
+            } else {
+                heroTagsEl.innerHTML = tags.map(t =>
+                    `<span class="hero-tag tag-${escapeHtml(t.tag_type)}">${escapeHtml(t.name)}</span>`
+                ).join('');
+            }
+
+            // Markdown 正文
+            if (p.md_content) {
+                marked.setOptions({
+                    breaks: true,    // 单换行也算 <br>
+                    gfm: true,       // 表格、删除线等
+                });
+                const mdBody = document.getElementById('mdBody');
+                mdBody.innerHTML = marked.parse(p.md_content);
+                hardenVideoElements(mdBody);
+            } else {
+                document.getElementById('mdBody').innerHTML = '<p style="color:#9A8F7C;">详细介绍内容尚未填写。</p>';
+            }
+
+            // 预约区标题（仅营期项目用得上）
+            if (!isPlaybook) {
+                document.getElementById('subscribeTitle').textContent = `预约「${p.title}」开营通知`;
+                loadUserPhone();
+            }
+        }
+
+        function escapeHtml(s) {
+            if (s == null) return '';
+            return String(s).replace(/[&<>"']/g, c => ({
+                '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+            })[c]);
+        }
+
+        function hardenVideoElements(root = document) {
+            if (!root) return;
+            root.querySelectorAll('video').forEach(video => {
+                video.setAttribute('controlsList', 'nodownload noremoteplayback');
+                video.setAttribute('oncontextmenu', 'return false');
+                video.setAttribute('disablePictureInPicture', '');
+                video.setAttribute('disableRemotePlayback', '');
+            });
+        }
+
+        async function loadUserPhone() {
+            try {
+                const res = await fetch('/member/info', {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                if (!res.ok) return;
+                const data = await res.json();
+                if (data.phone) {
+                    document.getElementById('phoneInput').value = data.phone;
+                }
+            } catch (e) { /* 忽略 */ }
+        }
+
+        // ===== 提交预约 =====
+        async function submitSubscribe() {
+            const phone = document.getElementById('phoneInput').value.trim();
+            const btn = document.getElementById('subscribeBtn');
+
+            if (!/^1[3-9]\d{9}$/.test(phone)) {
+                showToast('请输入正确的 11 位手机号');
+                return;
+            }
+
+            btn.disabled = true;
+            btn.textContent = '提交中...';
+
+            try {
+                const res = await fetch('/practice/subscribe', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify({
+                        phone,
+                        project_slug: slug,
+                        source_page: 'detail'
+                    })
+                });
+
+                if (res.ok) {
+                    const data = await res.json();
+                    showToast(data.message || '预约成功，开营当天通知你 🎉');
+                } else {
+                    const errData = await res.json().catch(() => ({}));
+                    showToast(errData.detail || '预约失败，稍后再试');
+                }
+            } catch (e) {
+                console.error('submitSubscribe failed:', e);
+                showToast('网络错误，请检查后重试');
+            } finally {
+                btn.disabled = false;
+                btn.textContent = '立即预约';
+            }
+        }
+
+        // ===== 返回 =====
+        function goBack() {
+            // 如果是从 practice.html 来的就 history.back()，否则跳过去
+            if (document.referrer && document.referrer.includes('practice.html')) {
+                history.back();
+            } else {
+                window.location.href = 'practice.html';
+            }
+        }
+
+        // ===== Toast =====
+        let toastTimer = null;
+        function showToast(text) {
+            const toast = document.getElementById('toast');
+            toast.textContent = text;
+            toast.classList.add('show');
+            clearTimeout(toastTimer);
+            toastTimer = setTimeout(() => toast.classList.remove('show'), 2800);
+        }
+
+        // 启动
+        loadDetail();
+    </script>
+</body>
+</html>

@@ -1,0 +1,601 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>登录 · 阿川 AI 超级助手</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Noto+Serif+SC:wght@400;500;600&family=JetBrains+Mono:wght@400;500&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+
+<style>
+  :root{
+    --bg: #F3EFE4;
+    --bg-card: #FAF6EC;
+    --bg-tint: #EBE6D7;
+    --ink: #1A1814;
+    --ink-mid: #48433B;
+    --ink-soft: #6B6558;
+    --ink-mute: #A39B8A;
+    --gold: #9A7A3D;
+    --line: rgba(26,24,20,.14);
+    --line-strong: rgba(26,24,20,.28);
+    --err: #B24A3B;
+
+    --serif-en: 'Instrument Serif', Georgia, serif;
+    --serif-cn: 'Noto Serif SC', 'Songti SC', serif;
+    --mono: 'JetBrains Mono', ui-monospace, 'SF Mono', Consolas, monospace;
+    --sans: 'Inter', -apple-system, BlinkMacSystemFont, 'PingFang SC', sans-serif;
+
+    --ease: cubic-bezier(.2,.65,.25,1);
+  }
+
+  *{margin:0;padding:0;box-sizing:border-box}
+  html,body{height:100%}
+  body{
+    font-family: var(--sans);
+    color: var(--ink);
+    background: var(--bg);
+    -webkit-font-smoothing: antialiased;
+    overflow: hidden;
+  }
+  a{color: inherit; text-decoration: none}
+  button{font-family: inherit; cursor: pointer; border: none; background: none; color: inherit}
+  input{font-family: inherit; outline: none; border: none; background: none; color: inherit}
+
+  /* 左右分栏 */
+  .page{
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    height: 100vh;
+  }
+
+  /* ════════════════════════════════ */
+  /*  LEFT · BRAND PANEL              */
+  /* ════════════════════════════════ */
+  .left{
+    background: var(--bg);
+    position: relative;
+    padding: 56px 64px;
+    display: flex; flex-direction: column;
+    justify-content: space-between;
+    overflow: hidden;
+  }
+  .left::before{
+    content: '阿';
+    position: absolute;
+    bottom: -12vh; right: -4vw;
+    font-family: var(--serif-cn);
+    font-size: clamp(400px, 48vw, 640px);
+    line-height: 0.8;
+    color: var(--ink);
+    opacity: 0.035;
+    pointer-events: none;
+    user-select: none;
+  }
+
+  .brand{
+    display: flex; align-items: center; gap: 12px;
+    font-family: var(--serif-cn);
+    font-size: 17px; font-weight: 500;
+    position: relative; z-index: 1;
+  }
+  .brand-mark{
+    width: 32px; height: 32px; border-radius: 5px;
+    background: var(--ink); color: var(--bg);
+    display: grid; place-items: center;
+    font-family: var(--serif-cn);
+    font-size: 16px; font-weight: 600;
+  }
+
+  .hero{
+    position: relative; z-index: 1;
+    opacity: 0; transform: translateY(14px);
+    animation: rise .9s var(--ease) .1s forwards;
+  }
+  .eyebrow{
+    font-family: var(--mono);
+    font-size: 11px; letter-spacing: .22em;
+    color: var(--ink-mid);
+    text-transform: uppercase;
+    display: inline-flex; align-items: center; gap: 14px;
+    margin-bottom: 28px;
+  }
+  .eyebrow::before{
+    content: ''; width: 30px; height: 1px; background: var(--ink-mid);
+  }
+  .hero-title{
+    font-family: var(--serif-cn);
+    font-weight: 500;
+    font-size: clamp(40px, 4.8vw, 64px);
+    line-height: 1.08;
+    letter-spacing: -.02em;
+    margin-bottom: 20px;
+  }
+  .hero-title .period{
+    color: var(--gold);
+    animation: blinkPeriod 3.4s ease-in-out infinite;
+  }
+  @keyframes blinkPeriod{
+    0%,60%,100%{ opacity: 1; }
+    72%{ opacity: .35; }
+  }
+  .hero-sub{
+    font-family: var(--serif-cn);
+    font-size: 15px;
+    color: var(--ink-soft);
+    line-height: 1.75;
+    max-width: 440px;
+  }
+  .hero-sub em{
+    font-family: var(--serif-en);
+    font-style: italic;
+    color: var(--gold);
+    font-size: 1.08em;
+    margin: 0 2px;
+  }
+
+  .foot-note{
+    font-family: var(--mono);
+    font-size: 10px; letter-spacing: .2em;
+    color: var(--ink-mute);
+    text-transform: uppercase;
+    position: relative; z-index: 1;
+  }
+
+  /* ════════════════════════════════ */
+  /*  RIGHT · FORM PANEL              */
+  /* ════════════════════════════════ */
+  .right{
+    background: var(--bg-card);
+    padding: 56px 64px;
+    display: flex; flex-direction: column;
+    justify-content: center; align-items: center;
+    position: relative;
+    border-left: 1px solid var(--line);
+  }
+
+  .form-wrap{
+    width: 100%;
+    max-width: 360px;
+    opacity: 0; transform: translateY(14px);
+    animation: rise .9s var(--ease) .3s forwards;
+  }
+
+  .form-head{
+    margin-bottom: 36px;
+  }
+  .form-h{
+    font-family: var(--serif-cn);
+    font-size: 28px;
+    font-weight: 500;
+    color: var(--ink);
+    margin-bottom: 6px;
+    letter-spacing: -.01em;
+  }
+  .form-h .gold{
+    font-family: var(--serif-en);
+    font-style: italic;
+    color: var(--gold);
+    font-weight: 400;
+  }
+  .form-hint{
+    font-family: var(--serif-cn);
+    font-size: 13px;
+    color: var(--ink-soft);
+  }
+
+  .field-group{
+    margin-bottom: 18px;
+  }
+  .field-label{
+    font-family: var(--mono);
+    font-size: 10.5px; letter-spacing: .15em;
+    color: var(--ink-mute);
+    text-transform: uppercase;
+    margin-bottom: 8px;
+  }
+
+  /* Phone input with country code */
+  .phone-field{
+    display: flex; gap: 10px;
+  }
+  .cc-box{
+    padding: 0 14px;
+    height: 46px;
+    background: var(--bg);
+    border: 1px solid var(--line-strong);
+    border-radius: 12px;
+    display: inline-flex; align-items: center; gap: 6px;
+    font-family: var(--mono);
+    font-size: 13px;
+    color: var(--ink-mid);
+    flex-shrink: 0;
+  }
+  .cc-box .flag{ font-size: 15px; }
+
+  .text-input{
+    flex: 1;
+    height: 46px;
+    padding: 0 16px;
+    background: var(--bg);
+    border: 1px solid var(--line-strong);
+    border-radius: 12px;
+    font-size: 14.5px;
+    color: var(--ink);
+    transition: all .2s var(--ease);
+    min-width: 0;
+  }
+  .text-input::placeholder{ color: var(--ink-mute); }
+  .text-input:focus{
+    border-color: var(--ink);
+    background: #fff;
+  }
+
+  /* Code field with inline button */
+  .code-field{
+    display: flex; gap: 10px;
+  }
+  .code-btn{
+    height: 46px;
+    padding: 0 16px;
+    border: 1px solid var(--line-strong);
+    border-radius: 12px;
+    background: var(--bg);
+    color: var(--ink-mid);
+    font-family: var(--mono);
+    font-size: 12px;
+    letter-spacing: .05em;
+    white-space: nowrap;
+    transition: all .2s var(--ease);
+  }
+  .code-btn:hover:not(:disabled){
+    background: var(--ink);
+    color: var(--bg);
+    border-color: var(--ink);
+  }
+  .code-btn:disabled{
+    color: var(--ink-mute);
+    cursor: default;
+    background: var(--bg-tint);
+  }
+
+  /* Error message */
+  .err{
+    min-height: 18px;
+    font-size: 12px;
+    color: var(--err);
+    display: flex; align-items: center; gap: 6px;
+    margin: 0 0 12px;
+    padding-left: 2px;
+  }
+  .err:empty{ margin: 0; min-height: 0; }
+
+  /* Login button */
+  .login-btn{
+    width: 100%;
+    height: 48px;
+    background: var(--ink);
+    color: var(--bg);
+    border-radius: 999px;
+    font-family: var(--sans);
+    font-size: 14px;
+    font-weight: 500;
+    letter-spacing: .02em;
+    display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+    transition: all .25s var(--ease);
+    margin-top: 10px;
+  }
+  .login-btn .arr{
+    font-family: var(--serif-en);
+    font-style: italic;
+    font-size: 16px;
+    transition: transform .2s var(--ease);
+  }
+  .login-btn:hover:not(:disabled){
+    background: #000;
+  }
+  .login-btn:hover:not(:disabled) .arr{ transform: translateX(3px); }
+  .login-btn:disabled{
+    opacity: 0.7;
+    cursor: not-allowed;
+  }
+
+  /* Divider */
+  .divider{
+    display: flex; align-items: center; gap: 12px;
+    margin: 28px 0 20px;
+  }
+  .divider::before, .divider::after{
+    content: ''; flex: 1; height: 1px; background: var(--line);
+  }
+  .divider-text{
+    font-family: var(--mono);
+    font-size: 10px; letter-spacing: .2em;
+    color: var(--ink-mute);
+    text-transform: uppercase;
+  }
+
+  /* Wechat soon button */
+  .wechat-btn{
+    width: 100%;
+    padding: 12px 16px;
+    background: transparent;
+    border: 1px solid var(--line-strong);
+    border-radius: 999px;
+    font-family: var(--sans);
+    font-size: 13px;
+    color: var(--ink-mid);
+    display: inline-flex; align-items: center; justify-content: center; gap: 10px;
+    transition: all .2s var(--ease);
+  }
+  .wechat-btn:hover{ background: var(--bg-tint); }
+  .wechat-soon{
+    font-family: var(--mono);
+    font-size: 9.5px; letter-spacing: .12em;
+    color: var(--ink-mute);
+    text-transform: uppercase;
+    padding: 2px 8px;
+    background: var(--bg-tint);
+    border-radius: 999px;
+    margin-left: 4px;
+  }
+
+  /* Terms */
+  .terms{
+    text-align: center;
+    font-family: var(--serif-cn);
+    font-size: 12px;
+    color: var(--ink-mute);
+    margin-top: 26px;
+    line-height: 1.7;
+  }
+  .terms a{
+    color: var(--ink-mid);
+    border-bottom: 1px solid var(--line);
+    padding-bottom: 1px;
+  }
+  .terms a:hover{ color: var(--ink); border-color: var(--ink); }
+
+  @keyframes rise{ to{ opacity: 1; transform: translateY(0); } }
+
+  /* ════════════════════════════════ */
+  /*  RESPONSIVE                      */
+  /* ════════════════════════════════ */
+  @media (max-width: 900px){
+    body{ overflow: auto; }
+    .page{ grid-template-columns: 1fr; height: auto; min-height: 100vh; }
+    .left{
+      padding: 40px 28px;
+      min-height: 50vh;
+    }
+    .left::before{
+      font-size: clamp(300px, 70vw, 420px);
+      bottom: -8vh;
+    }
+    .right{
+      padding: 48px 28px 60px;
+      border-left: none;
+      border-top: 1px solid var(--line);
+    }
+    .hero-title{ font-size: 36px; }
+    .foot-note{ margin-top: 40px; }
+  }
+
+  @media (prefers-reduced-motion: reduce){
+    *, *::before, *::after{
+      animation-duration: .01ms !important;
+      transition-duration: .01ms !important;
+    }
+  }
+</style>
+</head>
+<body>
+
+<div class="page">
+
+  <!-- LEFT · brand panel -->
+  <div class="left">
+
+    <div class="brand">
+      <span class="brand-mark">阿</span>
+      <span>阿川 AI 超级助手</span>
+    </div>
+
+    <div class="hero">
+      <div class="eyebrow">Welcome · 欢迎</div>
+      <h1 class="hero-title">
+        阿川 AI<br>超级助手<span class="period">。</span>
+      </h1>
+      <p class="hero-sub">
+        从 <em>内容创作</em> 到 <em>数据分析</em>，<br>
+        让 AI 真正帮你做事，不只是聊天。
+      </p>
+    </div>
+
+    <div class="foot-note">阿川同学 · 2026</div>
+  </div>
+
+  <!-- RIGHT · form panel -->
+  <div class="right">
+    <div class="form-wrap">
+
+      <div class="form-head">
+        <h2 class="form-h"><span class="gold">Sign in</span> · 登录</h2>
+        <p class="form-hint">手机号登录，首次自动注册账号</p>
+      </div>
+
+      <!-- Phone -->
+      <div class="field-group">
+        <div class="field-label">手机号 · Phone</div>
+        <div class="phone-field">
+          <div class="cc-box">
+            <span class="flag">🇨🇳</span>
+            <span>+86</span>
+          </div>
+          <input id="phone" class="text-input" type="tel" placeholder="请输入手机号" autocomplete="tel" inputmode="numeric" maxlength="11">
+        </div>
+      </div>
+
+      <!-- Code -->
+      <div class="field-group">
+        <div class="field-label">验证码 · Code</div>
+        <div class="code-field">
+          <input id="code" class="text-input" type="text" placeholder="6 位数字" autocomplete="one-time-code" inputmode="numeric" maxlength="6">
+          <button class="code-btn" id="code-btn" onclick="sendCode()">获取验证码</button>
+        </div>
+      </div>
+
+      <!-- Error -->
+      <div class="err" id="err-msg"></div>
+
+      <!-- Submit -->
+      <button class="login-btn" id="login-btn" onclick="doLogin()">
+        登录 / 注册 <span class="arr">→</span>
+      </button>
+
+      <div class="divider">
+        <span class="divider-text">Other</span>
+      </div>
+
+      <button class="wechat-btn" onclick="wechatTip()">
+        💬 微信扫码登录
+        <span class="wechat-soon">Soon</span>
+      </button>
+
+      <p class="terms">
+        登录即代表同意 <a href="#">《用户服务协议》</a> 和 <a href="#">《隐私政策》</a>
+      </p>
+
+    </div>
+  </div>
+
+</div>
+
+<script>
+  const API = 'http://localhost:8000';
+  let countdown = 0, timer = null;
+
+  // Already logged in → redirect
+  if (localStorage.getItem('token')) {
+    location.replace('choose.html');
+  }
+
+  function setErr(msg) {
+    const el = document.getElementById('err-msg');
+    el.innerHTML = msg ? `<span>⚠</span>${msg}` : '';
+  }
+
+  function getPhone() {
+    return document.getElementById('phone').value.trim();
+  }
+
+  // ── Send verification code ──
+  async function sendCode() {
+    const phone = getPhone();
+    setErr('');
+    if (!/^1[3-9]\d{9}$/.test(phone)) {
+      setErr('请输入正确的 11 位手机号');
+      return;
+    }
+
+    const btn = document.getElementById('code-btn');
+    btn.disabled = true;
+    btn.textContent = '发送中...';
+
+    try {
+      const res = await fetch(`${API}/auth/send-code`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ phone }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.detail || '发送失败');
+      startCountdown(data.resend_seconds || 60);
+    } catch (e) {
+      setErr(e.message);
+      btn.disabled = false;
+      btn.textContent = '获取验证码';
+    }
+  }
+
+  function startCountdown(seconds) {
+    countdown = seconds || 60;
+    const btn = document.getElementById('code-btn');
+    btn.disabled = true;
+    clearInterval(timer);
+    timer = setInterval(() => {
+      countdown--;
+      btn.textContent = `${countdown}s`;
+      if (countdown <= 0) {
+        clearInterval(timer);
+        btn.disabled = false;
+        btn.textContent = '获取验证码';
+      }
+    }, 1000);
+  }
+
+  // ── Login ──
+  async function doLogin() {
+    const phone = getPhone();
+    const code = document.getElementById('code').value.trim();
+    setErr('');
+
+    if (!/^1[3-9]\d{9}$/.test(phone)) { setErr('请输入正确的手机号'); return; }
+    if (!/^\d{6}$/.test(code)) { setErr('请输入 6 位数字验证码'); return; }
+
+    const btn = document.getElementById('login-btn');
+    btn.disabled = true;
+    btn.innerHTML = '登录中...';
+
+    try {
+      const res = await fetch(`${API}/auth/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ phone, code }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(
+        typeof data.detail === 'string' ? data.detail : '验证码错误或已过期'
+      );
+
+      // 统一存储 key 为 'token'
+      localStorage.setItem('token', data.access_token);
+      localStorage.setItem('user_id', data.user_id);
+      localStorage.setItem('is_new_user', data.is_new_user ? '1' : '0');
+
+      btn.innerHTML = data.is_new_user ? '注册成功，欢迎 🎉' : '登录成功，跳转中...';
+      setTimeout(() => { location.replace('choose.html'); }, 400);
+
+    } catch (e) {
+      setErr(e.message);
+      btn.disabled = false;
+      btn.innerHTML = '登录 / 注册 <span class="arr">→</span>';
+    }
+  }
+
+  function wechatTip() {
+    setErr('微信登录正在开发中，敬请期待');
+  }
+
+  // Enter key submit
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Enter') {
+      const code = document.getElementById('code').value.trim();
+      if (code.length === 6) doLogin();
+      else if (getPhone().length === 11) sendCode();
+    }
+  });
+
+  // Input filtering
+  document.getElementById('phone').addEventListener('input', function () {
+    this.value = this.value.replace(/\D/g, '').slice(0, 11);
+  });
+  document.getElementById('code').addEventListener('input', function () {
+    this.value = this.value.replace(/\D/g, '').slice(0, 6);
+  });
+</script>
+
+</body>
+</html>

@@ -1,0 +1,53 @@
+# Secrets / local environment
+.env
+.env.*
+!.env.example
+
+# Python caches
+.venv/
+__pycache__/
+*.py[cod]
+*.pyo
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Local databases / dumps
+*.db
+*.sqlite
+*.sqlite3
+backup*.sql
+*.dump
+
+# Local backups generated during development
+*.bak
+*.bak_*
+*.bak_before_*
+*_backup_*.py
+*_backup_*.html
+main_v*_backup.py
+agent/core_v*_backup.py
+frontend/index_v*_backup.html
+
+# OS / editor files
+.DS_Store
+.claude/
+.playwright-mcp/
+.idea/
+.vscode/
+
+# Node / frontend build artifacts
+node_modules/
+dist/
+build/
+.next/
+wechat-monitor/.next/
+
+# Runtime uploads and generated media
+static/uploads/
+
+# Archives
+*.zip
+*.tar
+*.tar.gz
+*.tgz

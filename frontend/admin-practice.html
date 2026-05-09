@@ -1,0 +1,1151 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>管理后台 · 阿川 AI</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;500;600;700&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#F3EFE4;--bg-card:#FFFDF7;--bg-sidebar:#1A1814;--bg-hover:rgba(255,255,255,.06);--ink:#1A1814;--ink-mid:#48433B;--ink-soft:#6B6558;--ink-mute:#A39B8A;--gold:#9A7A3D;--gold-light:#C9B88A;--gold-bg:#F5EFDE;--green:#4A8C6F;--green-bg:#E8F2EC;--red:#C75B3A;--red-bg:#FCEEE8;--blue:#4A7FB5;--blue-bg:#E8F0F8;--line:rgba(26,24,20,.1);--radius:10px;--sans:'DM Sans',-apple-system,'PingFang SC',sans-serif;--serif:'Noto Serif SC',serif}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:var(--sans);background:var(--bg);color:var(--ink);display:flex;min-height:100vh;overflow:hidden}
+.sidebar{width:240px;background:var(--bg-sidebar);color:#ccc;display:flex;flex-direction:column;flex-shrink:0;height:100vh;position:fixed;left:0;top:0;z-index:100}
+.sidebar-logo{padding:20px 22px;display:flex;align-items:center;gap:10px;border-bottom:1px solid rgba(255,255,255,.08)}
+.sidebar-logo-icon{width:34px;height:34px;background:var(--gold);border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:15px;color:#fff;font-family:var(--serif);font-weight:700}
+.sidebar-logo-text{font-size:15px;font-weight:600;color:#fff;font-family:var(--serif)}
+.sidebar-nav{flex:1;overflow-y:auto;padding:12px 0}
+.nav-group{margin-bottom:4px}
+.nav-group-label{padding:8px 22px 4px;font-size:10px;text-transform:uppercase;letter-spacing:1.5px;color:rgba(255,255,255,.3);font-weight:600}
+.nav-item{display:flex;align-items:center;gap:10px;padding:9px 22px;cursor:pointer;transition:all .12s;font-size:13.5px;color:rgba(255,255,255,.55);border-left:3px solid transparent;margin:1px 0}
+.nav-item:hover{background:var(--bg-hover);color:rgba(255,255,255,.85)}
+.nav-item.active{background:var(--bg-hover);color:#fff;border-left-color:var(--gold)}
+.nav-item .icon{width:18px;text-align:center;font-size:14px;flex-shrink:0}
+.sidebar-footer{padding:16px 22px;border-top:1px solid rgba(255,255,255,.08);font-size:12px;color:rgba(255,255,255,.3)}
+.sidebar-footer a{color:var(--gold-light);text-decoration:none}
+.content{margin-left:240px;flex:1;height:100vh;overflow-y:auto}
+.page-header{padding:24px 32px 16px;border-bottom:1px solid var(--line);background:var(--bg-card);position:sticky;top:0;z-index:50}
+.page-title{font-size:20px;font-weight:700;font-family:var(--serif)}
+.page-desc{font-size:13px;color:var(--ink-mute);margin-top:4px}
+.page-body{padding:24px 32px 60px}
+.stat-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:14px;margin-bottom:28px}
+.stat-card{background:var(--bg-card);border:1px solid var(--line);border-radius:var(--radius);padding:18px 20px;transition:transform .15s}
+.stat-card:hover{transform:translateY(-2px)}
+.stat-icon{font-size:22px;margin-bottom:8px}
+.stat-num{font-size:26px;font-weight:700;font-family:var(--serif);line-height:1}
+.stat-label{font-size:12px;color:var(--ink-mute);margin-top:4px}
+.section-card{background:var(--bg-card);border:1px solid var(--line);border-radius:var(--radius);margin-bottom:20px;overflow:hidden}
+.section-header{padding:16px 20px;display:flex;align-items:center;border-bottom:1px solid var(--line)}
+.section-title{font-size:15px;font-weight:600;flex:1}
+.toolbar-row{display:flex;align-items:center;gap:8px;padding:12px 20px;border-bottom:1px solid var(--line);flex-wrap:wrap}
+.tb-select,.tb-input{padding:6px 12px;border-radius:7px;border:1px solid var(--line);background:#fff;font-size:12.5px;color:var(--ink);outline:none;font-family:var(--sans)}
+.tb-input{width:180px}
+.tb-select:focus,.tb-input:focus{border-color:var(--gold)}
+.tb-btn{padding:6px 14px;border-radius:7px;border:1px solid var(--line);background:#fff;font-size:12px;cursor:pointer;color:var(--ink-soft);transition:all .1s;font-family:var(--sans)}
+.tb-btn:hover{background:var(--bg);color:var(--ink)}
+.tb-btn.primary{background:var(--gold);color:#fff;border-color:var(--gold)}
+.tb-btn.primary:hover{background:#876A34}
+table{width:100%;border-collapse:collapse}
+th{font-size:11.5px;color:var(--ink-mute);text-align:left;padding:10px 16px;font-weight:600;white-space:nowrap;background:var(--bg);text-transform:uppercase;letter-spacing:.5px}
+td{padding:10px 16px;font-size:13px;border-top:1px solid var(--line);vertical-align:middle}
+tr:hover td{background:rgba(26,24,20,.015)}
+.t-title{max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:500;cursor:pointer;color:var(--ink)}
+.t-title:hover{color:var(--gold)}
+.t-sub{font-size:11px;color:var(--ink-mute);margin-top:1px}
+.badge{display:inline-block;padding:2px 9px;border-radius:5px;font-size:11px;font-weight:500}
+.b-green{background:var(--green-bg);color:var(--green)}
+.b-red{background:var(--red-bg);color:var(--red)}
+.b-gold{background:var(--gold-bg);color:var(--gold)}
+.b-blue{background:var(--blue-bg);color:var(--blue)}
+.b-gray{background:rgba(0,0,0,.05);color:var(--ink-mute)}
+.act{display:inline-flex;align-items:center;padding:3px 9px;border-radius:5px;font-size:11px;cursor:pointer;border:1px solid var(--line);background:none;color:var(--ink-soft);transition:all .1s;font-family:var(--sans);margin:0 2px}
+.act:hover{background:var(--bg);color:var(--ink)}
+.act.gold:hover{background:var(--gold-bg);color:var(--gold)}
+.act.green:hover{background:var(--green-bg);color:var(--green)}
+.act.blue:hover{background:var(--blue-bg);color:var(--blue)}
+.act.red:hover{background:var(--red-bg);color:var(--red)}
+.pager{display:flex;justify-content:center;gap:6px;padding:14px}
+.pager button{padding:5px 12px;border-radius:6px;border:1px solid var(--line);background:#fff;cursor:pointer;font-size:12px;color:var(--ink-soft)}
+.pager button.active{background:var(--ink);color:#fff;border-color:var(--ink)}
+.pager button:disabled{opacity:.35;cursor:default}
+.empty{text-align:center;padding:40px;color:var(--ink-mute);font-size:13px}
+.loading{text-align:center;padding:40px;color:var(--ink-mute)}
+.recent-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.recent-list{list-style:none;padding:12px 20px}
+.recent-item{padding:10px 0;border-bottom:1px solid var(--line);font-size:13px;display:flex;align-items:center;gap:8px}
+.recent-item:last-child{border:none}
+.recent-avatar{width:28px;height:28px;border-radius:50%;background:var(--gold-bg);display:flex;align-items:center;justify-content:center;font-size:11px;color:var(--gold);font-weight:600;flex-shrink:0}
+.recent-text{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.recent-time{font-size:11px;color:var(--ink-mute);flex-shrink:0}
+.toast{position:fixed;bottom:24px;right:32px;background:var(--ink);color:#fff;padding:10px 20px;border-radius:8px;font-size:13px;opacity:0;transition:all .25s;z-index:999;pointer-events:none}
+.toast.show{opacity:1}
+.page{display:none}.page.active{display:block}
+.s-field{margin-bottom:16px}
+.s-field label{display:block;font-size:12px;color:var(--ink-mute);margin-bottom:5px;font-weight:500}
+.s-input{width:100%;padding:10px 14px;border-radius:8px;border:1px solid var(--line);background:#fff;font-size:14px;color:var(--ink);outline:none;font-family:var(--sans);transition:border-color .15s}
+.s-input:focus{border-color:var(--gold)}
+.s-textarea{width:100%;padding:10px 14px;border-radius:8px;border:1px solid var(--line);background:#fff;font-size:14px;color:var(--ink);outline:none;font-family:var(--sans);resize:vertical;line-height:1.6;transition:border-color .15s}
+.s-textarea:focus{border-color:var(--gold)}
+.modal-mask{position:fixed;inset:0;background:rgba(26,24,20,.38);display:none;align-items:center;justify-content:center;z-index:500;padding:20px}
+.modal-mask.show{display:flex}
+.modal-box{width:min(520px,100%);background:var(--bg-card);border:1px solid var(--line);border-radius:14px;box-shadow:0 18px 60px rgba(26,24,20,.22);overflow:hidden}
+.modal-head{padding:16px 20px;border-bottom:1px solid var(--line);display:flex;align-items:center;gap:12px}
+.modal-title{font-size:16px;font-weight:700;flex:1;font-family:var(--serif)}
+.modal-close{border:0;background:transparent;font-size:22px;line-height:1;color:var(--ink-mute);cursor:pointer}
+.modal-body{padding:20px}
+.modal-foot{padding:14px 20px;border-top:1px solid var(--line);display:flex;justify-content:flex-end;gap:10px}
+.hint{font-size:12px;color:var(--ink-mute);line-height:1.6}
+.inline-check{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--ink-soft)}
+.status-line{min-height:20px;font-size:12px;color:var(--ink-mute);line-height:1.6}
+.status-line.error{color:var(--red)}
+.status-line.success{color:var(--green)}
+.cover-preview{margin-top:8px;border:1px solid var(--line);border-radius:10px;background:#fff;min-height:120px;display:flex;align-items:center;justify-content:center;overflow:hidden;color:var(--ink-mute);font-size:12px}
+.cover-preview img{width:100%;height:180px;object-fit:cover;display:block}
+.cover-preview.is-default{display:block;background:#fffdf7}
+.cover-preview-note{padding:8px 10px;border-top:1px solid var(--line);color:var(--ink-mute);font-size:12px}
+.cover-upload-row{display:flex;gap:8px;align-items:center}
+.cover-upload-row input{flex:1;min-width:0}
+.modal-box.wide{width:min(720px,100%)}
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.field-full{grid-column:1 / -1}
+.lesson-toolbar{display:flex;align-items:center;gap:8px;justify-content:space-between;padding:14px 20px;border-bottom:1px solid var(--line);background:#fff}
+.lesson-title-line{font-weight:700;font-size:14px}
+.lesson-sub-line{font-size:12px;color:var(--ink-mute);margin-top:2px}
+.lesson-empty{padding:24px 20px;color:var(--ink-mute);font-size:13px}
+.lesson-list{padding:0}
+.lesson-admin-row{display:grid;grid-template-columns:48px 1fr 108px 120px 210px;gap:12px;align-items:center;padding:12px 20px;border-top:1px solid var(--line)}
+.lesson-admin-row:hover{background:rgba(26,24,20,.015)}
+.lesson-sort{width:48px;padding:6px 8px;border:1px solid var(--line);border-radius:6px;background:#fff;font-size:12px}
+.lesson-name-main{font-weight:600;font-size:13px}
+.lesson-name-sub{font-size:11px;color:var(--ink-mute);margin-top:2px;line-height:1.4}
+.media-status{font-size:12px;color:var(--ink-mute);min-height:18px;margin-top:6px}
+.media-status.error{color:var(--red)}
+.media-status.success{color:var(--green)}
+.muted-note{font-size:12px;color:var(--ink-mute);line-height:1.6}
+.course-admin-body{padding:0}
+.course-admin-shell{height:calc(100vh - 72px);min-height:720px;background:#FAFAF7}
+.course-admin-frame{width:100%;height:100%;border:0;display:block;background:#FAFAF7}
+@media(max-width:900px){.sidebar{width:60px}.sidebar span:not(.icon),.sidebar-logo-text,.nav-group-label,.sidebar-footer{display:none}.nav-item{padding:12px 0;justify-content:center}.content{margin-left:60px}.stat-grid{grid-template-columns:repeat(2,1fr)}.recent-grid{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<aside class="sidebar">
+  <div class="sidebar-logo"><div class="sidebar-logo-icon">阿</div><span class="sidebar-logo-text">管理后台</span></div>
+  <nav class="sidebar-nav">
+    <div class="nav-group"><div class="nav-group-label">概览</div>
+      <div class="nav-item active" onclick="showPage('dashboard',this)"><span class="icon">📊</span><span>数据看板</span></div>
+    </div>
+    <div class="nav-group"><div class="nav-group-label">内容</div>
+      <div class="nav-item" onclick="showPage('projects',this)"><span class="icon">📝</span><span>实战经验</span></div>
+      <div class="nav-item" onclick="showPage('camps',this)"><span class="icon">📚</span><span>专栏</span></div>
+      <div class="nav-item" onclick="showPage('courses',this)"><span class="icon">🎬</span><span>视频课程</span></div>
+      <div class="nav-item" onclick="showPage('tags',this)"><span class="icon">🏷</span><span>标签管理</span></div>
+    </div>
+    <div class="nav-group"><div class="nav-group-label">互动</div>
+      <div class="nav-item" onclick="showPage('comments',this)"><span class="icon">💬</span><span>评论管理</span></div>
+      <div class="nav-item" onclick="showPage('subscribes',this)"><span class="icon">📌</span><span>订阅管理</span></div>
+    </div>
+    <div class="nav-group"><div class="nav-group-label">系统</div>
+      <div class="nav-item" onclick="showPage('users',this)"><span class="icon">👥</span><span>用户管理</span></div>
+      <div class="nav-item" onclick="showPage('settings',this)"><span class="icon">⚙️</span><span>系统设置</span></div>
+    </div>
+  </nav>
+  <div class="sidebar-footer"><a href="practice.html">← 实战区</a> · <a href="choose.html">首页</a> · <a href="#" onclick="localStorage.removeItem('admin_token');localStorage.removeItem('admin_user_id');localStorage.removeItem('token');localStorage.removeItem('user_id');location.href='admin-login.html'">退出</a></div>
+</aside>
+
+<main class="content">
+  <div id="pg-dashboard" class="page active">
+    <div class="page-header"><div class="page-title">数据看板</div><div class="page-desc">实战区运营数据概览</div></div>
+    <div class="page-body">
+      <div class="stat-grid">
+        <div class="stat-card"><div class="stat-icon">📄</div><div class="stat-num" id="d-content">-</div><div class="stat-label">已发布 / 总内容</div></div>
+        <div class="stat-card"><div class="stat-icon">👁</div><div class="stat-num" id="d-views">-</div><div class="stat-label">总浏览量</div></div>
+        <div class="stat-card"><div class="stat-icon">❤️</div><div class="stat-num" id="d-likes">-</div><div class="stat-label">总点赞</div></div>
+        <div class="stat-card"><div class="stat-icon">💬</div><div class="stat-num" id="d-comments">-</div><div class="stat-label">总评论</div></div>
+        <div class="stat-card"><div class="stat-icon">📌</div><div class="stat-num" id="d-subs">-</div><div class="stat-label">总订阅</div></div>
+      </div>
+      <div class="recent-grid">
+        <div class="section-card"><div class="section-header"><span class="section-title">最新内容</span></div><ul class="recent-list" id="recentContent"><li class="loading">加载中...</li></ul></div>
+        <div class="section-card"><div class="section-header"><span class="section-title">数据概况</span></div>
+          <ul class="recent-list" id="extraStats"><li class="loading">加载中...</li></ul>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="pg-projects" class="page">
+    <div class="page-header"><div class="page-title">实战经验管理</div></div>
+    <div class="page-body"><div class="section-card">
+      <div class="toolbar-row">
+        <select id="pj-pub" onchange="pjPage=1;loadProjects()"><option value="">全部状态</option><option value="true">已发布</option><option value="false">未发布</option></select>
+        <input class="tb-input" id="pj-search" placeholder="搜索标题/作者..." oninput="clearTimeout(_t);_t=setTimeout(()=>{pjPage=1;loadProjects()},400)">
+        <button class="tb-btn" onclick="batchAct('feature')">批量推荐</button>
+        <button class="tb-btn" onclick="batchAct('unpublish')">批量下架</button>
+        <button class="tb-btn primary" onclick="openFeishuImport()">从飞书导入</button>
+        <div style="margin-left:auto"><button class="tb-btn primary" onclick="window.open('practice.html')">+ 发布新内容</button></div>
+      </div>
+      <div id="pj-table"><div class="loading">加载中...</div></div>
+      <div class="pager" id="pj-pager"></div>
+    </div></div>
+  </div>
+
+  <div id="pg-camps" class="page">
+    <div class="page-header"><div class="page-title">专栏管理</div><div class="page-desc">一个专栏包含多个图文章节或视频章节</div></div>
+    <div class="page-body">
+      <div class="section-card">
+        <div class="toolbar-row">
+          <select id="camp-pub" onchange="loadCamps()"><option value="">全部状态</option><option value="true">已发布</option><option value="false">未发布</option></select>
+          <input class="tb-input" id="camp-search" placeholder="搜索专栏..." oninput="clearTimeout(_t);_t=setTimeout(loadCamps,400)">
+          <button class="tb-btn" onclick="loadCamps()">刷新</button>
+          <div style="margin-left:auto"><button class="tb-btn primary" onclick="openColumnModal()">+ 新建专栏</button></div>
+        </div>
+        <div id="camp-table"><div class="loading">加载中...</div></div>
+      </div>
+      <div class="section-card" id="columnLessonsPanel" style="display:none">
+        <div class="lesson-toolbar">
+          <div>
+            <div class="lesson-title-line" id="columnLessonsTitle">专栏章节</div>
+            <div class="lesson-sub-line" id="columnLessonsMeta"></div>
+          </div>
+          <div>
+            <button class="tb-btn" onclick="openColumnFeishuModal()">添加飞书章节</button>
+            <button class="tb-btn primary" onclick="openColumnLessonModal()">添加视频章节</button>
+          </div>
+        </div>
+        <div id="columnLessonsTable"><div class="loading">加载中...</div></div>
+      </div>
+    </div>
+  </div>
+
+  <div id="pg-courses" class="page">
+    <div class="page-header"><div class="page-title">视频课程管理</div></div>
+    <div class="page-body course-admin-body">
+      <div class="course-admin-shell">
+        <iframe id="courseAdminFrame" class="course-admin-frame" title="视频课程管理"></iframe>
+      </div>
+    </div>
+  </div>
+
+  <div id="pg-tags" class="page">
+    <div class="page-header"><div class="page-title">标签管理</div></div>
+    <div class="page-body"><div class="section-card"><div id="tag-table"><div class="loading">加载中...</div></div></div></div>
+  </div>
+
+  <div id="pg-comments" class="page">
+    <div class="page-header"><div class="page-title">评论管理</div></div>
+    <div class="page-body"><div class="section-card"><div id="cm-table"><div class="loading">加载中...</div></div></div></div>
+  </div>
+
+  <div id="pg-subscribes" class="page">
+    <div class="page-header"><div class="page-title">订阅管理</div><div class="page-desc">查看所有订阅记录</div></div>
+    <div class="page-body"><div class="section-card">
+      <div id="sub-table"><div class="loading">加载中...</div></div>
+      <div class="pager" id="sub-pager"></div>
+    </div></div>
+  </div>
+
+  <div id="pg-users" class="page">
+    <div class="page-header"><div class="page-title">用户管理</div><div class="page-desc">管理用户和权限</div></div>
+    <div class="page-body"><div class="section-card">
+      <div class="toolbar-row">
+        <input class="tb-input" id="usr-search" placeholder="搜索手机号/昵称..." oninput="clearTimeout(_t);_t=setTimeout(loadUsers,400)">
+        <select id="usr-plan" onchange="loadUsers()"><option value="">全部会员</option><option value="yearly">年卡</option><option value="private">私教</option><option value="monthly">月卡</option><option value="none">无会员</option></select>
+      </div>
+      <div id="usr-table"><div class="loading">加载中...</div></div>
+      <div class="pager" id="usr-pager"></div>
+    </div></div>
+  </div>
+
+  <div id="pg-settings" class="page">
+    <div class="page-header"><div class="page-title">系统设置</div><div class="page-desc">修改实战区页面配置</div></div>
+    <div class="page-body">
+      <div class="section-card">
+        <div class="section-header"><span class="section-title">页面配置</span></div>
+        <div style="padding:20px 24px" id="settingsForm">
+          <div class="s-field"><label>Slogan 标语</label><input id="s-slogan" class="s-input"></div>
+          <div class="s-field"><label>副标题描述</label><textarea id="s-hero_desc" class="s-textarea" rows="2"></textarea></div>
+          <div class="s-field"><label>默认作者名</label><input id="s-author_name" class="s-input"></div>
+          <div class="s-field"><label>公告通知（为空则不显示）</label><input id="s-announcement" class="s-input" placeholder="如：系统维护通知..."></div>
+          <div class="s-field"><label>底部文案</label><input id="s-footer_text" class="s-input"></div>
+        </div>
+      </div>
+      <div class="section-card">
+        <div class="section-header"><span class="section-title">飞书文档导入配置</span></div>
+        <div style="padding:20px 24px">
+          <div class="s-field"><label>Feishu App ID</label><input id="feishu_app_id" class="s-input" placeholder="cli_..."></div>
+          <div class="s-field"><label>Feishu App Secret</label><input id="feishu_app_secret" class="s-input" type="password" placeholder="请输入 App Secret"><div class="hint" id="feishu_secret_hint"></div></div>
+          <div class="hint">请在飞书开放平台创建企业自建应用，并把需要导入的文档授权给该应用/机器人。</div>
+          <div style="display:flex;justify-content:flex-end;margin-top:14px"><button class="tb-btn primary" id="saveFeishuConfigBtn" onclick="saveFeishuConfig()">保存飞书配置</button></div>
+        </div>
+      </div>
+      <div class="section-card">
+        <div class="section-header"><span class="section-title">会员价格配置</span></div>
+        <div style="padding:20px 24px;display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px">
+          <div class="s-field"><label>月卡价格 (元)</label><input id="s-monthly_price" class="s-input" type="number"></div>
+          <div class="s-field"><label>年卡价格 (元)</label><input id="s-yearly_price" class="s-input" type="number"></div>
+          <div class="s-field"><label>私教价格 (元)</label><input id="s-private_price" class="s-input" type="number"></div>
+        </div>
+      </div>
+      <div style="padding:16px 0;display:flex;justify-content:flex-end;gap:10px">
+        <button class="tb-btn" onclick="loadSettings()">重置</button>
+        <button class="tb-btn primary" onclick="saveSettings()" id="saveSettingsBtn">保存设置</button>
+      </div>
+    </div>
+  </div>
+</main>
+
+<div id="feishuImportModal" class="modal-mask" onclick="if(event.target===this)closeFeishuImport()">
+  <div class="modal-box">
+    <div class="modal-head">
+      <div class="modal-title">从飞书导入实战经验</div>
+      <button class="modal-close" onclick="closeFeishuImport()">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="s-field">
+        <label>飞书文档链接</label>
+        <input id="feishuImportUrl" class="s-input" placeholder="https://xxx.feishu.cn/docx/xxxx">
+      </div>
+      <div class="s-field">
+        <label>分类</label>
+        <input id="feishuImportCategory" class="s-input" placeholder="如：AI / 自媒体 / 小红书">
+      </div>
+      <label class="inline-check">
+        <input id="feishuImportPublished" type="checkbox">
+        导入后直接发布（默认保存草稿）
+      </label>
+      <div id="feishuImportStatus" class="status-line"></div>
+      <div class="hint">第一版仅支持新版 docx 文档；图片会自动转存到 COS。</div>
+    </div>
+    <div class="modal-foot">
+      <button class="tb-btn" onclick="closeFeishuImport()">取消</button>
+      <button class="tb-btn primary" id="feishuImportBtn" onclick="runFeishuImport()">开始导入</button>
+    </div>
+  </div>
+</div>
+
+<div id="projectCoverModal" class="modal-mask" onclick="if(event.target===this)closeProjectCover()">
+  <div class="modal-box">
+    <div class="modal-head">
+      <div class="modal-title">设置实战经验封面</div>
+      <button class="modal-close" onclick="closeProjectCover()">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="s-field">
+        <label>内容</label>
+        <input id="coverProjectTitle" class="s-input" disabled>
+      </div>
+      <div class="s-field">
+        <label>封面图链接</label>
+        <div class="cover-upload-row">
+          <input id="coverImageUrl" class="s-input" placeholder="https://..." oninput="updateProjectCoverPreview()">
+          <button class="tb-btn" onclick="triggerProjectCoverUpload()">上传</button>
+        </div>
+        <input id="projectCoverFile" type="file" accept="image/*" style="display:none" onchange="uploadProjectCoverFile(this)">
+        <div id="projectCoverPreview" class="cover-preview">暂无封面</div>
+      </div>
+      <div id="projectCoverStatus" class="status-line"></div>
+      <div class="hint">封面只由管理员在这里维护；正文里的第一张图片不会再自动作为封面。</div>
+    </div>
+    <div class="modal-foot">
+      <button class="tb-btn" onclick="clearProjectCover()">清除封面</button>
+      <button class="tb-btn" onclick="closeProjectCover()">取消</button>
+      <button class="tb-btn primary" id="saveProjectCoverBtn" onclick="saveProjectCover()">保存封面</button>
+    </div>
+  </div>
+</div>
+
+<div id="columnModal" class="modal-mask" onclick="if(event.target===this)closeColumnModal()">
+  <div class="modal-box wide">
+    <div class="modal-head">
+      <div class="modal-title" id="columnModalTitle">新建专栏</div>
+      <button class="modal-close" onclick="closeColumnModal()">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-grid">
+        <div class="s-field"><label>专栏标题 *</label><input id="columnTitle" class="s-input"></div>
+        <div class="s-field"><label>Slug</label><input id="columnSlug" class="s-input" placeholder="留空自动生成"></div>
+        <div class="s-field"><label>分类</label><input id="columnCategory" class="s-input" placeholder="如：AI自媒体"></div>
+        <div class="s-field"><label>排序（小在前）</label><input id="columnSort" class="s-input" type="number" value="0"></div>
+        <div class="s-field field-full"><label>简介</label><textarea id="columnDesc" class="s-textarea" rows="3"></textarea></div>
+        <div class="s-field field-full">
+          <label>封面图</label>
+          <div class="cover-upload-row">
+            <input id="columnCoverUrl" class="s-input" placeholder="https://..." oninput="updateColumnCoverPreview()">
+            <button class="tb-btn" onclick="triggerColumnCoverUpload()">上传封面</button>
+          </div>
+          <input id="columnCoverFile" type="file" accept="image/*" style="display:none" onchange="uploadColumnCoverFile(this)">
+          <div id="columnCoverPreview" class="cover-preview">暂无封面</div>
+        </div>
+      </div>
+      <label class="inline-check"><input id="columnPublished" type="checkbox"> 发布到前台</label>
+      <div id="columnModalStatus" class="status-line"></div>
+      <div class="hint">不上传封面时，前台会自动使用专栏默认封面。</div>
+    </div>
+    <div class="modal-foot">
+      <button class="tb-btn" onclick="closeColumnModal()">取消</button>
+      <button class="tb-btn primary" id="saveColumnBtn" onclick="saveColumn()">保存专栏</button>
+    </div>
+  </div>
+</div>
+
+<div id="columnFeishuModal" class="modal-mask" onclick="if(event.target===this)closeColumnFeishuModal()">
+  <div class="modal-box">
+    <div class="modal-head">
+      <div class="modal-title">添加飞书图文章节</div>
+      <button class="modal-close" onclick="closeColumnFeishuModal()">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="s-field"><label>飞书 docx 文档链接</label><input id="columnFeishuUrl" class="s-input" placeholder="https://xxx.feishu.cn/docx/xxxx"></div>
+      <div class="s-field"><label>排序（可选）</label><input id="columnFeishuSort" class="s-input" type="number" placeholder="留空自动排到最后"></div>
+      <label class="inline-check"><input id="columnFeishuFree" type="checkbox"> 免费试看</label>
+      <label class="inline-check" style="margin-top:8px"><input id="columnFeishuPublished" type="checkbox" checked> 导入后发布章节</label>
+      <div id="columnFeishuStatus" class="status-line"></div>
+      <div class="hint">一篇飞书文档会导入为一个专栏章节，图片会自动转存到 COS。</div>
+    </div>
+    <div class="modal-foot">
+      <button class="tb-btn" onclick="closeColumnFeishuModal()">取消</button>
+      <button class="tb-btn primary" id="columnFeishuBtn" onclick="runColumnFeishuImport()">开始导入</button>
+    </div>
+  </div>
+</div>
+
+<div id="columnLessonModal" class="modal-mask" onclick="if(event.target===this)closeColumnLessonModal()">
+  <div class="modal-box wide">
+    <div class="modal-head">
+      <div class="modal-title" id="columnLessonModalTitle">添加视频章节</div>
+      <button class="modal-close" onclick="closeColumnLessonModal()">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-grid">
+        <div class="s-field"><label>章节标题 *</label><input id="columnLessonTitle" class="s-input"></div>
+        <div class="s-field"><label>类型</label><select id="columnLessonType" class="s-input" onchange="updateColumnLessonTypeUI()"><option value="video">视频章节</option><option value="article">图文章节</option></select></div>
+        <div class="s-field field-full"><label>简介</label><textarea id="columnLessonDesc" class="s-textarea" rows="3"></textarea></div>
+        <div class="s-field"><label>时长（秒）</label><input id="columnLessonDuration" class="s-input" type="number" value="0"></div>
+        <div class="s-field"><label>排序（小在前）</label><input id="columnLessonSort" class="s-input" type="number" value="0"></div>
+        <div class="s-field field-full" id="columnLessonVideoField">
+          <label>视频链接</label>
+          <div class="cover-upload-row">
+            <input id="columnLessonVideoUrl" class="s-input" placeholder="https://...（外链或 COS 链接）">
+            <button class="tb-btn" onclick="triggerColumnLessonVideoUpload()">上传视频</button>
+          </div>
+          <input id="columnLessonVideoFile" type="file" accept="video/mp4,video/webm,video/*" style="display:none" onchange="uploadColumnLessonVideoFile(this)">
+          <div id="columnLessonVideoStatus" class="media-status"></div>
+        </div>
+        <div class="s-field field-full" id="columnLessonArticleField" style="display:none">
+          <label>图文内容（Markdown，可选）</label>
+          <textarea id="columnLessonArticle" class="s-textarea" rows="8" placeholder="飞书章节建议使用“添加飞书章节”导入；这里可补充手写 Markdown。"></textarea>
+        </div>
+      </div>
+      <label class="inline-check"><input id="columnLessonFree" type="checkbox"> 免费试看</label>
+      <label class="inline-check" style="margin-top:8px"><input id="columnLessonPublished" type="checkbox" checked> 发布章节</label>
+      <div id="columnLessonStatus" class="status-line"></div>
+    </div>
+    <div class="modal-foot">
+      <button class="tb-btn" onclick="closeColumnLessonModal()">取消</button>
+      <button class="tb-btn primary" id="saveColumnLessonBtn" onclick="saveColumnLesson()">保存章节</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast" class="toast"></div>
+
+<script>
+const ROOT_API='http://localhost:8000',API=ROOT_API+'/practice',TOKEN=localStorage.getItem('admin_token')||'';
+const DEFAULT_EXPERIENCE_COVER_URL=ROOT_API+'/static/assets/default-experience-cover.jpg';
+const DEFAULT_COLUMN_COVER_URL=ROOT_API+'/static/assets/default-column-cover.jpg';
+let userId=parseInt(localStorage.getItem('admin_user_id'))||0,pjPage=1,_t,FEISHU_ITEMS_BY_KEY={},PJ_ITEMS_BY_SLUG={},CURRENT_COVER_SLUG='';
+let COLUMN_ITEMS=[],COLUMN_BY_ID={},CURRENT_COLUMN_ID=0,CURRENT_COLUMN_MODAL_ID=0,CURRENT_COLUMN_LESSON_ID=0,CURRENT_COLUMN_LESSONS=[];
+function authHeaders(extra={}){return {'Authorization':'Bearer '+TOKEN,...extra}}
+async function adminJson(url,options={}){
+  const r=await fetch(url,{...options,headers:authHeaders(options.headers||{})});
+  const text=await r.text();
+  let data={};
+  try{data=text?JSON.parse(text):{}}catch(e){data={detail:text}}
+  if(!r.ok)throw new Error(data.detail||data.message||text||'请求失败');
+  return data;
+}
+
+async function loadFeishuConfig(){
+  try{
+    const data=await adminJson(`${ROOT_API}/admin/api-config`);
+    FEISHU_ITEMS_BY_KEY={};
+    (data.items||[]).forEach(item=>{FEISHU_ITEMS_BY_KEY[item.key]=item});
+    const appId=FEISHU_ITEMS_BY_KEY.FEISHU_APP_ID;
+    const secret=FEISHU_ITEMS_BY_KEY.FEISHU_APP_SECRET;
+    const appInput=document.getElementById('feishu_app_id');
+    const secretInput=document.getElementById('feishu_app_secret');
+    const hint=document.getElementById('feishu_secret_hint');
+    if(appInput)appInput.value=appId?.value||'';
+    if(secretInput){
+      secretInput.value='';
+      secretInput.placeholder=secret?.has_value?`已配置：${secret.masked_value||'******'}（留空不修改）`:'请输入 App Secret';
+    }
+    if(hint)hint.textContent=secret?.has_value?`当前来源：${secret.source==='database'?'后台配置':secret.source}`:'尚未配置';
+  }catch(e){
+    FEISHU_ITEMS_BY_KEY={};
+  }
+}
+
+async function saveFeishuConfig(){
+  const btn=document.getElementById('saveFeishuConfigBtn');
+  const appId=document.getElementById('feishu_app_id')?.value.trim()||'';
+  const secret=document.getElementById('feishu_app_secret')?.value.trim()||'';
+  if(!appId){toast('请填写 Feishu App ID');return}
+  if(!secret&&!FEISHU_ITEMS_BY_KEY.FEISHU_APP_SECRET?.has_value){toast('请填写 Feishu App Secret');return}
+  const settings={FEISHU_APP_ID:appId};
+  if(secret)settings.FEISHU_APP_SECRET=secret;
+  btn.disabled=true;btn.textContent='保存中...';
+  try{
+    await adminJson(`${ROOT_API}/admin/api-config`,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({settings,clear_keys:[]})});
+    toast('飞书配置已保存');
+    loadFeishuConfig();
+  }catch(e){toast(e.message||'保存飞书配置失败')}
+  btn.disabled=false;btn.textContent='保存飞书配置';
+}
+
+async function init(){
+  // 未登录 → 跳管理员登录页
+  if(!TOKEN){location.href='admin-login.html';return}
+  // 验证 token
+  try{
+    const r=await fetch('http://localhost:8000/auth/me',{headers:{'Authorization':'Bearer '+TOKEN}});
+    if(r.ok){const d=await r.json();userId=d.id||0}else{location.href='admin-login.html';return}
+  }catch(e){location.href='admin-login.html';return}
+  if(!userId){location.href='admin-login.html';return}
+  loadDashboard();
+}
+
+function showPage(id,el){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+  document.getElementById('pg-'+id).classList.add('active');
+  if(el)el.classList.add('active');
+  ({dashboard:loadDashboard,projects:loadProjects,camps:loadCamps,courses:loadCourses,tags:loadTags,comments:loadAllComments,subscribes:loadSubscribes,users:loadUsers,settings:loadSettings})[id]?.();
+}
+
+async function loadDashboard(){
+  try{const d=await adminJson(`${API}/admin/stats?user_id=${userId}`);
+    document.getElementById('d-content').textContent=d.published+' / '+d.projects;
+    document.getElementById('d-views').textContent=fmtN(d.total_views);
+    document.getElementById('d-likes').textContent=fmtN(d.total_likes);
+    document.getElementById('d-comments').textContent=fmtN(d.total_comments);
+    document.getElementById('d-subs').textContent=fmtN(d.total_subscribes);
+    document.getElementById('extraStats').innerHTML=`
+      <li class="recent-item"><span class="recent-avatar">📚</span><span class="recent-text">专栏: ${d.columns||0} 个</span></li>
+      <li class="recent-item"><span class="recent-avatar">🎬</span><span class="recent-text">视频课程: ${d.courses} 个</span></li>
+      <li class="recent-item"><span class="recent-avatar">📚</span><span class="recent-text">课时: ${d.lessons} 节</span></li>
+      <li class="recent-item"><span class="recent-avatar">⭐</span><span class="recent-text">推荐内容: ${d.featured} 篇</span></li>`;
+  }catch(e){}
+  try{const d=await adminJson(`${API}/admin/projects?user_id=${userId}&page=1&page_size=8`);
+    document.getElementById('recentContent').innerHTML=(d.items||[]).map(p=>`<li class="recent-item"><div class="recent-avatar">${(p.author_name||'阿').charAt(0)}</div><span class="recent-text">${esc(p.title)}</span><span class="recent-time">${(p.created_at||'').substring(5,10)}</span></li>`).join('')||'<li class="empty">暂无</li>';
+  }catch(e){}
+}
+
+async function loadProjects(){
+  const pub=document.getElementById('pj-pub').value,kw=document.getElementById('pj-search').value.trim();
+  let url=`${API}/admin/projects?user_id=${userId}&project_type=experience&page=${pjPage}&page_size=20`;
+  if(pub)url+=`&is_published=${pub}`;if(kw)url+=`&keyword=${encodeURIComponent(kw)}`;
+  document.getElementById('pj-table').innerHTML='<div class="loading">加载中...</div>';
+  try{const d=await adminJson(url);renderPJ(d.items||[],d.total||0)}catch(e){document.getElementById('pj-table').innerHTML='<div class="empty">加载失败</div>'}
+}
+function renderPJ(items,total){
+  if(!items.length){document.getElementById('pj-table').innerHTML='<div class="empty">暂无数据</div>';document.getElementById('pj-pager').innerHTML='';return}
+  PJ_ITEMS_BY_SLUG={};
+  let h='<table><thead><tr><th><input type="checkbox" onchange="toggleAllPj(this)"></th><th>标题</th><th>作者</th><th>浏览</th><th>赞</th><th>评论</th><th>状态</th><th>推荐</th><th>操作</th></tr></thead><tbody>';
+  items.forEach(p=>{
+    PJ_ITEMS_BY_SLUG[p.slug]=p;
+    h+=`<tr><td><input type="checkbox" class="pj-chk" value="${p.slug}"></td><td><div class="t-title" onclick="window.open('article.html?slug=${p.slug}')">${esc(p.title)}</div><div class="t-sub">${(p.created_at||'').substring(0,10)} · ${esc(p.category||'')}</div></td>
+    <td>${esc(p.author_name||'阿川')}</td><td>${p.view_count||0}</td><td>${p.like_count||0}</td><td>${p.comment_count||0}</td>
+    <td>${p.is_published?'<span class="badge b-green">发布</span>':'<span class="badge b-red">下架</span>'}</td>
+    <td>${p.is_featured?'<span class="badge b-gold">推荐</span>':'<span class="badge b-gray">普通</span>'}</td>
+    <td style="white-space:nowrap"><button class="act" onclick="openProjectCover('${p.slug}')">封面</button><button class="act blue" onclick="doSyncFeishu('${p.slug}')">${p.can_sync_feishu?'同步':'绑定'}</button><button class="act gold" onclick="doFeat('${p.slug}',${!p.is_featured})">${p.is_featured?'取消':'推荐'}</button><button class="act green" onclick="doPub('${p.slug}',${!p.is_published})">${p.is_published?'下架':'上架'}</button><button class="act red" onclick="doDel('${p.slug}')">删除</button></td></tr>`;
+  });
+  h+='</tbody></table>';document.getElementById('pj-table').innerHTML=h;
+  const tp=Math.ceil(total/20);
+  document.getElementById('pj-pager').innerHTML=`<button ${pjPage<=1?'disabled':''} onclick="pjPage--;loadProjects()">‹</button><button class="active" disabled>${pjPage}/${tp} · ${total}条</button><button ${pjPage>=tp?'disabled':''} onclick="pjPage++;loadProjects()">›</button>`;
+}
+
+function openProjectCover(slug){
+  const item=PJ_ITEMS_BY_SLUG[slug];
+  if(!item)return;
+  CURRENT_COVER_SLUG=slug;
+  document.getElementById('coverProjectTitle').value=item.title||'';
+  document.getElementById('coverImageUrl').value=item.cover_color==='admin-cover'?(item.cover_image||''):'';
+  setProjectCoverStatus('');
+  updateProjectCoverPreview();
+  document.getElementById('projectCoverModal').classList.add('show');
+}
+function closeProjectCover(){
+  document.getElementById('projectCoverModal').classList.remove('show');
+  CURRENT_COVER_SLUG='';
+}
+function setProjectCoverStatus(msg,type=''){
+  const el=document.getElementById('projectCoverStatus');
+  el.textContent=msg||'';
+  el.className='status-line '+type;
+}
+function updateProjectCoverPreview(){
+  const url=document.getElementById('coverImageUrl').value.trim();
+  const preview=document.getElementById('projectCoverPreview');
+  preview.classList.toggle('is-default',!url);
+  preview.innerHTML=url
+    ? `<img src="${esc(url)}" alt="" onerror="this.parentNode.textContent='封面预览失败'">`
+    : `<img src="${DEFAULT_EXPERIENCE_COVER_URL}" alt="默认实战经验封面"><div class="cover-preview-note">未上传封面时，前台会使用这张实战经验默认图</div>`;
+}
+function triggerProjectCoverUpload(){
+  document.getElementById('projectCoverFile').click();
+}
+async function uploadProjectCoverFile(input){
+  if(!input.files||!input.files[0])return;
+  const formData=new FormData();
+  formData.append('file',input.files[0]);
+  formData.append('kind','image');
+  setProjectCoverStatus('正在上传封面...');
+  try{
+    const r=await fetch(`${API}/upload-media`,{method:'POST',headers:authHeaders(),body:formData});
+    const data=await r.json().catch(()=>({}));
+    if(!r.ok)throw new Error(data.detail||'上传失败');
+    document.getElementById('coverImageUrl').value=data.url||'';
+    updateProjectCoverPreview();
+    setProjectCoverStatus('封面已上传，请保存','success');
+  }catch(e){
+    setProjectCoverStatus(e.message||'上传失败','error');
+  }
+  input.value='';
+}
+async function saveProjectCover(){
+  if(!CURRENT_COVER_SLUG)return;
+  const btn=document.getElementById('saveProjectCoverBtn');
+  const cover_image=document.getElementById('coverImageUrl').value.trim();
+  btn.disabled=true;btn.textContent='保存中...';
+  try{
+    await adminJson(`${API}/admin/projects/${CURRENT_COVER_SLUG}/cover`,{
+      method:'PUT',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({cover_image})
+    });
+    toast('封面已保存');
+    closeProjectCover();
+    loadProjects();
+  }catch(e){
+    setProjectCoverStatus(e.message||'保存失败','error');
+  }
+  btn.disabled=false;btn.textContent='保存封面';
+}
+async function clearProjectCover(){
+  document.getElementById('coverImageUrl').value='';
+  updateProjectCoverPreview();
+  await saveProjectCover();
+}
+
+function openFeishuImport(){
+  document.getElementById('feishuImportModal').classList.add('show');
+  document.getElementById('feishuImportStatus').textContent='';
+  document.getElementById('feishuImportStatus').className='status-line';
+  document.getElementById('feishuImportPublished').checked=false;
+  setTimeout(()=>document.getElementById('feishuImportUrl').focus(),0);
+}
+function closeFeishuImport(){
+  document.getElementById('feishuImportModal').classList.remove('show');
+}
+function setFeishuImportStatus(msg,type=''){
+  const el=document.getElementById('feishuImportStatus');
+  el.textContent=msg||'';
+  el.className='status-line '+type;
+}
+async function runFeishuImport(){
+  const url=document.getElementById('feishuImportUrl').value.trim();
+  const category=document.getElementById('feishuImportCategory').value.trim();
+  const is_published=document.getElementById('feishuImportPublished').checked;
+  const btn=document.getElementById('feishuImportBtn');
+  if(!url){setFeishuImportStatus('请粘贴飞书文档链接','error');return}
+  btn.disabled=true;btn.textContent='导入中...';
+  setFeishuImportStatus('正在读取飞书文档并转存图片，请稍等...');
+  try{
+    const data=await adminJson(`${API}/admin/import-feishu`,{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({url,category,is_published})
+    });
+    const warn=data.warning_count?`，${data.warning_count} 个提示`:'';
+    const rich=`样式 ${data.style_count||0} 处，高亮块 ${data.callout_count||0} 个`;
+    setFeishuImportStatus(`导入成功：${data.title}（图片 ${data.image_count||0} 张，${rich}${warn}）`,'success');
+    toast(is_published?'已导入并发布':'已导入为草稿');
+    document.getElementById('feishuImportUrl').value='';
+    if(data.warnings?.length)console.warn('[Feishu import warnings]',data.warnings);
+    pjPage=1;loadProjects();
+  }catch(e){
+    setFeishuImportStatus(e.message||'导入失败','error');
+    toast('导入失败');
+  }
+  btn.disabled=false;btn.textContent='开始导入';
+}
+
+async function loadCamps(){
+  const kw=document.getElementById('camp-search')?.value.trim()||'';
+  const pub=document.getElementById('camp-pub')?.value||'';
+  let url=`${API}/admin/columns?page=1&page_size=80`;
+  if(kw)url+=`&keyword=${encodeURIComponent(kw)}`;
+  if(pub)url+=`&is_published=${pub}`;
+  document.getElementById('camp-table').innerHTML='<div class="loading">加载中...</div>';
+  try{
+    const d=await adminJson(url);
+    COLUMN_ITEMS=d.items||[];
+    COLUMN_BY_ID={};
+    COLUMN_ITEMS.forEach(c=>COLUMN_BY_ID[c.id]=c);
+    if(!COLUMN_ITEMS.length){
+      document.getElementById('camp-table').innerHTML='<div class="empty">暂无专栏，点击右上角创建</div>';
+      document.getElementById('columnLessonsPanel').style.display='none';
+      return;
+    }
+    let h='<table><thead><tr><th>专栏</th><th>分类</th><th>章节</th><th>状态</th><th>排序</th><th>更新</th><th>操作</th></tr></thead><tbody>';
+    COLUMN_ITEMS.forEach(c=>{
+      h+=`<tr>
+        <td><div class="t-title" onclick="openColumnLessons(${c.id})">${esc(c.title)}</div><div class="t-sub">${esc(c.slug||'')}</div></td>
+        <td>${esc(c.category||'-')}</td>
+        <td>${c.lesson_count||0}</td>
+        <td>${c.is_published?'<span class="badge b-green">发布</span>':'<span class="badge b-red">下架</span>'}</td>
+        <td>${c.sort_order||0}</td>
+        <td style="font-size:11px;color:var(--ink-mute)">${(c.updated_at||c.created_at||'').substring(0,16)}</td>
+        <td style="white-space:nowrap">
+          <button class="act blue" onclick="openColumnLessons(${c.id})">章节</button>
+          <button class="act" onclick="openColumnModal(${c.id})">编辑</button>
+          <button class="act green" onclick="toggleColumnPublish(${c.id},${!c.is_published})">${c.is_published?'下架':'上架'}</button>
+          <button class="act red" onclick="deleteColumn(${c.id})">删除</button>
+        </td>
+      </tr>`;
+    });
+    h+='</tbody></table>';
+    document.getElementById('camp-table').innerHTML=h;
+  }catch(e){
+    document.getElementById('camp-table').innerHTML=`<div class="empty">${esc(e.message||'加载失败')}</div>`;
+  }
+}
+
+function setColumnModalStatus(msg,type=''){
+  const el=document.getElementById('columnModalStatus');
+  el.textContent=msg||'';
+  el.className='status-line '+type;
+}
+function openColumnModal(id=0){
+  CURRENT_COLUMN_MODAL_ID=id||0;
+  const item=id?COLUMN_BY_ID[id]:null;
+  document.getElementById('columnModalTitle').textContent=item?'编辑专栏':'新建专栏';
+  document.getElementById('columnTitle').value=item?.title||'';
+  document.getElementById('columnSlug').value=item?.slug||'';
+  document.getElementById('columnCategory').value=item?.category||'';
+  document.getElementById('columnSort').value=item?.sort_order||0;
+  document.getElementById('columnDesc').value=item?.description||'';
+  document.getElementById('columnCoverUrl').value=item?.cover_url||'';
+  document.getElementById('columnPublished').checked=!!item?.is_published;
+  setColumnModalStatus('');
+  updateColumnCoverPreview();
+  document.getElementById('columnModal').classList.add('show');
+}
+function closeColumnModal(){document.getElementById('columnModal').classList.remove('show')}
+function updateColumnCoverPreview(){
+  const url=document.getElementById('columnCoverUrl').value.trim();
+  const preview=document.getElementById('columnCoverPreview');
+  preview.classList.toggle('is-default',!url);
+  preview.innerHTML=url
+    ? `<img src="${esc(url)}" alt="" onerror="this.parentNode.textContent='封面预览失败'">`
+    : `<img src="${DEFAULT_COLUMN_COVER_URL}" alt="默认专栏封面"><div class="cover-preview-note">未上传封面时，前台会使用这张专栏默认图</div>`;
+}
+function triggerColumnCoverUpload(){document.getElementById('columnCoverFile').click()}
+async function uploadColumnCoverFile(input){
+  if(!input.files||!input.files[0])return;
+  const formData=new FormData();
+  formData.append('file',input.files[0]);
+  formData.append('kind','image');
+  setColumnModalStatus('正在上传封面...');
+  try{
+    const r=await fetch(`${API}/upload-media`,{method:'POST',headers:authHeaders(),body:formData});
+    const data=await r.json().catch(()=>({}));
+    if(!r.ok)throw new Error(data.detail||'上传失败');
+    document.getElementById('columnCoverUrl').value=data.url||'';
+    updateColumnCoverPreview();
+    setColumnModalStatus('封面已上传，请保存','success');
+  }catch(e){setColumnModalStatus(e.message||'上传失败','error')}
+  input.value='';
+}
+async function saveColumn(){
+  const title=document.getElementById('columnTitle').value.trim();
+  if(!title){setColumnModalStatus('请填写专栏标题','error');return}
+  const body={
+    title,
+    slug:document.getElementById('columnSlug').value.trim()||undefined,
+    category:document.getElementById('columnCategory').value.trim()||null,
+    sort_order:parseInt(document.getElementById('columnSort').value)||0,
+    description:document.getElementById('columnDesc').value.trim()||null,
+    cover_url:document.getElementById('columnCoverUrl').value.trim()||null,
+    is_published:document.getElementById('columnPublished').checked
+  };
+  const btn=document.getElementById('saveColumnBtn');
+  btn.disabled=true;btn.textContent='保存中...';
+  try{
+    const url=CURRENT_COLUMN_MODAL_ID?`${API}/admin/columns/${CURRENT_COLUMN_MODAL_ID}`:`${API}/admin/columns`;
+    const method=CURRENT_COLUMN_MODAL_ID?'PUT':'POST';
+    const data=await adminJson(url,{method,headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+    toast('专栏已保存');
+    closeColumnModal();
+    await loadCamps();
+    if(data.item?.id)openColumnLessons(data.item.id);
+  }catch(e){setColumnModalStatus(e.message||'保存失败','error')}
+  btn.disabled=false;btn.textContent='保存专栏';
+}
+async function toggleColumnPublish(id,val){
+  try{
+    await adminJson(`${API}/admin/columns/${id}`,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({is_published:val})});
+    toast(val?'已上架':'已下架');
+    loadCamps();
+  }catch(e){toast(e.message||'操作失败')}
+}
+async function deleteColumn(id){
+  const item=COLUMN_BY_ID[id];
+  if(!confirm(`确定删除专栏「${item?.title||id}」？关联章节会一起删除。`))return;
+  try{
+    await adminJson(`${API}/admin/columns/${id}`,{method:'DELETE'});
+    toast('专栏已删除');
+    if(CURRENT_COLUMN_ID===id){CURRENT_COLUMN_ID=0;document.getElementById('columnLessonsPanel').style.display='none'}
+    loadCamps();
+  }catch(e){toast(e.message||'删除失败')}
+}
+async function openColumnLessons(id){
+  CURRENT_COLUMN_ID=id;
+  const panel=document.getElementById('columnLessonsPanel');
+  panel.style.display='block';
+  document.getElementById('columnLessonsTable').innerHTML='<div class="loading">加载中...</div>';
+  try{
+    const d=await adminJson(`${API}/admin/columns/${id}/lessons`);
+    const column=d.column||COLUMN_BY_ID[id]||{};
+    COLUMN_BY_ID[id]=column;
+    CURRENT_COLUMN_LESSONS=d.items||[];
+    document.getElementById('columnLessonsTitle').textContent=`${column.title||'专栏'} · 章节管理`;
+    document.getElementById('columnLessonsMeta').textContent=`${CURRENT_COLUMN_LESSONS.length} 节 · ${column.is_published?'已发布':'未发布'}`;
+    renderColumnLessons();
+  }catch(e){document.getElementById('columnLessonsTable').innerHTML=`<div class="empty">${esc(e.message||'加载失败')}</div>`}
+}
+function renderColumnLessons(){
+  const box=document.getElementById('columnLessonsTable');
+  if(!CURRENT_COLUMN_LESSONS.length){box.innerHTML='<div class="lesson-empty">暂无章节，可以从飞书导入图文，或添加视频章节。</div>';return}
+  box.innerHTML=`<div class="lesson-list">${CURRENT_COLUMN_LESSONS.map((l,i)=>{
+    const isVideo=l.lesson_type==='video';
+    return `<div class="lesson-admin-row">
+      <input class="lesson-sort" type="number" value="${l.sort_order||0}" onchange="saveColumnLessonSort(${l.id},this.value)">
+      <div>
+        <div class="lesson-name-main">${i+1}. ${esc(l.title)}</div>
+        <div class="lesson-name-sub">${esc(l.description||'')}${l.source_type==='feishu'?' · 飞书同步章节':''}</div>
+      </div>
+      <div>${isVideo?'<span class="badge b-blue">视频</span>':'<span class="badge b-green">图文</span>'}</div>
+      <div>${l.is_published?'<span class="badge b-green">发布</span>':'<span class="badge b-red">下架</span>'} ${l.is_free?'<span class="badge b-gold">试看</span>':''}</div>
+      <div style="white-space:nowrap">
+        <button class="act" onclick="openColumnLessonModal(${l.id})">编辑</button>
+        ${l.source_type==='feishu'?`<button class="act blue" onclick="syncColumnLesson(${l.id})">同步</button>`:''}
+        <button class="act red" onclick="deleteColumnLesson(${l.id})">删除</button>
+      </div>
+    </div>`;
+  }).join('')}</div>`;
+}
+async function saveColumnLessonSort(id,value){
+  try{
+    await adminJson(`${API}/admin/columns/lessons/reorder`,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({items:[{id,sort_order:parseInt(value)||0}]})});
+    toast('排序已保存');
+  }catch(e){toast(e.message||'排序失败')}
+}
+function openColumnFeishuModal(){
+  if(!CURRENT_COLUMN_ID){toast('请先选择一个专栏');return}
+  document.getElementById('columnFeishuUrl').value='';
+  document.getElementById('columnFeishuSort').value='';
+  document.getElementById('columnFeishuFree').checked=false;
+  document.getElementById('columnFeishuPublished').checked=true;
+  setColumnFeishuStatus('');
+  document.getElementById('columnFeishuModal').classList.add('show');
+}
+function closeColumnFeishuModal(){document.getElementById('columnFeishuModal').classList.remove('show')}
+function setColumnFeishuStatus(msg,type=''){const el=document.getElementById('columnFeishuStatus');el.textContent=msg||'';el.className='status-line '+type}
+async function runColumnFeishuImport(){
+  const url=document.getElementById('columnFeishuUrl').value.trim();
+  if(!url){setColumnFeishuStatus('请粘贴飞书文档链接','error');return}
+  const body={
+    url,
+    sort_order:document.getElementById('columnFeishuSort').value===''?null:parseInt(document.getElementById('columnFeishuSort').value)||0,
+    is_free:document.getElementById('columnFeishuFree').checked,
+    is_published:document.getElementById('columnFeishuPublished').checked
+  };
+  const btn=document.getElementById('columnFeishuBtn');
+  btn.disabled=true;btn.textContent='导入中...';
+  setColumnFeishuStatus('正在读取飞书文档、转存图片和保留样式...');
+  try{
+    const data=await adminJson(`${API}/admin/columns/${CURRENT_COLUMN_ID}/import-feishu`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+    setColumnFeishuStatus(`导入成功：图片 ${data.image_count||0} 张，样式 ${data.style_count||0} 处，高亮块 ${data.callout_count||0} 个`,'success');
+    toast('飞书章节已导入');
+    if(data.warnings?.length)console.warn('[Column Feishu warnings]',data.warnings);
+    closeColumnFeishuModal();
+    openColumnLessons(CURRENT_COLUMN_ID);
+    loadCamps();
+  }catch(e){setColumnFeishuStatus(e.message||'导入失败','error')}
+  btn.disabled=false;btn.textContent='开始导入';
+}
+function openColumnLessonModal(lessonId=0){
+  if(!CURRENT_COLUMN_ID){toast('请先选择一个专栏');return}
+  CURRENT_COLUMN_LESSON_ID=lessonId||0;
+  const item=lessonId?CURRENT_COLUMN_LESSONS.find(l=>l.id===lessonId):null;
+  document.getElementById('columnLessonModalTitle').textContent=item?'编辑章节':'添加视频章节';
+  document.getElementById('columnLessonTitle').value=item?.title||'';
+  document.getElementById('columnLessonDesc').value=item?.description||'';
+  document.getElementById('columnLessonType').value=item?.lesson_type||'video';
+  document.getElementById('columnLessonDuration').value=item?.video_duration||0;
+  document.getElementById('columnLessonSort').value=item?.sort_order??0;
+  document.getElementById('columnLessonVideoUrl').value=item?.video_url||'';
+  document.getElementById('columnLessonArticle').value=item?.article_content||'';
+  document.getElementById('columnLessonFree').checked=!!item?.is_free;
+  document.getElementById('columnLessonPublished').checked=item?!!item.is_published:true;
+  setColumnLessonStatus('');
+  setColumnLessonVideoStatus('');
+  updateColumnLessonTypeUI();
+  document.getElementById('columnLessonModal').classList.add('show');
+}
+function closeColumnLessonModal(){document.getElementById('columnLessonModal').classList.remove('show')}
+function updateColumnLessonTypeUI(){
+  const isVideo=document.getElementById('columnLessonType').value==='video';
+  document.getElementById('columnLessonVideoField').style.display=isVideo?'block':'none';
+  document.getElementById('columnLessonArticleField').style.display=isVideo?'none':'block';
+}
+function setColumnLessonStatus(msg,type=''){const el=document.getElementById('columnLessonStatus');el.textContent=msg||'';el.className='status-line '+type}
+function setColumnLessonVideoStatus(msg,type=''){const el=document.getElementById('columnLessonVideoStatus');el.textContent=msg||'';el.className='media-status '+type}
+function triggerColumnLessonVideoUpload(){document.getElementById('columnLessonVideoFile').click()}
+async function uploadColumnLessonVideoFile(input){
+  if(!input.files||!input.files[0])return;
+  const formData=new FormData();
+  formData.append('file',input.files[0]);
+  formData.append('kind','video');
+  setColumnLessonVideoStatus('正在上传视频...');
+  try{
+    const r=await fetch(`${API}/upload-media`,{method:'POST',headers:authHeaders(),body:formData});
+    const data=await r.json().catch(()=>({}));
+    if(!r.ok)throw new Error(data.detail||'上传失败');
+    document.getElementById('columnLessonVideoUrl').value=data.url||'';
+    setColumnLessonVideoStatus('视频已上传，请保存章节','success');
+  }catch(e){setColumnLessonVideoStatus(e.message||'上传失败','error')}
+  input.value='';
+}
+async function saveColumnLesson(){
+  const title=document.getElementById('columnLessonTitle').value.trim();
+  const lesson_type=document.getElementById('columnLessonType').value;
+  if(!title){setColumnLessonStatus('请填写章节标题','error');return}
+  const body={
+    title,
+    description:document.getElementById('columnLessonDesc').value.trim()||null,
+    lesson_type,
+    video_duration:parseInt(document.getElementById('columnLessonDuration').value)||0,
+    sort_order:parseInt(document.getElementById('columnLessonSort').value)||0,
+    is_free:document.getElementById('columnLessonFree').checked,
+    is_published:document.getElementById('columnLessonPublished').checked
+  };
+  if(lesson_type==='video'){
+    body.video_url=document.getElementById('columnLessonVideoUrl').value.trim();
+  }else{
+    body.article_content=document.getElementById('columnLessonArticle').value;
+  }
+  const btn=document.getElementById('saveColumnLessonBtn');
+  btn.disabled=true;btn.textContent='保存中...';
+  try{
+    const url=CURRENT_COLUMN_LESSON_ID?`${API}/admin/columns/lessons/${CURRENT_COLUMN_LESSON_ID}`:`${API}/admin/columns/${CURRENT_COLUMN_ID}/lessons`;
+    const method=CURRENT_COLUMN_LESSON_ID?'PUT':'POST';
+    await adminJson(url,{method,headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+    toast('章节已保存');
+    closeColumnLessonModal();
+    openColumnLessons(CURRENT_COLUMN_ID);
+    loadCamps();
+  }catch(e){setColumnLessonStatus(e.message||'保存失败','error')}
+  btn.disabled=false;btn.textContent='保存章节';
+}
+async function syncColumnLesson(id){
+  if(!confirm('确定同步飞书文档最新内容？当前章节正文会被覆盖。'))return;
+  try{
+    toast('正在同步飞书章节...');
+    const data=await adminJson(`${API}/admin/columns/lessons/${id}/sync-feishu`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({})});
+    toast(`同步完成：样式 ${data.style_count||0} 处，高亮块 ${data.callout_count||0} 个`);
+    openColumnLessons(CURRENT_COLUMN_ID);
+  }catch(e){toast(e.message||'同步失败')}
+}
+async function deleteColumnLesson(id){
+  if(!confirm('确定删除这个章节？'))return;
+  try{
+    await adminJson(`${API}/admin/columns/lessons/${id}`,{method:'DELETE'});
+    toast('章节已删除');
+    openColumnLessons(CURRENT_COLUMN_ID);
+    loadCamps();
+  }catch(e){toast(e.message||'删除失败')}
+}
+
+async function loadCourses(){
+  const frame=document.getElementById('courseAdminFrame');
+  if(!frame)return;
+  if(!frame.src)frame.src=`${ROOT_API}/admin-courses.html?embed=1&v=unified-admin-20260509`;
+}
+
+async function loadTags(){
+  document.getElementById('tag-table').innerHTML='<div class="loading">加载中...</div>';
+  try{const tags=await(await fetch(`${API}/tags`)).json();
+    if(!tags.length){document.getElementById('tag-table').innerHTML='<div class="empty">暂无</div>';return}
+    let h='<table><thead><tr><th>ID</th><th>名称</th><th>类型</th><th>排序</th></tr></thead><tbody>';
+    tags.forEach(t=>{h+=`<tr><td>${t.id}</td><td>${esc(t.name)}</td><td>${esc(t.tag_type||'-')}</td><td>${t.sort_order||0}</td></tr>`});
+    h+='</tbody></table>';document.getElementById('tag-table').innerHTML=h;
+  }catch(e){document.getElementById('tag-table').innerHTML='<div class="empty">失败</div>'}
+}
+
+async function loadAllComments(){
+  document.getElementById('cm-table').innerHTML='<div class="loading">加载中...</div>';
+  try{const pj=await adminJson(`${API}/admin/projects?user_id=${userId}&page=1&page_size=50`);
+    let all=[];for(const p of(pj.items||[]).slice(0,30)){try{const cm=await(await fetch(`${API}/comments?project_slug=${p.slug}&page=1&page_size=5`)).json();if(cm.items)all=all.concat(cm.items.map(c=>({...c,_title:p.title})))}catch(e){}}
+    all.sort((a,b)=>new Date(b.created_at)-new Date(a.created_at));
+    if(!all.length){document.getElementById('cm-table').innerHTML='<div class="empty">暂无评论</div>';return}
+    let h='<table><thead><tr><th>用户</th><th>评论</th><th>文章</th><th>时间</th><th>操作</th></tr></thead><tbody>';
+    all.slice(0,50).forEach(c=>{h+=`<tr><td>${esc(c.username||'用户')}</td><td style="max-width:280px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(c.content)}</td><td style="font-size:11px;color:var(--ink-mute);max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(c._title)}</td><td style="font-size:11px;color:var(--ink-mute);white-space:nowrap">${(c.created_at||'').substring(0,16)}</td><td><button class="act red" onclick="delComment(${c.id})">删除</button></td></tr>`});
+    h+='</tbody></table>';document.getElementById('cm-table').innerHTML=h;
+  }catch(e){document.getElementById('cm-table').innerHTML='<div class="empty">失败</div>'}
+}
+
+async function doFeat(s,v){await putA(`/admin/projects/${s}/feature`,{user_id:userId,is_featured:v});toast(v?'已推荐':'已取消');reload()}
+async function doPub(s,v){await putA(`/admin/projects/${s}/publish`,{user_id:userId,is_published:v});toast(v?'已上架':'已下架');reload()}
+async function doDel(s){
+  if(!confirm('确定彻底删除？删除后后台列表也会移除。'))return;
+  try{
+    await adminJson(`${API}/admin/projects/${s}`,{method:'DELETE'});
+    toast('已删除');
+    reload();
+  }catch(e){toast(e.message||'删除失败')}
+}
+async function doSyncFeishu(s){
+  const item=PJ_ITEMS_BY_SLUG[s]||{};
+  let url='';
+  if(!item.can_sync_feishu){
+    url=prompt('这篇内容还没有绑定飞书链接，请粘贴原始飞书 docx 链接。后续可直接点“同步”。')||'';
+    url=url.trim();
+    if(!url)return;
+  }
+  if(!confirm(item.can_sync_feishu?'确定同步飞书文档最新内容？':'确定绑定并同步这篇飞书文档？'))return;
+  try{
+    toast('正在同步飞书文档...');
+    const data=await adminJson(`${API}/admin/projects/${s}/sync-feishu`,{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({url})
+    });
+    const rich=`样式 ${data.style_count||0} 处，高亮块 ${data.callout_count||0} 个`;
+    toast(`同步完成：${rich}`);
+    loadProjects();
+  }catch(e){toast(e.message||'同步失败')}
+}
+function chgStatus(s){const v=prompt('输入: open / ongoing / ended');if(!v||!['open','ongoing','ended'].includes(v))return;putA(`/admin/projects/${s}/status`,{user_id:userId,status:v}).then(()=>{toast('已更新');reload()})}
+async function putA(p,b){return adminJson(API+p,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(b)})}
+function reload(){const a=document.querySelector('.page.active');if(!a)return;const id=a.id.replace('pg-','');({dashboard:loadDashboard,projects:loadProjects,camps:loadCamps,courses:loadCourses,tags:loadTags,comments:loadAllComments,subscribes:loadSubscribes,users:loadUsers,settings:loadSettings})[id]?.()}
+
+// ─── 用户管理 ───
+let usrPage=1;
+async function loadUsers(){
+  const kw=document.getElementById('usr-search')?.value.trim()||'';
+  const plan=document.getElementById('usr-plan')?.value||'';
+  let url=`${API}/admin/users?user_id=${userId}&page=${usrPage}&page_size=30`;
+  if(kw)url+=`&keyword=${encodeURIComponent(kw)}`;
+  if(plan)url+=`&plan=${plan}`;
+  document.getElementById('usr-table').innerHTML='<div class="loading">加载中...</div>';
+  try{
+    const d=await adminJson(url);
+    const items=d.items||[];
+    if(!items.length){document.getElementById('usr-table').innerHTML='<div class="empty">暂无用户</div>';document.getElementById('usr-pager').innerHTML='';return}
+    let h='<table><thead><tr><th>ID</th><th>手机号</th><th>昵称</th><th>会员</th><th>到期</th><th>管理员</th><th>注册时间</th><th>操作</th></tr></thead><tbody>';
+    items.forEach(u=>{
+      const planBadge=u.plan_type?`<span class="badge b-gold">${esc(u.plan_type)}</span>`:'<span class="badge b-gray">无</span>';
+      const adminBadge=u.is_admin?'<span class="badge b-blue">管理员</span>':'';
+      const expireStr=u.expire_at?u.expire_at.substring(0,10):'';
+      h+=`<tr>
+        <td>${u.id}</td>
+        <td>${esc(u.phone)}</td>
+        <td>${esc(u.nickname||'-')}</td>
+        <td>${planBadge}</td>
+        <td style="font-size:11px;color:var(--ink-mute)">${expireStr}</td>
+        <td>${adminBadge}</td>
+        <td style="font-size:11px;color:var(--ink-mute)">${(u.created_at||'').substring(0,10)}</td>
+        <td><button class="act ${u.is_admin?'red':'gold'}" onclick="toggleAdm(${u.id},${!u.is_admin})">${u.is_admin?'取消管理员':'设为管理员'}</button></td>
+      </tr>`;
+    });
+    h+='</tbody></table>';document.getElementById('usr-table').innerHTML=h;
+    const tp=Math.ceil((d.total||items.length)/30);
+    document.getElementById('usr-pager').innerHTML=`<button ${usrPage<=1?'disabled':''} onclick="usrPage--;loadUsers()">‹</button><button class="active" disabled>${usrPage}/${tp}</button><button ${usrPage>=tp?'disabled':''} onclick="usrPage++;loadUsers()">›</button>`;
+  }catch(e){document.getElementById('usr-table').innerHTML='<div class="empty">加载失败</div>'}
+}
+
+async function toggleAdm(targetId,val){
+  if(!confirm(val?'确定设为管理员？':'确定取消管理员？'))return;
+  await putA('/admin/users/toggle-admin',{user_id:userId,target_user_id:targetId,is_admin:val});
+  toast(val?'已设为管理员':'已取消管理员');loadUsers();
+}
+
+// ─── 订阅管理 ───
+let subPage=1;
+async function loadSubscribes(){
+  let url=`${API}/admin/subscribes?user_id=${userId}&page=${subPage}&page_size=50`;
+  document.getElementById('sub-table').innerHTML='<div class="loading">加载中...</div>';
+  try{
+    const d=await adminJson(url);
+    const items=d.items||[];
+    if(!items.length){document.getElementById('sub-table').innerHTML='<div class="empty">暂无订阅</div>';return}
+    let h='<table><thead><tr><th>手机号</th><th>订阅项目</th><th>来源</th><th>时间</th></tr></thead><tbody>';
+    items.forEach(s=>{
+      h+=`<tr>
+        <td>${esc(s.phone)}</td>
+        <td>${esc(s.project_title||s.project_slug)}</td>
+        <td>${esc(s.source_page||'-')}</td>
+        <td style="font-size:11px;color:var(--ink-mute)">${(s.created_at||'').substring(0,16)}</td>
+      </tr>`;
+    });
+    h+='</tbody></table>';document.getElementById('sub-table').innerHTML=h;
+    const tp=Math.ceil((d.total||0)/50);
+    document.getElementById('sub-pager').innerHTML=tp>1?`<button ${subPage<=1?'disabled':''} onclick="subPage--;loadSubscribes()">‹</button><button class="active" disabled>${subPage}/${tp}</button><button ${subPage>=tp?'disabled':''} onclick="subPage++;loadSubscribes()">›</button>`:'';
+  }catch(e){document.getElementById('sub-table').innerHTML='<div class="empty">加载失败</div>'}
+}
+
+// ─── 评论删除（增强loadAllComments） ───
+async function delComment(cid){
+  if(!confirm('确定删除此评论？'))return;
+  try{await fetch(`${API}/admin/comments/${cid}`,{method:'DELETE',headers:authHeaders({'Content-Type':'application/json'}),body:JSON.stringify({user_id:userId})});toast('评论已删除');loadAllComments()}catch(e){toast('删除失败')}
+}
+
+// ─── 系统设置 ───
+const settingsKeys=['slogan','hero_desc','author_name','announcement','footer_text','monthly_price','yearly_price','private_price'];
+async function loadSettings(){
+  await loadFeishuConfig();
+  try{
+    const d=await(await fetch(`${API}/settings`)).json();
+    settingsKeys.forEach(k=>{const el=document.getElementById('s-'+k);if(el)el.value=d[k]||''});
+  }catch(e){toast('加载设置失败')}
+}
+async function saveSettings(){
+  const btn=document.getElementById('saveSettingsBtn');
+  btn.disabled=true;btn.textContent='保存中...';
+  const settings={};
+  settingsKeys.forEach(k=>{const el=document.getElementById('s-'+k);if(el)settings[k]=el.value});
+  try{
+    const r=await fetch(`${API}/admin/settings`,{method:'PUT',headers:authHeaders({'Content-Type':'application/json'}),body:JSON.stringify({user_id:userId,settings})});
+    if(r.ok)toast('设置已保存');else toast('保存失败');
+  }catch(e){toast('保存失败')}
+  btn.disabled=false;btn.textContent='保存设置';
+}
+
+// ─── 批量操作 ───
+function toggleAllPj(el){document.querySelectorAll('.pj-chk').forEach(c=>c.checked=el.checked)}
+async function batchAct(action){
+  const slugs=[...document.querySelectorAll('.pj-chk:checked')].map(c=>c.value);
+  if(!slugs.length){toast('请先勾选内容');return}
+  if(!confirm(`确定对 ${slugs.length} 项执行「${action}」？`))return;
+  try{await fetch(`${API}/admin/batch`,{method:'POST',headers:authHeaders({'Content-Type':'application/json'}),body:JSON.stringify({user_id:userId,slugs,action})});toast(`已完成 ${slugs.length} 项`);loadProjects()}catch(e){toast('操作失败')}
+}
+
+function esc(s){if(!s)return'';const d=document.createElement('div');d.textContent=s;return d.innerHTML}
+function fmtN(n){return n>=10000?(n/10000).toFixed(1)+'万':String(n||0)}
+function toast(m){const t=document.getElementById('toast');t.textContent=m;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2e3)}
+init();
+</script>
+</body>
+</html>

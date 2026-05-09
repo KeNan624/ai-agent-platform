@@ -1,0 +1,956 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>会员中心 · 阿川 AI 超级助手</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Noto+Serif+SC:wght@400;500;600&family=JetBrains+Mono:wght@400;500&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+
+<style>
+  :root{
+    --bg: #F3EFE4;
+    --bg-tint: #EBE6D7;
+    --bg-card: #FAF6EC;
+    --ink: #1A1814;
+    --ink-mid: #48433B;
+    --ink-soft: #6B6558;
+    --ink-mute: #A39B8A;
+    --gold: #9A7A3D;
+    --gold-soft: #C9A96B;
+    --line: rgba(26,24,20,.14);
+    --line-strong: rgba(26,24,20,.28);
+    --ok: #4A8A5C;
+    --err: #B24A3B;
+
+    --serif-en: 'Instrument Serif', Georgia, serif;
+    --serif-cn: 'Noto Serif SC', 'Songti SC', serif;
+    --mono: 'JetBrains Mono', ui-monospace, 'SF Mono', Consolas, monospace;
+    --sans: 'Inter', -apple-system, BlinkMacSystemFont, 'PingFang SC', sans-serif;
+
+    --ease: cubic-bezier(.2,.65,.25,1);
+    --ease-long: cubic-bezier(.16,.84,.28,1);
+  }
+
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{
+    font-family: var(--sans);
+    color: var(--ink);
+    background: var(--bg);
+    line-height: 1.5;
+    min-height: 100vh;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+  a{color: inherit; text-decoration: none}
+  button{font-family: inherit; cursor: pointer; border: none; background: none; color: inherit}
+
+  /* 水印 */
+  body::before{
+    content: '川';
+    position: fixed;
+    bottom: -10vh; left: -6vw;
+    font-family: var(--serif-cn);
+    font-size: clamp(380px, 48vw, 620px);
+    line-height: 0.8;
+    color: var(--ink);
+    opacity: 0.025;
+    pointer-events: none;
+    user-select: none;
+    z-index: 0;
+  }
+
+  /* ═══════════════════════════════════════════ */
+  /*  TOP BAR                                    */
+  /* ═══════════════════════════════════════════ */
+  .topbar{
+    position: sticky; top: 0; z-index: 20;
+    padding: 20px 36px;
+    display: flex; align-items: center; justify-content: space-between;
+    background: rgba(243,239,228,.85);
+    backdrop-filter: blur(10px);
+    border-bottom: 1px solid var(--line);
+  }
+  .brand{
+    display: flex; align-items: center; gap: 12px;
+    font-family: var(--serif-cn);
+    font-size: 17px; font-weight: 500;
+  }
+  .brand-mark{
+    width: 32px; height: 32px; border-radius: 5px;
+    background: var(--ink); color: var(--bg);
+    display: grid; place-items: center;
+    font-family: var(--serif-cn);
+    font-size: 16px; font-weight: 600;
+  }
+  .back-link{
+    display: inline-flex; align-items: center; gap: 6px;
+    font-family: var(--mono);
+    font-size: 11px; letter-spacing: .18em;
+    color: var(--ink-mid);
+    text-transform: uppercase;
+    transition: color .25s var(--ease);
+  }
+  .back-link:hover{ color: var(--ink); }
+  .back-link .arr{
+    font-family: var(--serif-en); font-size: 13px; font-style: italic;
+    transition: transform .25s var(--ease);
+  }
+  .back-link:hover .arr{ transform: translateX(-3px); }
+
+  /* ═══════════════════════════════════════════ */
+  /*  HERO                                       */
+  /* ═══════════════════════════════════════════ */
+  .hero{
+    text-align: center;
+    padding: 80px 40px 40px;
+    position: relative; z-index: 1;
+  }
+  .hero-eyebrow{
+    font-family: var(--mono);
+    font-size: 11px; letter-spacing: .22em;
+    color: var(--ink-mid);
+    text-transform: uppercase;
+    display: inline-flex; align-items: center; gap: 14px;
+    margin-bottom: 20px;
+  }
+  .hero-eyebrow::before, .hero-eyebrow::after{
+    content: ''; width: 30px; height: 1px; background: var(--ink-mid);
+  }
+  .hero-title{
+    font-family: var(--serif-cn);
+    font-weight: 500;
+    font-size: clamp(36px, 5vw, 58px);
+    line-height: 1.1;
+    letter-spacing: -.02em;
+    margin-bottom: 14px;
+  }
+  .hero-title .gold{
+    font-family: var(--serif-en);
+    font-style: italic;
+    color: var(--gold);
+    font-size: 1.08em;
+    font-weight: 400;
+  }
+  .hero-title .period{
+    color: var(--gold);
+    animation: blinkPeriod 3.4s ease-in-out infinite;
+  }
+  @keyframes blinkPeriod{
+    0%,60%,100%{ opacity: 1; }
+    72%{ opacity: .35; }
+  }
+  .hero-sub{
+    font-family: var(--serif-cn);
+    font-size: 15px;
+    color: var(--ink-soft);
+    max-width: 540px;
+    margin: 0 auto;
+  }
+
+  /* ═══════════════════════════════════════════ */
+  /*  CURRENT PLAN BAR                           */
+  /* ═══════════════════════════════════════════ */
+  .plan-bar{
+    max-width: 960px;
+    margin: 24px auto 48px;
+    padding: 0 40px;
+    position: relative; z-index: 1;
+    display: flex; justify-content: center;
+  }
+  .plan-badge{
+    display: inline-flex; align-items: center; gap: 10px;
+    padding: 10px 22px;
+    background: var(--bg-card);
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--ink-mid);
+    letter-spacing: .05em;
+  }
+  .plan-badge .dot{
+    width: 8px; height: 8px; border-radius: 50%;
+    background: var(--ink-mute);
+  }
+  .plan-badge .dot.free{ background: var(--ink-mute); }
+  .plan-badge .dot.monthly{ background: var(--gold); }
+  .plan-badge .dot.yearly{ background: var(--ok); animation: pulse 2s ease-in-out infinite; }
+  @keyframes pulse{
+    0%, 100%{ opacity: 1; }
+    50%{ opacity: .5; }
+  }
+
+  /* ═══════════════════════════════════════════ */
+  /*  PLANS GRID                                 */
+  /* ═══════════════════════════════════════════ */
+  .plans{
+    max-width: 1080px;
+    margin: 0 auto;
+    padding: 0 40px 60px;
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 20px;
+    position: relative; z-index: 1;
+  }
+
+  .plan-card{
+    background: var(--bg-card);
+    border: 1px solid var(--line);
+    border-radius: 20px;
+    padding: 32px 28px 28px;
+    position: relative;
+    overflow: hidden;
+    transition: all .3s var(--ease-long);
+    display: flex; flex-direction: column;
+  }
+  .plan-card.clickable{ cursor: pointer; }
+  .plan-card.clickable:hover{
+    border-color: var(--ink);
+    transform: translateY(-3px);
+    box-shadow: 0 10px 30px rgba(26,24,20,.08);
+  }
+  .plan-card.sold-out{
+    opacity: .72;
+    filter: grayscale(.08);
+  }
+  .plan-card.sold-out::after{
+    content: "已售罄";
+    position: absolute;
+    top: 16px; right: 16px;
+    padding: 4px 10px;
+    font-family: var(--mono);
+    font-size: 9.5px; letter-spacing: .14em;
+    color: var(--bg);
+    background: var(--ink);
+    border-radius: 999px;
+  }
+
+  .plan-card.featured{
+    background: linear-gradient(165deg, #FAF6EC 0%, #F3EFE4 100%);
+    border-color: var(--gold);
+    box-shadow: 0 4px 20px rgba(154,122,61,.12);
+  }
+  .plan-card.featured.clickable:hover{
+    box-shadow: 0 10px 40px rgba(154,122,61,.22);
+  }
+
+  .plan-badge-pop{
+    position: absolute;
+    top: 16px; right: 16px;
+    padding: 4px 10px;
+    font-family: var(--mono);
+    font-size: 9.5px; letter-spacing: .14em;
+    color: var(--bg);
+    background: var(--gold);
+    border-radius: 999px;
+    text-transform: uppercase;
+  }
+
+  .plan-name{
+    font-family: var(--serif-cn);
+    font-size: 22px;
+    font-weight: 500;
+    margin-bottom: 4px;
+  }
+  .plan-name-en{
+    font-family: var(--serif-en);
+    font-style: italic;
+    font-size: 14px;
+    color: var(--ink-mute);
+    margin-bottom: 20px;
+    letter-spacing: .02em;
+  }
+
+  .plan-price{
+    display: flex; align-items: baseline; gap: 4px;
+    margin-bottom: 6px;
+  }
+  .price-main{
+    font-family: var(--serif-en);
+    font-size: 56px;
+    font-weight: 400;
+    line-height: 1;
+    color: var(--ink);
+    letter-spacing: -.02em;
+  }
+  .price-unit{
+    font-family: var(--serif-cn);
+    font-size: 13px;
+    color: var(--ink-soft);
+  }
+  .price-orig{
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--ink-mute);
+    text-decoration: line-through;
+    margin-top: 4px;
+  }
+  .price-save{
+    display: inline-block;
+    font-family: var(--mono);
+    font-size: 10px; letter-spacing: .1em;
+    padding: 2px 8px;
+    background: rgba(74,138,92,.12);
+    color: var(--ok);
+    border-radius: 999px;
+    margin-top: 6px;
+    text-transform: uppercase;
+  }
+
+  .plan-desc{
+    font-family: var(--serif-cn);
+    font-size: 13px;
+    color: var(--ink-soft);
+    margin: 16px 0 22px;
+    padding-top: 16px;
+    border-top: 1px solid var(--line);
+    line-height: 1.6;
+  }
+
+  .plan-features{
+    list-style: none;
+    display: flex; flex-direction: column; gap: 10px;
+    margin-bottom: 26px;
+    flex: 1;
+  }
+  .plan-features li{
+    display: flex; align-items: center; gap: 10px;
+    font-size: 13px;
+    color: var(--ink-mid);
+  }
+  .plan-features li .ck{
+    width: 16px; height: 16px; flex-shrink: 0;
+    border-radius: 50%;
+    background: var(--ok);
+    color: var(--bg);
+    display: grid; place-items: center;
+    font-size: 9px;
+    font-weight: 700;
+  }
+  .plan-features li.no .ck{
+    background: transparent;
+    color: var(--ink-mute);
+  }
+  .plan-features li.no{ color: var(--ink-mute); }
+  .plan-features li.no .label{ text-decoration: line-through; opacity: .6; }
+
+  .btn-plan{
+    width: 100%;
+    padding: 13px 20px;
+    font-family: var(--sans);
+    font-size: 13.5px;
+    font-weight: 500;
+    letter-spacing: .02em;
+    border: 1px solid var(--ink);
+    border-radius: 999px;
+    transition: all .25s var(--ease);
+    display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  }
+  .btn-plan .arr{
+    font-family: var(--serif-en); font-style: italic; font-size: 15px;
+    transition: transform .2s var(--ease);
+  }
+  .btn-plan:hover:not(:disabled){
+    transform: translateY(-1px);
+  }
+  .btn-plan:hover:not(:disabled) .arr{ transform: translate(3px,-2px); }
+
+  .btn-plan.current{
+    background: transparent;
+    color: var(--ink-mute);
+    border-color: var(--line);
+    cursor: default;
+  }
+  .btn-plan.soldout{
+    background: transparent !important;
+    color: var(--ink-mute) !important;
+    border-color: var(--line) !important;
+    cursor: not-allowed;
+  }
+  .btn-plan.monthly-btn{
+    background: var(--ink);
+    color: var(--bg);
+  }
+  .btn-plan.monthly-btn:hover{ background: #000; }
+
+  .btn-plan.yearly-btn{
+    background: var(--gold);
+    border-color: var(--gold);
+    color: var(--bg);
+  }
+  .btn-plan.yearly-btn:hover{ background: #8a6d35; border-color: #8a6d35; }
+
+  /* ═══════════════════════════════════════════ */
+  /*  FAQ                                        */
+  /* ═══════════════════════════════════════════ */
+  .faq{
+    max-width: 720px;
+    margin: 40px auto 80px;
+    padding: 0 40px;
+    position: relative; z-index: 1;
+  }
+  .faq-title{
+    font-family: var(--serif-cn);
+    font-size: 32px;
+    font-weight: 500;
+    text-align: center;
+    margin-bottom: 8px;
+    letter-spacing: -.01em;
+  }
+  .faq-title .gold{
+    font-family: var(--serif-en); font-style: italic; color: var(--gold);
+    font-size: 1.05em; font-weight: 400;
+  }
+  .faq-sub{
+    font-family: var(--serif-cn);
+    font-size: 13px;
+    color: var(--ink-soft);
+    text-align: center;
+    margin-bottom: 40px;
+  }
+  .faq-item{
+    padding: 22px 0;
+    border-bottom: 1px solid var(--line);
+  }
+  .faq-item:last-child{ border-bottom: none; }
+  .faq-q{
+    font-family: var(--serif-cn);
+    font-size: 15.5px;
+    font-weight: 500;
+    color: var(--ink);
+    margin-bottom: 8px;
+    display: flex; align-items: baseline; gap: 10px;
+  }
+  .faq-q::before{
+    content: 'Q';
+    font-family: var(--serif-en);
+    font-style: italic;
+    color: var(--gold);
+    font-size: 18px;
+    flex-shrink: 0;
+  }
+  .faq-a{
+    font-family: var(--serif-cn);
+    font-size: 14px;
+    color: var(--ink-soft);
+    line-height: 1.75;
+    padding-left: 22px;
+  }
+
+  /* ═══════════════════════════════════════════ */
+  /*  MODAL                                      */
+  /* ═══════════════════════════════════════════ */
+  .modal-overlay{
+    position: fixed; inset: 0;
+    background: rgba(26,24,20,.4);
+    backdrop-filter: blur(8px);
+    display: none;
+    align-items: center; justify-content: center;
+    z-index: 100;
+    padding: 20px;
+  }
+  .modal-overlay.active{ display: flex; }
+  .modal{
+    background: var(--bg-card);
+    border-radius: 20px;
+    border: 1px solid var(--line);
+    padding: 40px;
+    max-width: 440px;
+    width: 100%;
+    position: relative;
+    box-shadow: 0 20px 60px rgba(0,0,0,.2);
+    animation: modalIn .3s var(--ease-long);
+  }
+  @keyframes modalIn{
+    from{ opacity: 0; transform: translateY(20px) scale(.98); }
+    to{ opacity: 1; transform: translateY(0) scale(1); }
+  }
+  .modal-close{
+    position: absolute; top: 16px; right: 16px;
+    width: 32px; height: 32px;
+    border-radius: 50%;
+    display: grid; place-items: center;
+    color: var(--ink-mute);
+    font-size: 16px;
+    transition: all .2s var(--ease);
+  }
+  .modal-close:hover{
+    background: var(--bg-tint);
+    color: var(--ink);
+  }
+  .modal-title{
+    font-family: var(--serif-cn);
+    font-size: 24px;
+    font-weight: 500;
+    text-align: center;
+    margin-bottom: 8px;
+  }
+  .modal-subtitle{
+    font-family: var(--serif-cn);
+    font-size: 13px;
+    color: var(--ink-soft);
+    text-align: center;
+    margin-bottom: 24px;
+  }
+  .qr-amount{
+    font-family: var(--serif-en);
+    font-size: 44px;
+    font-weight: 400;
+    color: var(--ink);
+    text-align: center;
+    line-height: 1;
+    margin-bottom: 4px;
+  }
+  .qr-label{
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--ink-mute);
+    text-align: center;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    margin-bottom: 24px;
+  }
+  .qr-box{
+    width: 200px; height: 200px;
+    margin: 0 auto 16px;
+    background: #fff;
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    display: grid; place-items: center;
+    overflow: hidden;
+    position: relative;
+  }
+  .qr-box img{ width: 100%; height: 100%; object-fit: contain; padding: 10px; }
+  .qr-box-placeholder{
+    text-align: center;
+    font-family: var(--serif-cn);
+    font-size: 13px;
+    color: var(--ink-mute);
+  }
+  .qr-hint{
+    text-align: center;
+    font-family: var(--serif-cn);
+    font-size: 12.5px;
+    color: var(--ink-soft);
+    margin-bottom: 14px;
+  }
+  .poll-status{
+    text-align: center;
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: .08em;
+    color: var(--gold);
+    display: flex; align-items: center; justify-content: center; gap: 8px;
+  }
+  .loading-spin{
+    width: 32px; height: 32px;
+    border: 2px solid var(--line);
+    border-top-color: var(--gold);
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    margin: 20px auto;
+  }
+  .spinner{
+    width: 10px; height: 10px;
+    border: 1.5px solid var(--gold);
+    border-top-color: transparent;
+    border-radius: 50%;
+    animation: spin .8s linear infinite;
+  }
+  @keyframes spin{ to{ transform: rotate(360deg); } }
+  .success-icon{
+    width: 64px; height: 64px;
+    margin: 0 auto 20px;
+    background: var(--ok);
+    color: #fff;
+    border-radius: 50%;
+    display: grid; place-items: center;
+    font-size: 32px;
+    animation: bounceIn .5s var(--ease-long);
+  }
+  @keyframes bounceIn{
+    0%{ transform: scale(0); }
+    60%{ transform: scale(1.15); }
+    100%{ transform: scale(1); }
+  }
+  .success-title{
+    font-family: var(--serif-cn);
+    font-size: 26px; font-weight: 500;
+    text-align: center;
+    margin-bottom: 8px;
+  }
+  .success-desc{
+    font-family: var(--serif-cn);
+    font-size: 14px;
+    color: var(--ink-soft);
+    text-align: center;
+    margin-bottom: 24px;
+  }
+  .btn-back-home{
+    display: block;
+    text-align: center;
+    padding: 13px 20px;
+    background: var(--ink);
+    color: var(--bg);
+    border-radius: 999px;
+    font-size: 13.5px;
+    font-weight: 500;
+    transition: all .2s var(--ease);
+  }
+  .btn-back-home:hover{ background: #000; }
+
+  .btn-mock{
+    width: 100%;
+    padding: 13px 20px;
+    background: var(--gold);
+    color: var(--bg);
+    border-radius: 999px;
+    font-size: 13.5px;
+    font-weight: 500;
+    transition: all .2s var(--ease);
+    margin-bottom: 12px;
+  }
+  .btn-mock:hover:not(:disabled){ background: #8a6d35; }
+  .btn-mock:disabled{ opacity: .6; cursor: not-allowed; }
+
+  /* ═══════════════════════════════════════════ */
+  /*  RESPONSIVE                                 */
+  /* ═══════════════════════════════════════════ */
+  @media (max-width: 880px){
+    .plans{ grid-template-columns: 1fr; max-width: 480px; }
+    .plan-card.featured{ order: -1; }
+  }
+  @media (max-width: 640px){
+    .topbar{ padding: 14px 18px; }
+    .brand{ font-size: 14px; }
+    .hero{ padding: 60px 24px 30px; }
+    .plans{ padding: 0 24px 40px; }
+    .faq{ padding: 0 24px; }
+  }
+</style>
+</head>
+<body>
+
+<!-- Top bar -->
+<div class="topbar">
+  <a href="choose.html" class="brand">
+    <span class="brand-mark">阿</span>
+    <span>阿川 AI 超级助手</span>
+  </a>
+  <a href="choose.html" class="back-link">
+    <span class="arr">←</span>
+    Back
+  </a>
+</div>
+
+<!-- Hero -->
+<div class="hero">
+  <div class="hero-eyebrow">Membership · 会员中心</div>
+  <h1 class="hero-title">
+    解锁全部 <span class="gold">AI 能力</span><span class="period">。</span>
+  </h1>
+  <p class="hero-sub">
+    选择合适的套餐，让 AI 顾问更深入地帮你工作。
+  </p>
+</div>
+
+<!-- Current plan -->
+<div class="plan-bar">
+  <div class="plan-badge" id="currentPlanBadge">
+    <span class="dot free" id="planDot"></span>
+    <span id="planText">当前套餐：免费版</span>
+  </div>
+</div>
+
+<!-- Plans -->
+<div class="plans">
+
+  <!-- Free -->
+  <div class="plan-card">
+    <div class="plan-name">免费版</div>
+    <div class="plan-name-en">Free</div>
+    <div class="plan-price">
+      <span class="price-main">¥0</span>
+      <span class="price-unit">/ 永久</span>
+    </div>
+    <p class="plan-desc">体验 AI 基础能力，每天限量使用</p>
+    <ul class="plan-features">
+      <li><span class="ck">✓</span><span class="label">每天 10 次对话</span></li>
+      <li><span class="ck">✓</span><span class="label">DeepSeek 模型</span></li>
+      <li><span class="ck">✓</span><span class="label">网页搜索</span></li>
+      <li class="no"><span class="ck">—</span><span class="label">Claude Sonnet</span></li>
+      <li class="no"><span class="ck">—</span><span class="label">Claude Opus</span></li>
+    </ul>
+    <button class="btn-plan current" disabled>当前套餐</button>
+  </div>
+
+  <!-- Monthly -->
+  <div class="plan-card sold-out">
+    <div class="plan-name">月度会员</div>
+    <div class="plan-name-en">Monthly</div>
+    <div class="plan-price">
+      <span class="price-main">¥99</span>
+      <span class="price-unit">/ 月</span>
+    </div>
+    <p class="plan-desc">日常重度使用，畅享 Claude Sonnet</p>
+    <ul class="plan-features">
+      <li><span class="ck">✓</span><span class="label">每月 500 次对话</span></li>
+      <li><span class="ck">✓</span><span class="label">DeepSeek 模型</span></li>
+      <li><span class="ck">✓</span><span class="label">Claude Sonnet 4.6</span></li>
+      <li><span class="ck">✓</span><span class="label">网页搜索 + 抓取</span></li>
+      <li class="no"><span class="ck">—</span><span class="label">Claude Opus</span></li>
+    </ul>
+    <button class="btn-plan soldout" id="btnMonthly" disabled>
+      已售罄
+    </button>
+  </div>
+
+  <!-- Yearly · Featured -->
+  <div class="plan-card featured sold-out">
+    <div class="plan-name">年度会员</div>
+    <div class="plan-name-en">Yearly</div>
+    <div class="plan-price">
+      <span class="price-main">¥799</span>
+      <span class="price-unit">/ 年</span>
+    </div>
+    <div class="price-orig">原价 ¥1188</div>
+    <div class="price-save">省 ¥389</div>
+    <p class="plan-desc">最强性价比，解锁全部模型包括 Opus</p>
+    <ul class="plan-features">
+      <li><span class="ck">✓</span><span class="label">每月 1000 次对话</span></li>
+      <li><span class="ck">✓</span><span class="label">DeepSeek 模型</span></li>
+      <li><span class="ck">✓</span><span class="label">Claude Sonnet 4.6</span></li>
+      <li><span class="ck">✓</span><span class="label">Claude Opus 4.6</span></li>
+      <li><span class="ck">✓</span><span class="label">网页搜索 + 抓取</span></li>
+    </ul>
+    <button class="btn-plan soldout" id="btnYearly" disabled>
+      已售罄
+    </button>
+  </div>
+
+</div>
+
+<!-- FAQ -->
+<div class="faq">
+  <h2 class="faq-title">常见<span class="gold">疑问</span></h2>
+  <p class="faq-sub">Frequently Asked Questions</p>
+
+  <div class="faq-item">
+    <div class="faq-q">会员次数怎么计算？</div>
+    <div class="faq-a">每次发送消息消耗 1 次。月度 / 年度套餐每月 1 日自动重置次数，不累计到下月。</div>
+  </div>
+  <div class="faq-item">
+    <div class="faq-q">为什么显示已售罄？</div>
+    <div class="faq-a">当前会员名额暂不开放购买，恢复开放后会在这里重新显示订阅入口。</div>
+  </div>
+  <div class="faq-item">
+    <div class="faq-q">可以续费叠加吗？</div>
+    <div class="faq-a">可以。续费时间会在当前到期时间基础上累加，不会覆盖剩余时长。</div>
+  </div>
+  <div class="faq-item">
+    <div class="faq-q">不想用了可以退款吗？</div>
+    <div class="faq-a">虚拟商品一经购买原则上不退款。如有特殊情况请联系客服处理。</div>
+  </div>
+</div>
+
+<!-- Payment Modal -->
+<div class="modal-overlay" id="payModal">
+  <div class="modal">
+    <button class="modal-close" onclick="closeModal()">✕</button>
+
+    <!-- Step 1: Loading -->
+    <div id="stepLoading" style="display:none">
+      <div class="modal-title">正在创建订单</div>
+      <div class="loading-spin"></div>
+      <div class="modal-subtitle">请稍候…</div>
+    </div>
+
+    <!-- Step 2: QR Code -->
+    <div id="stepQR" style="display:none">
+      <div class="modal-title">扫码支付</div>
+      <div class="modal-subtitle">使用支付宝扫描下方二维码</div>
+      <div class="qr-amount" id="qrAmount"></div>
+      <div class="qr-label" id="qrLabel"></div>
+      <div class="qr-box">
+        <div class="qr-box-placeholder" id="qrPlaceholder">
+          <div style="font-size:32px; margin-bottom:8px">📱</div>
+          <div>加载中…</div>
+        </div>
+        <img id="qrImg" style="display:none" alt="支付二维码">
+      </div>
+      <div class="qr-hint">使用支付宝 APP 扫码支付</div>
+      <div class="poll-status" id="pollStatus">
+        <span class="spinner"></span>
+        <span>等待支付…</span>
+      </div>
+    </div>
+
+    <!-- Step 3: Success -->
+    <div id="stepSuccess" style="display:none">
+      <div class="success-icon">✓</div>
+      <div class="success-title">支付成功！</div>
+      <div class="success-desc" id="successDesc">会员已开通，立即享受全部 AI 能力</div>
+      <a href="choose.html" class="btn-back-home">返回工作台</a>
+    </div>
+
+  </div>
+</div>
+
+<script>
+  const API = 'http://localhost:8000';
+  const token = localStorage.getItem('token');  // 修复：统一使用 token（原 auth_token 是 bug）
+  const SALES_SOLD_OUT = true;
+
+  if (!token) { location.replace('login.html'); }
+
+  let pollTimer = null;
+  let currentOrderId = null;
+
+  // Load current plan info
+  async function loadPlanInfo() {
+    try {
+      const r = await fetch(API + '/member/info', {
+        headers: { 'Authorization': 'Bearer ' + token }
+      });
+      if (r.status === 401) {
+        localStorage.removeItem('token');
+        location.replace('login.html');
+        return;
+      }
+      const d = await r.json();
+      const plan = d.plan_type || 'free';
+      const dot = document.getElementById('planDot');
+      const text = document.getElementById('planText');
+      const btnMonthly = document.getElementById('btnMonthly');
+      const btnYearly = document.getElementById('btnYearly');
+
+      if (plan === 'free') {
+        dot.className = 'dot free';
+        text.textContent = '当前套餐：免费版';
+      } else if (plan === 'monthly') {
+        dot.className = 'dot monthly';
+        const expire = d.expire_at ? '，到期 ' + new Date(d.expire_at).toLocaleDateString('zh-CN') : '';
+        text.textContent = '当前套餐：月度会员' + expire;
+        if (!SALES_SOLD_OUT) btnMonthly.innerHTML = '续费 <span class="arr">→</span>';
+      } else if (plan === 'yearly') {
+        dot.className = 'dot yearly';
+        const expire = d.expire_at ? '，到期 ' + new Date(d.expire_at).toLocaleDateString('zh-CN') : '';
+        text.textContent = '当前套餐：年度会员' + expire;
+        if (!SALES_SOLD_OUT) {
+          btnMonthly.innerHTML = '降级续费 <span class="arr">→</span>';
+          btnYearly.innerHTML = '续费 <span class="arr">→</span>';
+        }
+      }
+      if (SALES_SOLD_OUT) {
+        btnMonthly.textContent = '已售罄';
+        btnYearly.textContent = '已售罄';
+        btnMonthly.disabled = true;
+        btnYearly.disabled = true;
+      }
+    } catch (e) { console.error(e); }
+  }
+
+  function showStep(id) {
+    ['stepLoading', 'stepQR', 'stepSuccess'].forEach(s => {
+      document.getElementById(s).style.display = s === id ? 'block' : 'none';
+    });
+  }
+
+  async function openPayModal(plan) {
+    if (SALES_SOLD_OUT) {
+      document.getElementById('payModal').classList.add('active');
+      showStep('stepLoading');
+      document.querySelector('#stepLoading .modal-title').textContent = '当前已售罄';
+      document.querySelector('#stepLoading .modal-subtitle').textContent = '暂不开放购买，请稍后关注。';
+      return;
+    }
+    const planLabel = { monthly: '月度会员 · ¥99/月', quarterly: '季度会员 · ¥249/季', yearly: '年度会员 · ¥799/年' };
+    const planAmount = { monthly: '¥99.00', quarterly: '¥249.00', yearly: '¥799.00' };
+
+    document.getElementById('payModal').classList.add('active');
+    showStep('stepLoading');
+    if (pollTimer) clearInterval(pollTimer);
+
+    try {
+      const r = await fetch(API + '/pay/create', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+        body: JSON.stringify({ plan })
+      });
+      if (r.status === 401) {
+        localStorage.removeItem('token');
+        location.replace('login.html');
+        return;
+      }
+      const d = await r.json();
+      currentOrderId = d.order_id;
+
+      document.getElementById('qrAmount').textContent = planAmount[plan];
+      document.getElementById('qrLabel').textContent = planLabel[plan];
+      showStep('stepQR');
+
+      const qrImg = document.getElementById('qrImg');
+      const qrPlaceholder = document.getElementById('qrPlaceholder');
+      try {
+        const qrUrl = 'https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=' + encodeURIComponent(d.pay_url);
+        qrImg.src = qrUrl;
+        qrImg.onload = () => { qrImg.style.display = 'block'; qrPlaceholder.style.display = 'none'; };
+      } catch (e) {}
+
+      startPolling(d.order_id, plan);
+    } catch (e) {
+      showStep('stepLoading');
+      document.querySelector('#stepLoading .modal-title').textContent = '当前已售罄';
+      document.querySelector('#stepLoading .modal-subtitle').textContent = '暂不开放购买，请稍后关注。';
+    }
+  }
+
+  function startPolling(orderId, plan) {
+    let attempts = 0;
+    const max = 60;
+    pollTimer = setInterval(async () => {
+      attempts++;
+      if (attempts > max) {
+        clearInterval(pollTimer);
+        document.getElementById('pollStatus').innerHTML = '<span style="color:var(--err)">支付超时，请关闭重试</span>';
+        return;
+      }
+      try {
+        const r = await fetch(API + '/pay/status/' + orderId, {
+          headers: { 'Authorization': 'Bearer ' + token }
+        });
+        const d = await r.json();
+        if (d.pay_status === 'paid') {
+          clearInterval(pollTimer);
+          showSuccess(plan);
+        }
+      } catch (e) {}
+    }, 5000);
+  }
+
+  function showSuccess(plan) {
+    const labels = { monthly: '月度会员', quarterly: '季度会员', yearly: '年度会员' };
+    document.getElementById('successDesc').textContent =
+      (labels[plan] || '会员') + ' 已开通，立即享受全部 AI 能力';
+    showStep('stepSuccess');
+  }
+
+  function closeModal() {
+    if (pollTimer) clearInterval(pollTimer);
+    document.getElementById('payModal').classList.remove('active');
+    const success = document.getElementById('stepSuccess');
+    if (success.style.display === 'block') loadPlanInfo();
+  }
+
+  document.getElementById('payModal').addEventListener('click', function(e) {
+    if (e.target === this) closeModal();
+  });
+
+  loadPlanInfo();
+</script>
+
+</body>
+</html>
