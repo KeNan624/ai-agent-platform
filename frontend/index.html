@@ -14111,7 +14111,6 @@ async function v34LoadProfileData() {
         btn.style.opacity = '1';
       }
     });
-    // 模型由管理员在后台统一配置，普通用户设置面板不再保存默认模型。
     var sysPrompt = localStorage.getItem('v34_system_prompt') || '';
     var promptEl = document.getElementById('v34-pf-system-prompt');
     if (promptEl) promptEl.value = sysPrompt;
@@ -14140,9 +14139,6 @@ async function v34SaveNickname() {
       showToast && showToast('保存失败 · HTTP ' + r.status, 2000);
     }
   } catch(e) { showToast && showToast('保存失败 · 请重试'); }
-}
-function v34SaveDefaultModel() {
-  showToast && showToast('默认模型由管理员在后台统一配置', 1800);
 }
 function v34SaveSystemPrompt() {
   var el = document.getElementById('v34-pf-system-prompt');
@@ -14444,13 +14440,6 @@ document.addEventListener('keydown', function(e) {
 
     <!-- 设置 -->
     <div class="v34-pf-tab-content" id="v34-pf-tab-settings">
-      <div class="v34-pf-section">
-        <div class="v34-pf-section-title">🤖 默认模型</div>
-        <div class="v34-pf-row">
-          <span class="v34-pf-label">新对话调用模型</span>
-          <span class="v34-pf-value" style="color:#9A9485;">由管理员在后台统一配置</span>
-        </div>
-      </div>
       <div class="v34-pf-section">
         <div class="v34-pf-section-title">🎨 外观</div>
         <div class="v34-pf-row">
