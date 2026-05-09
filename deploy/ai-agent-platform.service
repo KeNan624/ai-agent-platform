@@ -1,0 +1,16 @@
+[Unit]
+Description=AI Agent Platform FastAPI service
+After=network-online.target postgresql.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/root/ai-agent-platform
+EnvironmentFile=/root/ai-agent-platform/.env
+ExecStart=/root/ai-agent-platform/.venv/bin/python -m uvicorn main:app --host 127.0.0.1 --port 8000
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

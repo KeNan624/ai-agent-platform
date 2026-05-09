@@ -403,7 +403,8 @@ span[class*="fs-bg-"]{padding:1px 4px;border-radius:4px}
 <div id="toast" class="toast"></div>
 
 <script>
-const API = 'http://localhost:8000/practice';
+const ROOT_API = location.protocol === 'file:' ? 'http://localhost:8000' : location.origin;
+const API = ROOT_API + '/practice';
 const TOKEN = localStorage.getItem('token') || '';
 let currentUserId = parseInt(localStorage.getItem('user_id')) || 0;
 let currentUserName = '';
@@ -517,7 +518,7 @@ if (!SLUG) {
 async function loadUserInfo() {
   if (!TOKEN) return;
   try {
-    const r = await fetch('http://localhost:8000/auth/me', {
+    const r = await fetch(ROOT_API + '/auth/me', {
       headers: { 'Authorization': 'Bearer ' + TOKEN }
     });
     if (!r.ok) return;

@@ -474,12 +474,34 @@
 </div>
 
 <script>
-  const API = 'http://localhost:8000';
+  const API = location.protocol === 'file:' ? 'http://localhost:8000' : location.origin;
   let countdown = 0, timer = null;
 
-  // Already logged in → redirect
-  if (localStorage.getItem('token')) {
-    location.replace('choose.html');
+  // Already logged in -> verify the token before redirecting.
+  const existingToken = localStorage.getItem('token');
+  if (existingToken) {
+    verifyExistingToken(existingToken);
+  }
+
+  function clearAuthStorage() {
+    localStorage.removeItem('token');
+    localStorage.removeItem('user_id');
+    localStorage.removeItem('is_new_user');
+  }
+
+  async function verifyExistingToken(token) {
+    try {
+      const res = await fetch(`${API}/member/info`, {
+        headers: { 'Authorization': 'Bearer ' + token },
+      });
+      if (res.ok) {
+        location.replace('choose.html');
+      } else if (res.status === 401) {
+        clearAuthStorage();
+      }
+    } catch (e) {
+      // Keep the login form usable if the network check fails.
+    }
   }
 
   function setErr(msg) {

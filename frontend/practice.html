@@ -1310,7 +1310,8 @@ span[class*="fs-bg-"]{padding:1px 4px;border-radius:4px}
    阿川 AI · 实战区 practice.html
    ───────────────────────────────────────── */
 
-const API = 'http://localhost:8000/practice';
+const ROOT_API = location.protocol === 'file:' ? 'http://localhost:8000' : location.origin;
+const API = ROOT_API + '/practice';
 const STATIC_ORIGIN = location.protocol === 'file:' ? 'http://localhost:8000' : '';
 const DEFAULT_EXPERIENCE_COVER_URL = `${STATIC_ORIGIN}/static/assets/default-experience-cover.jpg`;
 const DEFAULT_COURSE_COVER_URL = `${STATIC_ORIGIN}/static/assets/default-course-cover.jpg`;
@@ -1422,7 +1423,7 @@ function protectExperienceContent(root) {
 async function loadUserInfo() {
   if (!TOKEN) return;
   try {
-    const r = await fetch('http://localhost:8000/auth/me', {
+    const r = await fetch(ROOT_API + '/auth/me', {
       headers: { 'Authorization': 'Bearer ' + TOKEN }
     });
     if (!r.ok) return;

@@ -4621,6 +4621,8 @@ textarea.ws-dialog-input,
 </div>
 
 <script>
+const APP_API_BASE = location.protocol === 'file:' ? 'http://localhost:8000' : location.origin;
+
 // ── Auth guard ──
 const _authToken = localStorage.getItem('token');
 if (!_authToken) { location.replace('login.html'); }
@@ -4636,7 +4638,7 @@ window.addEventListener('storage', (e) => {
 let _userPlan = 'free'; // 全局存套餐信息，供侧栏限额用
 (async () => {
   try {
-    const res = await fetch('http://localhost:8000/member/info', {
+    const res = await fetch(APP_API_BASE + '/member/info', {
       headers: { 'Authorization': 'Bearer ' + _authToken }
     });
     // 401：token 失效 → 清理并踢回登录页（防止死循环）
@@ -5839,7 +5841,7 @@ async function loadAvailableChatModels(){
   try{
     const token = localStorage.getItem('token');
     if(!token) return;
-    const res = await fetch('http://localhost:8000/models/available', {
+    const res = await fetch(APP_API_BASE + '/models/available', {
       headers: {'Authorization': 'Bearer ' + token}
     });
     if(!res.ok) return;
@@ -5921,7 +5923,7 @@ document.addEventListener('click', (e)=>{
 // 批 1 · 消息级操作 · handler 集
 // ═════════════════════════════════════════════════════════════════
 
-const API_BASE = 'http://localhost:8000';
+const API_BASE = APP_API_BASE;
 
 // ═════════════════════════════════════════════════════════════════
 // 🛑 阶段一 · 1.2 停止生成
@@ -7707,8 +7709,8 @@ async function v34ShareLink() {
 // ══════════════════════════════════════════════════════════════
 
 // ─── 配置 ──────────────────────────────────────────────────
-const MEDIA_API_BASE = 'http://localhost:8000/media';
-const PPT_API_BASE = 'http://localhost:8000/ppt';
+const MEDIA_API_BASE = APP_API_BASE + '/media';
+const PPT_API_BASE = APP_API_BASE + '/ppt';
 
 // 关键词识别 · 第一层（快 / 免费 / 命中 ~90%）
 const IMAGE_KEYWORDS = [
@@ -9249,7 +9251,7 @@ async function sendMsg(src, opts){
 
     // console.log('[v34 batch3.5 DEBUG] fetch /chat/stream · reqBody=', JSON.parse(JSON.stringify(reqBody)));
     // console.log('[v34 batch3.5 DEBUG] currentConvoId=', window.currentConvoId, 'wsActiveConvId=', window.wsActiveConvId, 'currentWsId=', window.currentWsId);
-    const res = await fetch('http://localhost:8000/chat/stream', {
+    const res = await fetch(APP_API_BASE + '/chat/stream', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -10603,7 +10605,7 @@ renderWsList();
 // 与现有 openChat / sendMsg / currentWsId / currentConvoId 兼容
 // ═══════════════════════════════════════════════════════════════
 
-const WS_API = 'http://localhost:8000/workspace';
+const WS_API = APP_API_BASE + '/workspace';
 
 // Backend 数据
 let wsBackendTree = { folders: [], conversations_by_folder: {} };
@@ -14039,7 +14041,7 @@ async function v34LoadProfileData() {
   try {
     var token = localStorage.getItem('token');
     if (!token) return;
-    var r = await fetch('http://localhost:8000/member/info', {
+    var r = await fetch(APP_API_BASE + '/member/info', {
       headers: { 'Authorization': 'Bearer ' + token }
     });
     if (!r.ok) return;
@@ -14097,7 +14099,7 @@ async function v34SaveNickname() {
   if (!name) { showToast && showToast('昵称不能为空'); return; }
   try {
     var token = localStorage.getItem('token');
-    var r = await fetch('http://localhost:8000/member/info', {
+    var r = await fetch(APP_API_BASE + '/member/info', {
       method: 'PATCH',
       headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
       body: JSON.stringify({ nickname: name }),

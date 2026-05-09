@@ -800,7 +800,7 @@
 </div>
 
 <script>
-  const API = 'http://localhost:8000';
+  const API = location.protocol === 'file:' ? 'http://localhost:8000' : location.origin;
   const token = localStorage.getItem('token');  // 修复：统一使用 token（原 auth_token 是 bug）
   const SALES_SOLD_OUT = true;
 

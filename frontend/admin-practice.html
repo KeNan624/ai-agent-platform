@@ -449,7 +449,7 @@ tr:hover td{background:rgba(26,24,20,.015)}
 <div id="toast" class="toast"></div>
 
 <script>
-const ROOT_API='http://localhost:8000',API=ROOT_API+'/practice',TOKEN=localStorage.getItem('admin_token')||'';
+const ROOT_API=location.protocol === 'file:' ? 'http://localhost:8000' : location.origin,API=ROOT_API+'/practice',TOKEN=localStorage.getItem('admin_token')||'';
 const DEFAULT_EXPERIENCE_COVER_URL=ROOT_API+'/static/assets/default-experience-cover.jpg';
 const DEFAULT_COLUMN_COVER_URL=ROOT_API+'/static/assets/default-column-cover.jpg';
 let userId=parseInt(localStorage.getItem('admin_user_id'))||0,pjPage=1,_t,FEISHU_ITEMS_BY_KEY={},PJ_ITEMS_BY_SLUG={},CURRENT_COVER_SLUG='';
@@ -507,7 +507,7 @@ async function init(){
   if(!TOKEN){location.href='admin-login.html';return}
   // 验证 token
   try{
-    const r=await fetch('http://localhost:8000/auth/me',{headers:{'Authorization':'Bearer '+TOKEN}});
+    const r=await fetch(ROOT_API+'/auth/me',{headers:{'Authorization':'Bearer '+TOKEN}});
     if(r.ok){const d=await r.json();userId=d.id||0}else{location.href='admin-login.html';return}
   }catch(e){location.href='admin-login.html';return}
   if(!userId){location.href='admin-login.html';return}
