@@ -343,6 +343,9 @@
   .zone-badge.soon{
     background: var(--ink-mute);
   }
+  .zone-badge.live{
+    background: var(--gold);
+  }
 
   /* 装饰字母（卡片背景）*/
   .zone-card::before{
@@ -456,18 +459,18 @@
       </div>
     </div>
 
-    <div class="zone-card disabled" data-letter="P" onclick="goPractice()">
-      <div class="zone-badge soon">Coming Soon</div>
+    <div class="zone-card" data-letter="P" onclick="goPractice()">
+      <div class="zone-badge live">Now Live</div>
       <div class="zone-num">Zone 02</div>
       <div class="zone-title-cn">实战区</div>
       <div class="zone-title-en">Practice</div>
       <p class="zone-desc">
-        实战教程 · 系统学习<br>
-        2000+ 项目 · 10000+ 成员<br>
-        从知道到做到。
+        实战教程 · 项目案例<br>
+        课程专栏 · 持续更新<br>
+        跟着做，拿到结果。
       </p>
       <div class="zone-cta">
-        即将上线 <span class="arr">→</span>
+        进入实战区 <span class="arr">→</span>
       </div>
     </div>
 
@@ -521,7 +524,6 @@
     window.location.href = 'index.html';
   }
   function goPractice() {
-    // 实战区即将上线 — 目前不跳转或跳到 practice.html
     window.location.href = 'practice.html';
   }
 
