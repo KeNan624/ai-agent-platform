@@ -2858,18 +2858,26 @@ body[data-sidebar-mode="expanded"] .nav-rail-old { display: none !important; }
   font-size: 18px;
   color: var(--text-main, #1A1814);
 }
-#ws-sidebar-header-v30 .v30-collapse-btn {
+#ws-sidebar-header-v30 .v30-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+#ws-sidebar-header-v30 .v30-collapse-btn,
+#ws-sidebar-header-v30 .v30-choose-btn {
   width: 28px; height: 28px;
   border-radius: 6px;
   display: flex; align-items: center; justify-content: center;
   cursor: pointer; border: none; background: transparent;
   color: var(--text-sub, #6B6558);
 }
-#ws-sidebar-header-v30 .v30-collapse-btn:hover {
+#ws-sidebar-header-v30 .v30-collapse-btn:hover,
+#ws-sidebar-header-v30 .v30-choose-btn:hover {
   background: var(--bg-hover, #EBE6D7);
   color: var(--text-main, #1A1814);
 }
-#ws-sidebar-header-v30 .v30-collapse-btn svg {
+#ws-sidebar-header-v30 .v30-collapse-btn svg,
+#ws-sidebar-header-v30 .v30-choose-btn svg {
   width: 16px; height: 16px; stroke-width: 1.75;
 }
 
@@ -4194,9 +4202,9 @@ textarea.ws-dialog-input,
 <body>
 
 <div id="icon-bar">
-  <div id="icon-logo" onclick="location.href='choose.html'" title="返回选择页">阿</div>
+  <div id="icon-logo" onclick="goChoosePage()" title="返回选择页">阿</div>
   <div class="nav-btn active" onclick="showHome()" title="工作台">⊞</div>
-  <div class="nav-btn" onclick="location.href='choose.html'" title="返回选择">⇠</div>
+  <div class="nav-btn" onclick="goChoosePage()" title="返回选择">⇠</div>
   <div class="nav-btn" title="历史">◷</div>
   <div class="nav-btn" title="设置">⚙</div>
   <div id="icon-bar-bottom">
@@ -4210,14 +4218,22 @@ textarea.ws-dialog-input,
   <button class="v30-icon-btn" onclick="v30ToggleSidebar()" title="展开侧边栏">
     <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 3v18"/></svg>
   </button>
+  <button class="v30-icon-btn" onclick="goChoosePage()" title="返回选择页">
+    <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path d="M19 12H5"/><path d="M12 19l-7-7 7-7"/></svg>
+  </button>
   </div>
 <div id="ws-sidebar">
 <!-- v30 · 侧边栏顶部:品牌 + 折叠按钮 -->
 <div id="ws-sidebar-header-v30">
   <span class="v30-brand">阿川 AI</span>
-  <button class="v30-collapse-btn" onclick="v30ToggleSidebar()" title="收起侧边栏">
-    <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 3v18"/></svg>
-  </button>
+  <div class="v30-header-actions">
+    <button class="v30-choose-btn" onclick="goChoosePage()" title="返回选择页">
+      <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path d="M19 12H5"/><path d="M12 19l-7-7 7-7"/></svg>
+    </button>
+    <button class="v30-collapse-btn" onclick="v30ToggleSidebar()" title="收起侧边栏">
+      <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 3v18"/></svg>
+    </button>
+  </div>
 </div>
 <!-- v30 · 拖拽改宽度的手柄 -->
 <div id="v30-resize-handle"></div>
@@ -4622,6 +4638,15 @@ textarea.ws-dialog-input,
 
 <script>
 const APP_API_BASE = location.protocol === 'file:' ? 'http://localhost:8000' : location.origin;
+const APP_CANONICAL_ORIGIN = location.protocol === 'file:'
+  ? 'http://localhost:8000'
+  : (location.hostname === 'achuantongxue.com' || location.hostname === 'www.achuantongxue.com')
+    ? 'https://www.achuantongxue.com'
+    : location.origin;
+
+function goChoosePage() {
+  location.href = APP_CANONICAL_ORIGIN + '/choose.html';
+}
 
 // ── Auth guard ──
 const _authToken = localStorage.getItem('token');
