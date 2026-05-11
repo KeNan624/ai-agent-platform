@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from sqlalchemy import BigInteger, Column, DateTime, Enum, ForeignKey, Integer, Numeric, String, Boolean, Text, UniqueConstraint
+from sqlalchemy import BigInteger, Column, DateTime, Enum, ForeignKey, Integer, Numeric, String, Boolean, Text, UniqueConstraint, text
 from sqlalchemy.orm import relationship
 
 from database import Base
@@ -280,7 +280,7 @@ class PracticeProject(Base):
     sort_order = Column(Integer, default=100, nullable=False)            # 越小越靠前
     start_date = Column(String(64), nullable=True)                       # 显示用，"2026-05-15" 或 "待定"
     is_published = Column(Boolean, default=True, nullable=False)         # 是否公开（草稿用 false）
-    is_featured = Column(Boolean, default=False, nullable=False)          # 是否推荐到信息流
+    is_featured = Column(Boolean, default=False, server_default=text("false"), nullable=False)  # 是否推荐到信息流
     view_count = Column(Integer, default=0, nullable=False)              # 浏览次数
     author_id = Column(BigInteger, ForeignKey("users.id"), nullable=True, index=True)
     author_name = Column(String(64), default="阿川", nullable=False)

@@ -68,10 +68,35 @@ def ensure_practice_column_schema() -> None:
             conn.execute(text("ALTER TABLE practice_lessons ADD COLUMN source_doc_id VARCHAR(128)"))
 
 
+def ensure_practice_project_schema() -> None:
+    """Lightweight migration for existing 实战区项目 databases."""
+    inspector = inspect(engine)
+    table_names = set(inspector.get_table_names())
+    if "practice_projects" not in table_names:
+        return
+
+    project_cols = {col["name"] for col in inspector.get_columns("practice_projects")}
+    dialect = engine.dialect.name
+
+    with engine.begin() as conn:
+        if "is_featured" not in project_cols:
+            default_value = "0" if dialect == "sqlite" else "false"
+            conn.execute(text(
+                "ALTER TABLE practice_projects "
+                f"ADD COLUMN is_featured BOOLEAN NOT NULL DEFAULT {default_value}"
+            ))
+            return
+
+        conn.execute(text("UPDATE practice_projects SET is_featured = false WHERE is_featured IS NULL"))
+        if dialect == "postgresql":
+            conn.execute(text("ALTER TABLE practice_projects ALTER COLUMN is_featured SET DEFAULT false"))
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # Create all database tables on startup
     Base.metadata.create_all(bind=engine)
+    ensure_practice_project_schema()
     ensure_practice_column_schema()
 
     # Seed system preset projects (idempotent)

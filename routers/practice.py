@@ -694,11 +694,11 @@ def publish_content(
         INSERT INTO practice_projects
             (slug, title, description, project_type, category, status,
              cover_emoji, cover_color, cover_image, md_filename, sort_order, is_published,
-             view_count, author_id, author_name, created_at, updated_at)
+             is_featured, view_count, author_id, author_name, created_at, updated_at)
         VALUES
             (:slug, :title, :desc, :ptype, :cat, :status,
              :cover_emoji, '#F5EFDE', :cover_image, :md, 0, true,
-             0, :uid, :uname, NOW(), NOW())
+             false, 0, :uid, :uname, NOW(), NOW())
         RETURNING id
     """), {
         "slug": slug,
@@ -1129,11 +1129,11 @@ async def admin_import_feishu(
         INSERT INTO practice_projects
             (slug, title, description, project_type, category, status,
              cover_emoji, cover_color, cover_image, md_filename, sort_order, is_published,
-             view_count, author_id, author_name, created_at, updated_at)
+             is_featured, view_count, author_id, author_name, created_at, updated_at)
         VALUES
             (:slug, :title, :desc, 'experience', :cat, 'published',
              '📝', '#F5EFDE', :cover_image, :md, 0, :is_published,
-             0, :uid, :uname, NOW(), NOW())
+             false, 0, :uid, :uname, NOW(), NOW())
         RETURNING id
     """), {
         "slug": slug,
