@@ -328,19 +328,32 @@ class FeishuMarkdownRenderer:
 
         field_name = self._text_field_name(block)
         if field_name:
-            return self.render_text_like(block, field_name, compact=compact)
+            rendered_text = self.render_text_like(block, field_name, compact=compact)
+            rendered_children = await self.render_child_blocks(block, compact=compact)
+            return self.join_rendered_parts(rendered_text, rendered_children, compact=compact)
 
-        child_parts = []
-        for child_id in _child_ids(block):
-            child = self.blocks_by_id.get(child_id)
-            if child:
-                child_parts.append(await self.render_block(child, compact=compact))
-        rendered_children = "\n\n".join(part.strip() for part in child_parts if part.strip())
+        rendered_children = await self.render_child_blocks(block, compact=compact)
         if rendered_children:
             return rendered_children
         if block_type not in (1, None):
             self.warn(f"暂不支持的飞书块类型：{block_type}")
         return ""
+
+    async def render_child_blocks(self, block: dict[str, Any], *, compact: bool = False) -> str:
+        child_parts = []
+        for child_id in _child_ids(block):
+            child = self.blocks_by_id.get(child_id)
+            if child:
+                child_parts.append(await self.render_block(child, compact=compact))
+        separator = " " if compact else "\n\n"
+        return separator.join(part.strip() for part in child_parts if part.strip())
+
+    def join_rendered_parts(self, first: str, second: str, *, compact: bool = False) -> str:
+        first = (first or "").strip()
+        second = (second or "").strip()
+        if first and second:
+            return f"{first}{' ' if compact else '\n\n'}{second}"
+        return first or second
 
     def _text_field_name(self, block: dict[str, Any]) -> str:
         block_type = _block_type(block)
@@ -615,7 +628,9 @@ class FeishuMarkdownRenderer:
             return f"<pre>{_html_text(table_md)}</pre>" if table_md else ""
         field_name = self._text_field_name(block)
         if field_name:
-            return self.render_text_like_html(block, field_name)
+            rendered_text = self.render_text_like_html(block, field_name)
+            rendered_children = await self.render_children_as_html(block)
+            return self.join_rendered_parts(rendered_text, rendered_children)
         return await self.render_children_as_html(block)
 
     async def render_table(self, block: dict[str, Any]) -> str:
