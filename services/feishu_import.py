@@ -4,7 +4,7 @@ import html
 import re
 from dataclasses import dataclass, field
 from typing import Any
-from urllib.parse import quote, urlparse
+from urllib.parse import quote, unquote, urlparse
 
 import httpx
 
@@ -24,6 +24,12 @@ class FeishuImportedDocument:
     style_count: int = 0
     callout_count: int = 0
     warnings: list[str] = field(default_factory=list)
+
+
+@dataclass(frozen=True)
+class FeishuSource:
+    token: str
+    source_type: str
 
 
 FEISHU_API_BASE = "https://open.feishu.cn/open-apis"
@@ -54,23 +60,28 @@ IMAGE_CONTENT_TYPES = {
 }
 
 
-def parse_feishu_docx_id(url_or_token: str) -> str:
+def parse_feishu_source(url_or_token: str) -> FeishuSource:
     raw = (url_or_token or "").strip()
     if not raw:
         raise FeishuImportError("请填写飞书文档链接")
-    if "/wiki/" in raw:
-        raise FeishuImportError("暂不支持飞书知识库 wiki 链接，请复制原始 docx 文档链接")
 
     parsed = urlparse(raw)
     if parsed.scheme and parsed.netloc:
-        match = re.search(r"/docx/([^/?#]+)", parsed.path)
-        if not match:
-            raise FeishuImportError("第一版只支持飞书新版文档 docx 链接")
-        return match.group(1)
+        docx_match = re.search(r"/docx/([^/?#]+)", parsed.path)
+        if docx_match:
+            return FeishuSource(token=docx_match.group(1), source_type="docx")
+        wiki_match = re.search(r"/wiki/([^/?#]+)", parsed.path)
+        if wiki_match:
+            return FeishuSource(token=wiki_match.group(1), source_type="wiki")
+        raise FeishuImportError("仅支持飞书新版文档 docx 链接或知识库 wiki 链接")
 
     if re.fullmatch(r"[A-Za-z0-9_-]{8,}", raw):
-        return raw
+        return FeishuSource(token=raw, source_type="docx")
     raise FeishuImportError("飞书文档链接格式不正确")
+
+
+def parse_feishu_docx_id(url_or_token: str) -> str:
+    return parse_feishu_source(url_or_token).token
 
 
 def _required_setting(key: str, label: str) -> str:
@@ -157,6 +168,41 @@ async def _get_document_info(client: httpx.AsyncClient, token: str, document_id:
     return await _api_json(client, "GET", f"/docx/v1/documents/{quote(document_id, safe='')}", token=token)
 
 
+async def _resolve_wiki_docx(
+    client: httpx.AsyncClient,
+    token: str,
+    wiki_token: str,
+) -> tuple[str, str]:
+    data = await _api_json(
+        client,
+        "GET",
+        "/wiki/v2/spaces/get_node",
+        token=token,
+        params={"token": wiki_token},
+    )
+    node = data.get("node") if isinstance(data.get("node"), dict) else data
+    obj_type = str(node.get("obj_type") or "").strip().lower()
+    obj_token = str(node.get("obj_token") or "").strip()
+    title = str(node.get("title") or "").strip()
+    if obj_type != "docx":
+        label = obj_type or "未知类型"
+        raise FeishuImportError(f"这个 Wiki 链接指向 {label}，目前仅支持 Wiki 中的新版文档 docx")
+    if not obj_token:
+        raise FeishuImportError("飞书 Wiki 节点未返回真实文档 token")
+    return obj_token, title
+
+
+async def _resolve_document_id(
+    client: httpx.AsyncClient,
+    token: str,
+    url_or_token: str,
+) -> tuple[str, str]:
+    source = parse_feishu_source(url_or_token)
+    if source.source_type == "wiki":
+        return await _resolve_wiki_docx(client, token, source.token)
+    return source.token, ""
+
+
 async def _list_document_blocks(client: httpx.AsyncClient, token: str, document_id: str) -> list[dict[str, Any]]:
     blocks: list[dict[str, Any]] = []
     page_token = ""
@@ -217,8 +263,20 @@ def _safe_url(value: str) -> str:
     if not raw:
         return ""
     parsed = urlparse(raw)
+    if parsed.scheme in {"http", "https"}:
+        nested = unquote(parsed.path.lstrip("/")).strip()
+        nested_parsed = urlparse(nested)
+        if nested_parsed.scheme in {"http", "https"}:
+            return nested
     if parsed.scheme and parsed.scheme.lower() not in {"http", "https", "mailto"}:
         return ""
+    if not parsed.scheme:
+        decoded = unquote(raw).strip()
+        decoded_parsed = urlparse(decoded)
+        if decoded_parsed.scheme in {"http", "https", "mailto"}:
+            return decoded
+        if decoded_parsed.scheme:
+            return ""
     return raw
 
 
@@ -697,10 +755,10 @@ class FeishuMarkdownRenderer:
 
 
 async def import_feishu_docx(url: str, *, user_id: int) -> FeishuImportedDocument:
-    document_id = parse_feishu_docx_id(url)
     timeout = httpx.Timeout(connect=10.0, read=60.0, write=20.0, pool=10.0)
     async with httpx.AsyncClient(timeout=timeout, follow_redirects=True) as client:
         token = await _tenant_access_token(client)
+        document_id, source_title = await _resolve_document_id(client, token, url)
         info = await _get_document_info(client, token, document_id)
         blocks = await _list_document_blocks(client, token, document_id)
         renderer = FeishuMarkdownRenderer(
@@ -711,7 +769,7 @@ async def import_feishu_docx(url: str, *, user_id: int) -> FeishuImportedDocumen
             user_id=user_id,
         )
         markdown = await renderer.render()
-        title = _extract_document_title(info) or renderer.first_heading or "飞书导入内容"
+        title = _extract_document_title(info) or source_title or renderer.first_heading or "飞书导入内容"
         return FeishuImportedDocument(
             title=title.strip()[:100],
             markdown=markdown,
