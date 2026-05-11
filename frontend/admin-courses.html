@@ -245,6 +245,20 @@ body.embedded .login-overlay{position:absolute}
 .media-preview-note{padding:7px 10px;border-top:1px solid var(--border);font-size:.74rem;color:var(--text-muted)}
 .upload-status{min-height:18px;font-size:.75rem;color:var(--text-muted)}
 .upload-status.error{color:var(--danger)}
+.upload-task-list{display:grid;gap:8px;margin-top:8px}
+.upload-task{border:1px solid var(--border);border-radius:var(--radius-sm);background:#fff;padding:9px 10px}
+.upload-task-head{display:flex;align-items:center;justify-content:space-between;gap:10px;font-size:.78rem}
+.upload-task-name{font-weight:700;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.upload-task-state{font-size:.72rem;color:var(--text-muted);white-space:nowrap}
+.upload-task.ok .upload-task-state{color:var(--success)}
+.upload-task.error .upload-task-state{color:var(--danger)}
+.upload-task-bar{height:5px;background:var(--tag-bg);border-radius:999px;overflow:hidden;margin-top:7px}
+.upload-task-fill{height:100%;width:0;background:var(--accent);transition:width .2s}
+.upload-task.ok .upload-task-fill{background:var(--success);width:100%}
+.upload-task.error .upload-task-fill{background:var(--danger)}
+.upload-task-foot{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:7px;font-size:.72rem;color:var(--text-muted)}
+.upload-task-url{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.upload-task-actions{display:flex;gap:6px;flex-shrink:0}
 
 /* ═══════════ 课时管理区域 ═══════════ */
 .lessons-section{margin-top:24px}
@@ -630,11 +644,12 @@ body.embedded .login-overlay{position:absolute}
           <label>视频链接</label>
           <div class="upload-row">
             <input type="text" id="lf_video_url" placeholder="https://...（外链或 COS 链接）" oninput="updateLessonVideoPreview()">
-            <button type="button" class="btn btn-outline btn-sm" onclick="triggerLessonVideoUpload()">上传视频</button>
+            <button type="button" class="btn btn-outline btn-sm" onclick="triggerLessonVideoUpload()">添加上传任务</button>
           </div>
-          <input type="file" id="lessonVideoUpload" accept="video/mp4,video/webm" style="display:none" onchange="handleLessonVideoUpload(this)">
+          <input type="file" id="lessonVideoUpload" accept="video/mp4,video/webm" multiple style="display:none" onchange="handleLessonVideoUpload(this)">
           <div id="lessonVideoPreview" class="media-preview"></div>
           <div id="lessonVideoUploadStatus" class="upload-status"></div>
+          <div id="lessonUploadTasks" class="upload-task-list"></div>
         </div>
         <div class="form-group">
           <label>排序（小在前）</label>
@@ -686,7 +701,7 @@ let COURSES = [];
 let CURRENT_COURSE_ID = null;   // 正在编辑的课程 id（null = 新建）
 let CURRENT_LESSONS = [];       // 当前课程的课时列表
 let CURRENT_LESSON_ID = null;   // 正在编辑的课时 id（null = 新建）
-let LESSON_UPLOADING = false;
+const LESSON_UPLOAD_TASKS = new Map();
 let COS_ITEMS_BY_KEY = {};
 const COS_CONFIG_FIELDS = [
   { key: 'COS_SECRET_ID', id: 'cos_secret_id', secret: true, required: true },
@@ -889,7 +904,12 @@ function setUploadStatus(id, msg, isError = false) {
   el.textContent = msg || '';
 }
 
-function uploadCourseMedia(file, kind, statusId) {
+function emitUploadStatus(target, msg, isError = false) {
+  if (typeof target === 'function') target(msg, isError);
+  else setUploadStatus(target, msg, isError);
+}
+
+function uploadCourseMedia(file, kind, statusTarget) {
   const formData = new FormData();
   const uploadId = (window.crypto?.randomUUID?.() || `upload-${Date.now()}-${Math.random().toString(16).slice(2)}`);
   formData.append('file', file);
@@ -941,7 +961,7 @@ function uploadCourseMedia(file, kind, statusId) {
       serverWaitStartedAt = Date.now();
       serverWaitTimer = setInterval(() => {
         const seconds = Math.max(1, Math.round((Date.now() - serverWaitStartedAt) / 1000));
-        setUploadStatus(statusId, `文件已传到服务器，正在写入云存储…已等待 ${seconds}s`);
+        emitUploadStatus(statusTarget, `文件已传到服务器，正在写入云存储…已等待 ${seconds}s`);
         if (seconds % 3 === 0) pollServerStatus();
         if (seconds >= 180) completeError('写入云存储等待过久，请重新上传；若文件很大，建议压缩后再试');
       }, 1000);
@@ -961,12 +981,12 @@ function uploadCourseMedia(file, kind, statusId) {
     xhr.setRequestHeader('Authorization', `Bearer ${TOKEN}`);
     xhr.upload.onprogress = (event) => {
       if (!event.lengthComputable) {
-        setUploadStatus(statusId, '正在上传…');
+        emitUploadStatus(statusTarget, '正在上传…');
         return;
       }
       const percent = Math.round((event.loaded / event.total) * 100);
-      setUploadStatus(
-        statusId,
+      emitUploadStatus(
+        statusTarget,
         percent >= 100 ? '文件已传到服务器，正在写入云存储…' : `正在上传 ${percent}%`
       );
       if (percent >= 100) startServerWait();
@@ -1018,23 +1038,103 @@ function triggerLessonVideoUpload() {
   document.getElementById('lessonVideoUpload').click();
 }
 
-async function handleLessonVideoUpload(input) {
-  if (!input.files || !input.files[0]) return;
-  LESSON_UPLOADING = true;
-  setUploadStatus('lessonVideoUploadStatus', '准备上传视频…');
-  try {
-    const data = await uploadCourseMedia(input.files[0], 'video', 'lessonVideoUploadStatus');
-    document.getElementById('lf_video_url').value = data.url;
-    updateLessonVideoPreview();
-    setUploadStatus('lessonVideoUploadStatus', '视频已上传，可以保存课时');
-    toast('视频已上传', 'success');
-  } catch(e) {
-    setUploadStatus('lessonVideoUploadStatus', e.message, true);
-    toast(e.message, 'error');
-  } finally {
-    LESSON_UPLOADING = false;
-    input.value = '';
-  }
+function renderLessonUploadTasks() {
+  const list = document.getElementById('lessonUploadTasks');
+  if (!list) return;
+  const tasks = Array.from(LESSON_UPLOAD_TASKS.values()).sort((a, b) => b.createdAt - a.createdAt).slice(0, 8);
+  list.innerHTML = tasks.map(task => {
+    const stateText = task.state === 'ok' ? '已完成' : task.state === 'error' ? '失败' : task.message || '上传中';
+    const percent = task.state === 'ok' ? 100 : task.state === 'error' ? (task.percent || 100) : task.percent;
+    return `
+      <div class="upload-task ${task.state}">
+        <div class="upload-task-head">
+          <div class="upload-task-name" title="${esc(task.name)}">${esc(task.name)}</div>
+          <div class="upload-task-state">${esc(stateText)}</div>
+        </div>
+        <div class="upload-task-bar"><div class="upload-task-fill" style="width:${Math.max(0, Math.min(100, percent || 0))}%"></div></div>
+        <div class="upload-task-foot">
+          <div class="upload-task-url">${task.url ? esc(task.url) : esc(task.message || '')}</div>
+          <div class="upload-task-actions">
+            ${task.url ? `<button type="button" class="btn btn-outline btn-sm" onclick="useLessonUploadTask('${task.id}')">使用链接</button>` : ''}
+            <button type="button" class="btn btn-ghost" onclick="removeLessonUploadTask('${task.id}')">移除</button>
+          </div>
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+function updateLessonUploadTask(taskId, patch) {
+  const task = LESSON_UPLOAD_TASKS.get(taskId);
+  if (!task) return;
+  Object.assign(task, patch, { updatedAt: Date.now() });
+  renderLessonUploadTasks();
+}
+
+function useLessonUploadTask(taskId) {
+  const task = LESSON_UPLOAD_TASKS.get(taskId);
+  if (!task || !task.url) return;
+  document.getElementById('lf_video_url').value = task.url;
+  updateLessonVideoPreview();
+  setUploadStatus('lessonVideoUploadStatus', '已填入上传完成的视频链接，可以保存课时');
+}
+
+function removeLessonUploadTask(taskId) {
+  LESSON_UPLOAD_TASKS.delete(taskId);
+  renderLessonUploadTasks();
+}
+
+function startLessonVideoUpload(file) {
+  const taskId = (window.crypto?.randomUUID?.() || `lesson-upload-${Date.now()}-${Math.random().toString(16).slice(2)}`);
+  LESSON_UPLOAD_TASKS.set(taskId, {
+    id: taskId,
+    name: file.name || '未命名视频',
+    state: 'uploading',
+    percent: 0,
+    message: '准备上传…',
+    url: '',
+    createdAt: Date.now(),
+    updatedAt: Date.now(),
+  });
+  renderLessonUploadTasks();
+  uploadCourseMedia(file, 'video', (msg, isError) => {
+    const match = String(msg || '').match(/正在上传\s+(\d+)%/);
+    const patch = {
+      state: isError ? 'error' : 'uploading',
+      message: msg || '上传中…',
+    };
+    if (match) patch.percent = parseInt(match[1], 10);
+    else if (String(msg || '').includes('写入云存储')) patch.percent = 100;
+    updateLessonUploadTask(taskId, patch);
+  }).then(data => {
+    updateLessonUploadTask(taskId, {
+      state: 'ok',
+      percent: 100,
+      message: '已完成',
+      url: data.url,
+    });
+    const urlInput = document.getElementById('lf_video_url');
+    if (urlInput && !urlInput.value.trim()) {
+      urlInput.value = data.url;
+      updateLessonVideoPreview();
+      setUploadStatus('lessonVideoUploadStatus', '第一个上传完成的视频已自动填入，可以保存课时');
+    }
+    toast(`视频已上传：${file.name}`, 'success');
+  }).catch(e => {
+    updateLessonUploadTask(taskId, {
+      state: 'error',
+      message: e.message || '上传失败',
+    });
+    toast(e.message || '视频上传失败', 'error');
+  });
+}
+
+function handleLessonVideoUpload(input) {
+  const files = Array.from(input.files || []);
+  if (!files.length) return;
+  setUploadStatus('lessonVideoUploadStatus', `已添加 ${files.length} 个上传任务；可以继续选择其他视频`);
+  files.forEach(startLessonVideoUpload);
+  input.value = '';
 }
 
 function updateLessonVideoPreview() {
@@ -1355,10 +1455,10 @@ function openLessonModal(lessonData = null) {
   document.getElementById('lf_sort_order').value     = lessonData?.sort_order ?? (CURRENT_LESSONS.length * 10);
   document.getElementById('lf_is_free').checked      = lessonData?.is_free ?? false;
   document.getElementById('lf_is_published').checked = lessonData?.is_published ?? true;
-  LESSON_UPLOADING = false;
   const submitBtn = document.getElementById('lessonSubmitBtn');
   if (submitBtn) { submitBtn.disabled = false; submitBtn.textContent = '保存课时'; }
   setUploadStatus('lessonVideoUploadStatus', '');
+  renderLessonUploadTasks();
   updateLessonVideoPreview();
 
   document.getElementById('lessonModal').classList.add('active');
@@ -1378,12 +1478,6 @@ async function saveLesson() {
   const title = document.getElementById('lf_title').value.trim();
   if (!title) { toast('课时标题必填', 'error'); return; }
   if (!CURRENT_COURSE_ID) { toast('请先保存课程，再添加课时', 'error'); return; }
-  if (LESSON_UPLOADING) {
-    const msg = '视频还在上传或写入云存储，拿到链接后才能保存';
-    setUploadStatus('lessonVideoUploadStatus', msg, true);
-    toast(msg, 'error');
-    return;
-  }
 
   const body = {
     title,
@@ -1396,7 +1490,8 @@ async function saveLesson() {
     is_published:   document.getElementById('lf_is_published').checked,
   };
   if (body.lesson_type === 'video' && !body.video_url) {
-    const msg = '请先上传视频，或填写可播放的视频链接';
+    const activeCount = Array.from(LESSON_UPLOAD_TASKS.values()).filter(t => t.state === 'uploading').length;
+    const msg = activeCount ? '请选择一个已上传完成的视频，或等待当前上传任务完成' : '请先上传视频，或填写可播放的视频链接';
     setUploadStatus('lessonVideoUploadStatus', msg, true);
     toast(msg, 'error');
     return;
