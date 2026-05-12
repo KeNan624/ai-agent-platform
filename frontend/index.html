@@ -9129,10 +9129,12 @@ async function sendMsg(src, opts){
   let aiRow = null;
   let aiBubble = null;
   let fullText = '';
+  let streamRenderText = '';
+  let pendingStreamText = '';
   let streamRenderTimer = null;
   let streamRenderRaf = null;
   let lastStreamPaintAt = 0;
-  const STREAM_RENDER_INTERVAL = 45;
+  const STREAM_RENDER_INTERVAL = 16;
 
   function ensureAiBubble(){
     if(aiRow) return;
@@ -9147,25 +9149,56 @@ async function sendMsg(src, opts){
     return (msgs.scrollHeight - msgs.scrollTop - msgs.clientHeight) < 160;
   }
 
+  function streamFrameCharBudget(){
+    const backlog = pendingStreamText.length;
+    if(backlog > 900) return 64;
+    if(backlog > 360) return 32;
+    if(backlog > 120) return 16;
+    return 6;
+  }
+
+  function takeStreamTextSlice(text, maxChars){
+    let end = 0;
+    let count = 0;
+    for(const ch of text){
+      end += ch.length;
+      count++;
+      if(count >= maxChars) break;
+    }
+    return [text.slice(0, end), text.slice(end)];
+  }
+
   function paintStreamNow(){
     streamRenderRaf = null;
     if(!isCurrentConvoObject(sendTargetConvo)) return;
     ensureAiBubble();
     if(!aiBubble) return;
+    if(pendingStreamText){
+      const slice = takeStreamTextSlice(pendingStreamText, streamFrameCharBudget());
+      streamRenderText += slice[0];
+      pendingStreamText = slice[1];
+    } else if(streamRenderText !== fullText){
+      streamRenderText = fullText;
+    }
     const stickToBottom = shouldStickToBottom();
     if(typeof marked !== 'undefined'){
-      aiBubble.innerHTML = marked.parse(fullText);
+      aiBubble.innerHTML = marked.parse(streamRenderText);
     } else {
-      aiBubble.textContent = fullText;
+      aiBubble.textContent = streamRenderText;
     }
     // v9: 流式过程不 Prism 高亮（代码可能没完整），等 finalizeBubble 调用
     if(stickToBottom) msgs.scrollTop = msgs.scrollHeight;
     lastStreamPaintAt = performance.now();
+    if(pendingStreamText){
+      scheduleStreamPaint(false);
+    }
   }
 
   function scheduleStreamPaint(force){
     if(!isCurrentConvoObject(sendTargetConvo)) return;
     if(force){
+      pendingStreamText = '';
+      streamRenderText = fullText;
       if(streamRenderTimer){
         clearTimeout(streamRenderTimer);
         streamRenderTimer = null;
@@ -9188,11 +9221,14 @@ async function sendMsg(src, opts){
 
   function appendDelta(text){
     fullText += text;
+    pendingStreamText += text;
     scheduleStreamPaint(false);
   }
 
   // 🎯 v9: 流式完成后调一次，给最终内容加高亮 + 复制按钮
   function finalizeBubble(){
+    pendingStreamText = '';
+    streamRenderText = fullText;
     if(streamRenderTimer){
       clearTimeout(streamRenderTimer);
       streamRenderTimer = null;

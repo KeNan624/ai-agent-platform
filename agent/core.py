@@ -87,6 +87,8 @@ TOOL_DEFINITIONS = [
 
 TOOL_TIMEOUT = int(os.getenv("AGENT_TOOL_TIMEOUT", "30"))
 MAX_TOKENS_DEFAULT = int(os.getenv("AGENT_MAX_TOKENS", "4096"))
+COMPAT_STREAM_CHARS = max(1, int(os.getenv("AGENT_COMPAT_STREAM_CHARS", "6")))
+COMPAT_STREAM_DELAY = max(0.0, float(os.getenv("AGENT_COMPAT_STREAM_DELAY", "0.008")))
 
 # 🌐 v21 · 工具结果内存 LRU 缓存(10 分钟 TTL · 最多 64 条)
 # 省钱 + 提速:同样的搜索 10 分钟内不重复请求 Tavily
@@ -174,6 +176,19 @@ def _has_unusable_compatible_tool_call(model: str, final_message: Any, tool_uses
     )
 
 
+def _iter_smooth_text_chunks(text: str, *, chunk_chars: int = COMPAT_STREAM_CHARS):
+    """Split non-streaming compatible model output into small UI-friendly chunks."""
+    buf = ""
+    soft_breaks = set("，。！？；：、,.!?;:\n")
+    for ch in text or "":
+        buf += ch
+        if len(buf) >= chunk_chars or (ch in soft_breaks and len(buf) >= 2):
+            yield buf
+            buf = ""
+    if buf:
+        yield buf
+
+
 def _format_scraped_context(results: list[dict]) -> str:
     parts = [
         "系统已自动抓取用户消息中的网页。请基于下面的真实网页内容回答；"
@@ -252,7 +267,10 @@ async def _message_with_compatible_streaming(
         final_message = await client.messages.create(**kwargs)
         for block in final_message.content:
             if getattr(block, "type", None) == "text" and getattr(block, "text", None):
-                yield {"type": "text_delta", "content": block.text}
+                for chunk in _iter_smooth_text_chunks(block.text):
+                    yield {"type": "text_delta", "content": chunk}
+                    if COMPAT_STREAM_DELAY:
+                        await asyncio.sleep(COMPAT_STREAM_DELAY)
 
     yield {"type": "_final_message", "content": final_message}
 

@@ -40,6 +40,10 @@ from routers import admin_courses as admin_courses_router  # noqa: E402
 from seeds import seed_preset_projects  # noqa: E402
 
 
+STREAM_DELTA_MAX_CHARS = max(1, int(os.getenv("STREAM_DELTA_MAX_CHARS", "6")))
+STREAM_DELTA_MAX_WAIT = max(0.0, float(os.getenv("STREAM_DELTA_MAX_WAIT", "0.018")))
+
+
 def ensure_practice_column_schema() -> None:
     """Lightweight additive migration for the 实战区课程/专栏 shared tables."""
     inspector = inspect(engine)
@@ -326,6 +330,7 @@ async def chat_stream(
         pending_delta_text = ""
         last_delta_flush = time.monotonic()
         try:
+            yield ": connected\n\n"
             # Choose agent generator based on whether project is specified
             if project is not None:
                 agent_stream = run_project_agent(
@@ -364,11 +369,14 @@ async def chat_stream(
                 etype = event["type"]
 
                 if etype == "text_delta":
-                    # Claude often emits 1-3 Chinese chars per delta. Coalesce tiny chunks
-                    # so the UI paints in smooth phrases instead of reparsing per character.
+                    # Keep SSE packets small enough for smooth typing, while avoiding
+                    # a full markdown reparse for every 1-2 character model delta.
                     pending_delta_text += event.get("content", "")
                     now = time.monotonic()
-                    if len(pending_delta_text) >= 18 or (now - last_delta_flush) >= 0.045:
+                    if (
+                        len(pending_delta_text) >= STREAM_DELTA_MAX_CHARS
+                        or (now - last_delta_flush) >= STREAM_DELTA_MAX_WAIT
+                    ):
                         yield f"data: {json.dumps({'type': 'delta', 'text': pending_delta_text}, ensure_ascii=False)}\n\n"
                         pending_delta_text = ""
                         last_delta_flush = now
@@ -471,7 +479,8 @@ async def chat_stream(
         event_generator(),
         media_type="text/event-stream",
         headers={
-            "Cache-Control": "no-cache",
+            "Cache-Control": "no-cache, no-transform",
+            "Connection": "keep-alive",
             "X-Accel-Buffering": "no",  # disable nginx buffering when deployed
         },
     )
