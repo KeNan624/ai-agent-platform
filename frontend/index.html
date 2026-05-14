@@ -14811,6 +14811,15 @@ function v34PlanPeriod(plan) {
   if (days >= 28) return '月';
   return days + '天';
 }
+function v34PaymentModelName(id, data) {
+  var names = (data && data.chat_model_names) || {};
+  if (names[id]) return names[id];
+  if (typeof getChatModelMeta === 'function') {
+    var meta = getChatModelMeta(id);
+    if (meta && meta.name) return meta.name;
+  }
+  return id;
+}
 function v34RenderProfileCredits(info) {
   var balance = Number(info.credit_balance || 0);
   var totalGranted = Number(info.credit_total_bought || 0);
@@ -14834,12 +14843,12 @@ function v34FeatureName(id) {
     custom_workspace: '自建工作空间',
   }[id] || id;
 }
-function v34RenderPlanBenefits(plan) {
+function v34RenderPlanBenefits(plan, data) {
   var benefits = Array.isArray(plan.benefits) && plan.benefits.length
     ? plan.benefits
     : [
       (plan.period === 'day' ? '每天赠送 ' : '每月赠送 ') + Number(plan.quota || 0) + ' 积分',
-      '可用模型：' + (plan.allowed_models || []).join('、'),
+      '可用模型：' + (plan.allowed_models || []).map(function(id) { return v34PaymentModelName(id, data); }).join('、'),
     ];
   return benefits.map(function(item) { return '<div style="line-height:1.9;">✅ ' + v34Esc(item) + '</div>'; }).join('');
 }
@@ -14859,7 +14868,7 @@ function v34RenderMembershipProducts(info, data) {
       <div style="border:1px solid #E4DECF;border-radius:12px;padding:18px;text-align:left;background:${isFree ? '#FAFAF7' : '#fff'};">
         <div style="font-size:15px;font-weight:700;color:#1A1814;">${v34Esc(plan.name)}</div>
         <div style="font-size:26px;font-weight:700;color:#C26B3F;margin:10px 0;">¥${v34Money(plan.amount)}<span style="font-size:12px;font-weight:400;color:#9A9485;"> / ${v34PlanPeriod(plan)}</span></div>
-        <div style="font-size:12px;color:#5C5647;min-height:88px;">${v34RenderPlanBenefits(plan)}</div>
+        <div style="font-size:12px;color:#5C5647;min-height:88px;">${v34RenderPlanBenefits(plan, data)}</div>
         <button class="v34-pf-btn ${isCurrent || !canBuy ? 'outline' : ''}" style="width:100%;margin-top:14px;" ${isFree || isCurrent || !canBuy ? 'disabled' : `onclick="v34StartPurchase('membership','${v34Esc(plan.id)}')"`}>${isCurrent ? '当前套餐' : (canBuy ? '立即订阅' : '已售罄')}</button>
       </div>
     `;
@@ -14876,7 +14885,7 @@ function v34RenderMembershipProducts(info, data) {
     `;
   }).join('') || '<div style="font-size:13px;color:#9A9485;">暂无上架积分包</div>';
   var billingRows = [];
-  Object.keys(modelPrices).forEach(function(k){ if(Number(modelPrices[k]) > 0) billingRows.push([k, modelPrices[k]]); });
+  Object.keys(modelPrices).forEach(function(k){ if(Number(modelPrices[k]) > 0) billingRows.push([v34PaymentModelName(k, data), modelPrices[k]]); });
   Object.keys(featurePrices).forEach(function(k){ if(Number(featurePrices[k]) > 0) billingRows.push([v34FeatureName(k), featurePrices[k]]); });
   wrap.innerHTML = `
     <div class="v34-pf-section" style="text-align:center;padding:24px;max-width:900px;">

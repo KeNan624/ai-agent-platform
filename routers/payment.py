@@ -36,6 +36,7 @@ from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
 from auth import get_current_user
+from chat_model_config import get_chat_model_config
 from database import get_db
 from credit_config import get_credit_billing_config, get_purchasable_credit_packages
 from credit_service import grant_credits
@@ -300,6 +301,7 @@ class PaymentPlansResponse(BaseModel):
     plans: list[PaymentPlanItem]
     credit_packages: list[PaymentCreditPackageItem] = []
     credit_billing: dict = {}
+    chat_model_names: dict[str, str] = {}
 
 
 class OrderStatusResponse(BaseModel):
@@ -321,6 +323,12 @@ class OrderStatusResponse(BaseModel):
 
 @router.get("/plans", response_model=PaymentPlansResponse)
 def list_payment_plans(db: Session = Depends(get_db)):
+    chat_models = get_chat_model_config(db).get("models", [])
+    chat_model_names = {
+        str(model.get("id")): str(model.get("name") or model.get("id"))
+        for model in chat_models
+        if model.get("id")
+    }
     return PaymentPlansResponse(
         payments_enabled=_payments_enabled(),
         free_plan=PaymentPlanItem(**get_plan_definition("free", db)),
@@ -330,6 +338,7 @@ def list_payment_plans(db: Session = Depends(get_db)):
             for package in get_purchasable_credit_packages(db)
         ],
         credit_billing=get_credit_billing_config(db),
+        chat_model_names=chat_model_names,
     )
 
 
