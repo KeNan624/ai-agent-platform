@@ -14,7 +14,15 @@ from fastapi import HTTPException, status
 from sqlalchemy import func
 from sqlalchemy.orm import Session
 
-from chat_model_config import get_available_model_ids, is_model_allowed_for_plan
+from chat_model_config import get_available_model_ids, get_model_by_id, is_model_allowed_for_plan
+from credit_config import get_feature_credit_price, get_model_credit_price
+from credit_service import (
+    InsufficientCreditsError,
+    consume_credits,
+    get_credit_balance,
+    get_credit_summary,
+    has_enough_credits,
+)
 from models import Membership, UsageLog, User
 from plan_config import (
     FEATURE_UNLIMITED_QUOTA,
@@ -29,6 +37,7 @@ from plan_config import (
 )
 
 FEATURE_USAGE_PREFIX = "feature:"
+PAYMENT_REQUIRED = getattr(status, "HTTP_402_PAYMENT_REQUIRED", 402)
 
 
 # ---------------------------------------------------------------------------
@@ -121,30 +130,87 @@ def _feature_quota_exceeded(
     )
 
 
+def _insufficient_credits(item_type: str, item_key: str, required: int, user_id: int, db: Session) -> HTTPException:
+    balance = get_credit_balance(user_id, db)
+    return HTTPException(
+        status_code=PAYMENT_REQUIRED,
+        detail={
+            "error_code": "INSUFFICIENT_CREDITS",
+            "item_type": item_type,
+            "item_key": item_key,
+            "required_credits": required,
+            "credit_balance": str(balance),
+            "message": f"积分余额不足，本次需要 {required} 积分，当前余额 {balance} 积分",
+        },
+    )
+
+
+def _credit_allowed(user_id: int, item_type: str, item_key: str, db: Session) -> bool:
+    if item_type == "model":
+        price = get_model_credit_price(item_key, db)
+    else:
+        price = get_feature_credit_price(item_key, db)
+    return price > 0 and has_enough_credits(user_id, price, db)
+
+
+def _require_credit_or_raise(user_id: int, item_type: str, item_key: str, db: Session) -> None:
+    price = get_model_credit_price(item_key, db) if item_type == "model" else get_feature_credit_price(item_key, db)
+    if price <= 0:
+        return
+    if not has_enough_credits(user_id, price, db):
+        raise _insufficient_credits(item_type, item_key, price, user_id, db)
+
+
+def _plan_feature_quota_available(user_id: int, plan_type: str, feature_key: str, db: Session) -> bool:
+    if not plan_has_feature(plan_type, feature_key, db):
+        return False
+    quota = get_feature_quota_for_plan(plan_type, feature_key, db)
+    if quota < 0:
+        return True
+    plan = get_plan_definition(plan_type, db)
+    return _count_feature_usage(user_id, feature_key, plan["period"], db) < quota
+
+
 def require_plan_feature(user: User, feature_key: str, db: Session) -> str:
     """Ensure the user's active plan enables a non-chat platform feature."""
     plan_type = get_active_plan(user, db)
+    if _plan_feature_quota_available(int(user.id), plan_type, feature_key, db):
+        return plan_type
+
+    if _credit_allowed(int(user.id), "feature", feature_key, db):
+        return plan_type
+
     if not plan_has_feature(plan_type, feature_key, db):
+        _require_credit_or_raise(int(user.id), "feature", feature_key, db)
         raise _feature_denied(feature_key, plan_type, db)
+
     quota = get_feature_quota_for_plan(plan_type, feature_key, db)
+    plan = get_plan_definition(plan_type, db)
+    used = _count_feature_usage(int(user.id), feature_key, plan["period"], db)
+    _require_credit_or_raise(int(user.id), "feature", feature_key, db)
     if quota >= 0:
-        plan = get_plan_definition(plan_type, db)
-        used = _count_feature_usage(user.id, feature_key, plan["period"], db)
-        if used >= quota:
-            raise _feature_quota_exceeded(feature_key, plan_type, used, quota, plan["period"], db)
+        raise _feature_quota_exceeded(feature_key, plan_type, used, quota, plan["period"], db)
     return plan_type
 
 
 def require_plan_feature_for_user_id(user_id: int, feature_key: str, db: Session) -> str:
     plan_type = get_active_plan_for_user_id(user_id, db)
+    if _plan_feature_quota_available(int(user_id), plan_type, feature_key, db):
+        return plan_type
+
+    if _credit_allowed(int(user_id), "feature", feature_key, db):
+        return plan_type
+
     if not plan_has_feature(plan_type, feature_key, db):
+        _require_credit_or_raise(int(user_id), "feature", feature_key, db)
         raise _feature_denied(feature_key, plan_type, db)
+
     quota = get_feature_quota_for_plan(plan_type, feature_key, db)
+    plan = get_plan_definition(plan_type, db)
+    used = _count_feature_usage(int(user_id), feature_key, plan["period"], db)
+    _require_credit_or_raise(int(user_id), "feature", feature_key, db)
     if quota >= 0:
-        plan = get_plan_definition(plan_type, db)
-        used = _count_feature_usage(int(user_id), feature_key, plan["period"], db)
-        if used >= quota:
-            raise _feature_quota_exceeded(feature_key, plan_type, used, quota, plan["period"], db)
+        raise _feature_quota_exceeded(feature_key, plan_type, used, quota, plan["period"], db)
     return plan_type
 
 
@@ -202,9 +268,15 @@ def check_permission(user: User, model: str, db: Session) -> str:
     plan_type = get_active_plan(user, db)
     plan = get_plan_definition(plan_type, db)
 
-    # 1. Model access check
+    # 1. Model access check. A priced, enabled model can also be used with
+    # credits even when the current membership plan does not include it.
     allowed_models = get_available_model_ids(plan_type, db)
     if not is_model_allowed_for_plan(model, plan_type, db):
+        model_cfg = get_model_by_id(model, db)
+        if model_cfg and model_cfg.get("enabled") and _credit_allowed(int(user.id), "model", model, db):
+            return plan_type
+        if model_cfg and model_cfg.get("enabled"):
+            _require_credit_or_raise(int(user.id), "model", model, db)
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail={
@@ -222,6 +294,9 @@ def check_permission(user: User, model: str, db: Session) -> str:
 
     used = _count_usage(user.id, plan["period"], db)
     if used >= plan["quota"]:
+        if _credit_allowed(int(user.id), "model", model, db):
+            return plan_type
+        _require_credit_or_raise(int(user.id), "model", model, db)
         period_label = "today" if plan["period"] == "day" else "this month"
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
@@ -237,22 +312,83 @@ def check_permission(user: User, model: str, db: Session) -> str:
     return plan_type
 
 
+def _record_credit_usage(
+    *,
+    db: Session,
+    user_id: int,
+    price: int,
+    source_id: str,
+    item_type: str,
+    item_key: str,
+) -> None:
+    consume_credits(
+        db,
+        user_id=int(user_id),
+        amount=price,
+        source_type="usage_log",
+        source_id=source_id,
+        item_type=item_type,
+        item_key=item_key,
+        description=f"{item_key} 使用扣费",
+    )
+
+
 def record_usage(user: User, model: str, db: Session, message_count: int = 1) -> None:
     """Write one UsageLog row after a successful chat call."""
     plan_type = get_active_plan(user, db)
+    plan = get_plan_definition(plan_type, db)
+    quota_charged = False
+    credit_price = 0
+
+    if not is_model_free_for_plan(plan_type, model, db):
+        if is_model_allowed_for_plan(model, plan_type, db) and _count_usage(int(user.id), plan["period"], db) < plan["quota"]:
+            quota_charged = True
+        else:
+            credit_price = get_model_credit_price(model, db)
+            if credit_price <= 0:
+                raise RuntimeError(f"Model {model} is not available by plan quota or credits")
+
     log = UsageLog(
         user_id=user.id,
         model=model,
         message_count=message_count,
-        quota_charged=not is_model_free_for_plan(plan_type, model, db),
+        quota_charged=quota_charged,
         created_at=datetime.utcnow(),
     )
-    db.add(log)
-    db.commit()
+    try:
+        db.add(log)
+        db.flush()
+        if credit_price > 0:
+            _record_credit_usage(
+                db=db,
+                user_id=int(user.id),
+                price=credit_price,
+                source_id=str(log.id),
+                item_type="model",
+                item_key=model,
+            )
+        db.commit()
+    except InsufficientCreditsError:
+        db.rollback()
+        raise
+    except Exception:
+        db.rollback()
+        raise
+
+
+def _feature_credit_price_if_needed(user_id: int, plan_type: str, feature_key: str, db: Session) -> int:
+    if _plan_feature_quota_available(int(user_id), plan_type, feature_key, db):
+        return 0
+    price = get_feature_credit_price(feature_key, db)
+    if price <= 0:
+        raise RuntimeError(f"Feature {feature_key} is not available by plan quota or credits")
+    return price
 
 
 def record_feature_usage(user: User, feature_key: str, db: Session) -> None:
     """Write one UsageLog row after a successful non-chat feature call."""
+    plan_type = get_active_plan(user, db)
+    credit_price = _feature_credit_price_if_needed(int(user.id), plan_type, feature_key, db)
     log = UsageLog(
         user_id=user.id,
         model=f"{FEATURE_USAGE_PREFIX}{feature_key}",
@@ -260,12 +396,31 @@ def record_feature_usage(user: User, feature_key: str, db: Session) -> None:
         quota_charged=False,
         created_at=datetime.utcnow(),
     )
-    db.add(log)
-    db.commit()
+    try:
+        db.add(log)
+        db.flush()
+        if credit_price > 0:
+            _record_credit_usage(
+                db=db,
+                user_id=int(user.id),
+                price=credit_price,
+                source_id=str(log.id),
+                item_type="feature",
+                item_key=feature_key,
+            )
+        db.commit()
+    except InsufficientCreditsError:
+        db.rollback()
+        raise
+    except Exception:
+        db.rollback()
+        raise
 
 
 def record_feature_usage_for_user_id(user_id: int, feature_key: str, db: Session) -> None:
     """Write one feature UsageLog row when only a user id is available."""
+    plan_type = get_active_plan_for_user_id(int(user_id), db)
+    credit_price = _feature_credit_price_if_needed(int(user_id), plan_type, feature_key, db)
     log = UsageLog(
         user_id=int(user_id),
         model=f"{FEATURE_USAGE_PREFIX}{feature_key}",
@@ -273,8 +428,25 @@ def record_feature_usage_for_user_id(user_id: int, feature_key: str, db: Session
         quota_charged=False,
         created_at=datetime.utcnow(),
     )
-    db.add(log)
-    db.commit()
+    try:
+        db.add(log)
+        db.flush()
+        if credit_price > 0:
+            _record_credit_usage(
+                db=db,
+                user_id=int(user_id),
+                price=credit_price,
+                source_id=str(log.id),
+                item_type="feature",
+                item_key=feature_key,
+            )
+        db.commit()
+    except InsufficientCreditsError:
+        db.rollback()
+        raise
+    except Exception:
+        db.rollback()
+        raise
 
 
 def get_quota_status(user: User, db: Session) -> dict:
@@ -306,4 +478,5 @@ def get_quota_status(user: User, db: Session) -> dict:
         "feature_usage": feature_usage,
         "practice_access": bool(plan.get("practice_access")),
         "practice_publish": bool(plan.get("practice_publish")),
+        **get_credit_summary(user, db),
     }

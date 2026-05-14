@@ -47,7 +47,7 @@
 
   /* 背景巨型水印字 */
   body::before{
-    content: '阿';
+    content: '川';
     position: fixed;
     bottom: -8vh; right: -4vw;
     font-family: var(--serif-cn);
@@ -391,8 +391,25 @@
     .topbar{ padding: 14px 18px; }
     .brand{ font-size: 15px; }
     .user-btn span:not(.arrow){ display: none; }
+    .user-btn{ min-height: 44px; padding: 8px 12px; min-width: auto; }
     .hero{ margin-bottom: 40px; }
     .foot-note{ display: none; }
+  }
+  @media (max-width: 640px){
+    .stage{ padding: 80px 16px 60px; }
+    .topbar{ padding: 12px 14px; }
+    .brand{ font-size: 14px; }
+    .brand-mark{ width: 26px; height: 26px; font-size: 13px; }
+    .zones{ gap: 12px; }
+    .zone-card{ min-height: 200px; padding: 24px 22px 22px; }
+    .zone-title-cn{ font-size: 26px; }
+    .zone-title-en{ font-size: 15px; letter-spacing: .1em; }
+    .zone-sub{ font-size: 13px; line-height: 1.6; }
+    .zone-cta{ font-size: 12px; min-height: 40px; }
+    .hero-title, .hero h1{ font-size: clamp(28px, 8vw, 40px); line-height: 1.15; }
+    .hero-sub{ font-size: 13px; }
+    /* dropdown 用户菜单贴右边 */
+    .user-menu .user-pop, .user-pop{ right: 14px; left: auto; max-width: calc(100vw - 28px); }
   }
 
   @media (prefers-reduced-motion: reduce){
@@ -408,7 +425,7 @@
 <!-- Top bar -->
 <div class="topbar">
   <a href="landing.html" class="brand">
-    <span class="brand-mark">阿</span>
+    <span class="brand-mark">川</span>
     <span>阿川 AI 超级助手</span>
   </a>
   <div class="user-menu">

@@ -31,6 +31,9 @@ class MemberInfoResponse(BaseModel):
     feature_usage: dict[str, int] = {}
     practice_access: bool = False
     practice_publish: bool = False
+    credit_balance: str = "0.00"
+    credit_total_bought: str = "0.00"
+    credit_total_used: str = "0.00"
 
 
 class MemberInfoUpdate(BaseModel):

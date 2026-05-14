@@ -394,12 +394,32 @@
     transform: translate(-50%, 0);
   }
 
+  @media (max-width: 900px){
+    /* iOS 防 zoom */
+    input, textarea, select{ font-size: 16px !important; }
+    button, a.btn, .btn{ min-height: 40px; }
+  }
   @media (max-width: 640px){
-    .topbar{ padding: 14px 18px; }
-    .page-head{ margin: 40px auto 30px; }
-    .page-title{ font-size: 34px; }
-    .avatar-card{ padding: 22px; gap: 14px; flex-wrap: wrap; }
-    .plan-pill{ order: 3; }
+    .topbar{ padding: 12px 16px; }
+    .topbar a, .topbar button{ min-height: 40px; padding: 6px 10px; font-size: 13px; }
+    .page-head{ margin: 32px auto 24px; max-width: 100%; padding: 0 16px; }
+    .page-title{ font-size: 28px; line-height: 1.2; }
+    .page-sub{ font-size: 13px; }
+    .avatar-card{ padding: 18px; gap: 12px; flex-wrap: wrap; flex-direction: column; align-items: flex-start; }
+    .avatar-circle{ width: 56px; height: 56px; font-size: 22px; }
+    .avatar-info{ width: 100%; }
+    .avatar-name{ font-size: 17px; }
+    .avatar-phone{ font-size: 12.5px; }
+    .plan-pill{ order: 3; align-self: flex-start; }
+    .stat-grid{ grid-template-columns: 1fr; gap: 0; }
+    .stat-cell{ padding: 14px 18px; }
+    .stat-cell + .stat-cell{ border-left: none; border-top: 1px solid var(--line); }
+    .stat-num{ font-size: 22px; }
+    .stat-label{ font-size: 12px; }
+    .action-card{ padding: 16px; }
+    .action-row{ flex-wrap: wrap; gap: 10px; }
+    .action-btn{ min-height: 44px; }
+    .toast{ width: 86vw; max-width: 86vw; font-size: 13px; }
   }
 </style>
 </head>
@@ -407,7 +427,7 @@
 
 <div class="topbar">
   <a href="choose.html" class="brand">
-    <span class="brand-mark">阿</span>
+    <span class="brand-mark">川</span>
     <span>阿川 AI 超级助手</span>
   </a>
   <a href="choose.html" class="back-link">

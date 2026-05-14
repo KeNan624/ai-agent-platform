@@ -118,6 +118,16 @@ def ensure_plan_billing_schema() -> None:
                 conn.execute(text("ALTER TABLE orders ADD COLUMN plan_label VARCHAR(100)"))
             if "plan_duration_days" not in order_cols:
                 conn.execute(text("ALTER TABLE orders ADD COLUMN plan_duration_days INTEGER"))
+            if "order_type" not in order_cols:
+                conn.execute(text(
+                    "ALTER TABLE orders "
+                    "ADD COLUMN order_type VARCHAR(16) NOT NULL DEFAULT 'membership'"
+                ))
+            if "credit_amount" not in order_cols:
+                conn.execute(text(
+                    "ALTER TABLE orders "
+                    "ADD COLUMN credit_amount NUMERIC(12, 2) NOT NULL DEFAULT 0"
+                ))
 
 
 @asynccontextmanager

@@ -9,6 +9,7 @@ from chat_model_config import (
     get_chat_model_config,
     get_effective_default_model,
 )
+from credit_config import get_model_credit_price
 from database import get_db
 from models import User
 from permissions import get_active_plan
@@ -27,7 +28,20 @@ def available_models(
     plan = get_plan_definition(plan_type, db)
     free_model_ids = set(get_free_model_ids_for_plan(plan_type, db))
     config = get_chat_model_config(db)
-    models = get_available_chat_models(plan_type, db)
+    plan_models = get_available_chat_models(plan_type, db)
+    plan_model_ids = {m["id"] for m in plan_models}
+    models = []
+    seen = set()
+    for model in config["models"]:
+        if not model.get("enabled"):
+            continue
+        credit_price = get_model_credit_price(model["id"], db)
+        if model["id"] not in plan_model_ids and credit_price <= 0:
+            continue
+        if model["id"] in seen:
+            continue
+        seen.add(model["id"])
+        models.append(model)
     return {
         "provider": config["provider"],
         "plan_type": plan_type,
@@ -41,6 +55,8 @@ def available_models(
                 "description": m.get("description") or "",
                 "supports_vision": bool(m.get("supports_vision")),
                 "quota_free": m["id"] in free_model_ids,
+                "available_by_plan": m["id"] in plan_model_ids,
+                "credit_price": get_model_credit_price(m["id"], db),
             }
             for m in models
         ],

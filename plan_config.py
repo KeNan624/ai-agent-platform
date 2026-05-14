@@ -41,6 +41,7 @@ DEFAULT_PLAN_CONFIG: dict[str, Any] = {
             "id": "free",
             "name": "免费版",
             "description": "体验 AI 基础能力，每天限量使用",
+            "benefits": ["每天 10 次对话", "可使用基础模型", "适合轻量体验"],
             "enabled": True,
             "purchasable": False,
             "amount": "0.00",
@@ -59,6 +60,7 @@ DEFAULT_PLAN_CONFIG: dict[str, Any] = {
             "id": "monthly",
             "name": "月度会员",
             "description": "日常重度使用，畅享高质量模型",
+            "benefits": ["每月 500 次对话", "解锁高质量对话模型", "适合日常高频使用"],
             "enabled": True,
             "purchasable": True,
             "amount": "99.00",
@@ -77,6 +79,7 @@ DEFAULT_PLAN_CONFIG: dict[str, Any] = {
             "id": "quarterly",
             "name": "季度会员",
             "description": "季度续费，权益默认与月度会员一致",
+            "benefits": ["每月 500 次对话", "季度有效期", "权益默认与月度会员一致"],
             "enabled": True,
             "purchasable": True,
             "amount": "249.00",
@@ -95,6 +98,7 @@ DEFAULT_PLAN_CONFIG: dict[str, Any] = {
             "id": "yearly",
             "name": "年度会员",
             "description": "解锁全部模型和实战区权益",
+            "benefits": ["每月 1000 次对话", "解锁全部对话模型", "可访问并发布实战区内容"],
             "enabled": True,
             "purchasable": True,
             "amount": "799.00",
@@ -245,6 +249,14 @@ def _clean_feature_quotas(value: Any, default: Optional[dict[str, Any]] = None) 
     return result
 
 
+def _clean_benefits(value: Any, default: Optional[list[str]] = None) -> list[str]:
+    source = value if isinstance(value, list) else (default if isinstance(default, list) else [])
+    return [
+        text for text in (str(item or "").strip() for item in source)
+        if text
+    ][:12]
+
+
 def normalize_plan_config(
     raw: Any = None,
     *,
@@ -284,6 +296,7 @@ def normalize_plan_config(
             "id": plan_id,
             "name": plan_id,
             "description": "",
+            "benefits": [],
             "enabled": True,
             "purchasable": True,
             "amount": "0.00",
@@ -319,6 +332,7 @@ def normalize_plan_config(
             "id": plan_id,
             "name": str(item.get("name") or base.get("name") or plan_id).strip() or plan_id,
             "description": str(item.get("description") or "").strip(),
+            "benefits": _clean_benefits(item.get("benefits"), base.get("benefits", [])),
             "enabled": bool(item.get("enabled", base.get("enabled", True))),
             "purchasable": bool(item.get("purchasable", base.get("purchasable", True))),
             "amount": _as_amount(item.get("amount", base.get("amount", "0.00"))),

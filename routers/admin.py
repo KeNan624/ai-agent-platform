@@ -32,8 +32,14 @@ from chat_model_config import (
     get_chat_provider_status,
     save_chat_model_config,
 )
+from credit_config import (
+    get_credit_billing_config,
+    get_credit_package_config,
+    save_credit_billing_config,
+    save_credit_package_config,
+)
 from database import get_db
-from models import Membership, Order, UsageLog, User
+from models import Credit, Membership, Order, UsageLog, User
 from plan_config import (
     get_feature_definitions,
     get_grantable_plans,
@@ -152,6 +158,7 @@ class UserItem(BaseModel):
     created_at: datetime
     is_active: bool
     membership: Optional[MembershipInfo]
+    credit_balance: str = "0.00"
 
     class Config:
         from_attributes = True
@@ -167,6 +174,9 @@ class OrderItem(BaseModel):
     user_id: int
     phone: str
     plan: str
+    plan_label: Optional[str] = None
+    order_type: str = "membership"
+    credit_amount: str = "0.00"
     amount: str
     pay_status: str
     trade_no: Optional[str]
@@ -209,6 +219,8 @@ class ApiConfigUpdateRequest(BaseModel):
 
 class PlanConfigUpdateRequest(BaseModel):
     plans: list[dict[str, Any]]
+    credit_packages: Optional[list[dict[str, Any]]] = None
+    credit_billing: Optional[dict[str, Any]] = None
 
 
 class ChatModelItem(BaseModel):
@@ -436,7 +448,12 @@ def update_api_config(
 
 @router.get("/plan-config")
 def get_admin_plan_config(_: None = Depends(require_admin), db: Session = Depends(get_db)):
-    return {**get_plan_config(db), "features": get_feature_definitions()}
+    return {
+        **get_plan_config(db),
+        "features": get_feature_definitions(),
+        "credit_packages": get_credit_package_config(db)["packages"],
+        "credit_billing": get_credit_billing_config(db),
+    }
 
 
 @router.put("/plan-config")
@@ -452,9 +469,19 @@ def update_admin_plan_config(
     }
     try:
         config = save_plan_config(db, body.model_dump(), valid_model_ids=model_ids)
+        if body.credit_packages is not None:
+            save_credit_package_config(db, {"packages": body.credit_packages})
+        if body.credit_billing is not None:
+            save_credit_billing_config(db, body.credit_billing, valid_model_ids=model_ids)
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc))
-    return {"ok": True, **config, "features": get_feature_definitions()}
+    return {
+        "ok": True,
+        **config,
+        "features": get_feature_definitions(),
+        "credit_packages": get_credit_package_config(db)["packages"],
+        "credit_billing": get_credit_billing_config(db),
+    }
 
 
 def _model_config_response(db: Session) -> dict:
@@ -587,12 +614,14 @@ def list_users(
             .order_by(Membership.expire_at.desc().nullslast())
             .first()
         )
+        credit = db.query(Credit).filter(Credit.user_id == user.id).first()
         items.append(UserItem(
             id=user.id,
             phone=user.phone,
             nickname=user.nickname,
             created_at=user.created_at,
             is_active=user.is_active,
+            credit_balance=str(credit.balance if credit else "0.00"),
             membership=MembershipInfo(
                 plan_type=active_m.plan_type if active_m else None,
                 expire_at=active_m.expire_at if active_m else None,
@@ -626,6 +655,9 @@ def list_orders(
             user_id=o.user_id,
             phone=phone,
             plan=o.plan,
+            plan_label=o.plan_label,
+            order_type=getattr(o, "order_type", "membership"),
+            credit_amount=str(getattr(o, "credit_amount", 0) or 0),
             amount=str(o.amount),
             pay_status=o.pay_status,
             trade_no=o.trade_no,

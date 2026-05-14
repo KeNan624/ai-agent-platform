@@ -3062,16 +3062,16 @@ body[data-sidebar-mode="expanded"] .nav-rail-old { display: none !important; }
 
 
 
-/* v32 · 输入框上移(防止贴底) */
+/* v32 · 输入框上移(防止贴底) — 桌面留 24px 呼吸,不再用 8vh 大留白 */
 #bottom-area {
   max-width: 760px !important;
   margin: 0 auto !important;
   width: calc(100% - 40px) !important;
-  padding: 0 !important;
+  padding: 0 0 24px 0 !important;
   background: transparent !important;
   border: none !important;
   position: relative !important;
-  bottom: 8vh !important;
+  bottom: 0 !important;
 }
 
 
@@ -3191,27 +3191,56 @@ body[data-sidebar-mode="expanded"] .nav-rail-old { display: none !important; }
 
 /* ② 会员状态条 · 替换原徽章 */
 #v33-plan-bar {
-  position: absolute !important;
-  top: 24px !important;
-  right: 28px !important;
+  position: static !important;
   display: inline-flex !important;
   align-items: center !important;
+  justify-content: center !important;
   gap: 8px !important;
+  width: auto !important;
+  min-width: 0 !important;
+  max-width: min(260px, calc(100vw - 96px)) !important;
+  height: 32px !important;
   background: linear-gradient(135deg, #F5F0FF 0%, #EDE5FF 100%) !important;
   border: 0.5px solid #D4C9F0 !important;
   border-radius: 999px !important;
   padding: 6px 14px !important;
   font-size: 12px !important;
+  line-height: 1 !important;
   color: #5A4A8A !important;
   cursor: pointer !important;
   transition: all .15s !important;
   z-index: 5 !important;
+  white-space: nowrap !important;
+  writing-mode: horizontal-tb !important;
+  word-break: keep-all !important;
+  box-sizing: border-box !important;
 }
 #v33-plan-bar:hover {
   transform: translateY(-1px) !important;
   box-shadow: 0 2px 8px rgba(106, 90, 158, 0.15) !important;
 }
-#v33-plan-bar .v33-plan-icon { font-size: 14px !important; }
+#v33-plan-bar .v33-plan-icon {
+  flex: 0 0 auto !important;
+  font-size: 14px !important;
+  line-height: 1 !important;
+}
+#v33-plan-text {
+  display: block !important;
+  min-width: 0 !important;
+  max-width: 190px !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  white-space: nowrap !important;
+  writing-mode: horizontal-tb !important;
+  word-break: keep-all !important;
+}
+
+#header-right {
+  width: auto !important;
+  min-width: max-content !important;
+  max-width: calc(100vw - 96px) !important;
+  z-index: 10 !important;
+}
 
 /* 隐藏老的紫色徽章 · 用我们的会员条替代 */
 #plan-badge { display: none !important; }
@@ -4262,18 +4291,368 @@ textarea.ws-dialog-input,
   padding-bottom: 8px !important;
 }
 
+/* ═══════════════════════════════════════════════════════ */
+/*  Mobile + iPad Portrait Adaptation (v30 responsive)      */
+/* ═══════════════════════════════════════════════════════ */
+.m-hamburger {
+  display: none;
+  background: transparent;
+  border: none;
+  color: #5C5647;
+  font-size: 22px;
+  width: 44px;
+  height: 44px;
+  cursor: pointer;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border-radius: 8px;
+  flex-shrink: 0;
+  z-index: 100;
+}
+.m-hamburger:hover { background: rgba(0,0,0,.05); }
+.m-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(26,24,20,.45);
+  z-index: 998;
+  backdrop-filter: blur(2px);
+}
+body.drawer-open .m-overlay { display: block; }
+body.drawer-open { overflow: hidden; }
+
+@media (max-width: 900px) {
+  .m-hamburger { display: flex !important; }
+  /* 主页 hamburger 固定在屏幕左上角(因 #main-header 是 column 布局,否则会被居中) */
+  #main-header > .m-hamburger {
+    position: absolute !important;
+    top: 10px !important;
+    left: 10px !important;
+    z-index: 50 !important;
+  }
+
+  /* 隐藏桌面专属侧栏 / resize 手柄 */
+  #icon-bar { display: none !important; }
+  #v30-rail { display: none !important; }
+  #v30-resize-handle, .v30-resize-handle { display: none !important; }
+  .v30-collapse-btn { display: none !important; }
+
+  /* 抽屉化 ws-sidebar — 覆盖 v30 collapsed/expanded 两态 */
+  body[data-sidebar-mode] #ws-sidebar,
+  body #ws-sidebar {
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    width: 280px !important;
+    max-width: 84vw !important;
+    height: 100vh !important;
+    height: 100dvh !important;
+    z-index: 1000 !important;
+    transform: translateX(-100%) !important;
+    transition: transform .25s ease !important;
+    box-shadow: none !important;
+    display: flex !important;
+    flex-direction: column !important;
+  }
+  body.drawer-open[data-sidebar-mode] #ws-sidebar,
+  body.drawer-open #ws-sidebar {
+    transform: translateX(0) !important;
+    box-shadow: 2px 0 18px rgba(26,24,20,.22) !important;
+  }
+
+  /* 主区域 */
+  #main { width: 100% !important; margin-left: 0 !important; }
+  #main-header { padding: 60px 16px 8px !important; gap: 6px; }
+  /* 让 hamburger / badge 浮在两侧顶角,留出标题完整居中空间 */
+  #header-right {
+    position: absolute !important;
+    top: 10px !important;
+    right: 12px !important;
+    gap: 6px;
+    z-index: 50;
+  }
+  #greeting h1 { font-size: 18px !important; max-width: 100%; }
+  #greeting p { font-size: 12.5px !important; margin-top: 4px; }
+  #v33-plan-bar { padding: 5px 10px; font-size: 11px; min-height: 32px; }
+  #plan-badge { width: 28px; height: 28px; }
+
+  /* 卡片网格 */
+  #cards-grid {
+    grid-template-columns: 1fr !important;
+    padding: 0 16px 16px !important;
+    gap: 12px !important;
+  }
+  .card.wide, #quick-card { grid-column: span 1 !important; }
+
+  /* 主页快速输入框 */
+  #quick-card { padding: 16px !important; }
+  #quick-label { font-size: 12px; margin-bottom: 8px; }
+  #quick-box { padding: 12px 14px; gap: 10px; align-items: flex-start; }
+  /* textarea 给足高度让 placeholder 两行都能露出 */
+  #quick-input {
+    font-size: 16px !important;
+    min-height: 56px !important;
+    line-height: 1.55 !important;
+    padding: 2px 0 !important;
+  }
+  #quick-send { width: 40px; height: 40px; flex-shrink: 0; margin-top: 2px; }
+
+  /* v33 chips — 4 个一排,缩小内边距让它们整齐排开 */
+  #v33-chips,
+  #v33-toolbar #v33-chips {
+    display: flex !important;
+    flex-wrap: nowrap !important;
+    gap: 6px !important;
+    flex-basis: 100% !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    margin: 12px 0 0 0 !important;
+    justify-content: space-between !important;
+    overflow-x: visible !important;
+    flex: none !important;
+  }
+  #v33-toolbar #v33-chips .v33-chip,
+  .v33-chip {
+    padding: 7px 8px !important;
+    font-size: 12px !important;
+    min-height: 34px !important;
+    height: 34px !important;
+    white-space: nowrap;
+    flex: 1 1 0 !important;
+    min-width: 0;
+    justify-content: center !important;
+    gap: 3px !important;
+  }
+  #v33-toolbar { flex-wrap: wrap; gap: 10px; margin-top: 10px; }
+  .v33-tb-left { display: flex; align-items: center; gap: 10px; flex: 1 1 auto; min-width: 0; }
+  .v33-tb-btn { width: 36px; height: 36px; min-width: 36px; }
+  .chat-model-select,
+  #v33-toolbar #quick-model-sel,
+  #v33-toolbar .chat-model-select {
+    font-size: 13px !important;
+    padding: 6px 14px 6px 10px !important;
+    min-height: 36px !important;
+    height: auto !important;
+    max-width: calc(100vw - 100px) !important;
+    appearance: none !important;
+    -webkit-appearance: none !important;
+    -moz-appearance: none !important;
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 8' width='12' height='8'><path d='M1 1l5 5 5-5' fill='none' stroke='%236B6558' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/></svg>") !important;
+    background-repeat: no-repeat !important;
+    background-position: right 8px center !important;
+    background-size: 10px 7px !important;
+    padding-right: 24px !important;
+  }
+
+  /* 聊天界面 */
+  #chat-topbar {
+    padding: 10px 12px !important;
+    gap: 6px !important;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  #chat-back { width: 34px; height: 34px; flex-shrink: 0; }
+  #chat-ws-name { font-size: 14px; flex-shrink: 0; max-width: 38vw; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  #new-chat-btn, #export-md-btn, #share-btn { font-size: 11.5px !important; padding: 6px 10px !important; min-height: 32px; flex-shrink: 0; }
+
+  /* 消息行 */
+  .msg-row { padding: 0 14px; max-width: 100%; margin: 14px auto; }
+  .msg-row.user-row .bubble,
+  .msg-row.user-row .user-bubble {
+    max-width: 86%;
+    font-size: 14.5px;
+    padding: 10px 14px;
+  }
+  .msg-row.ai-row .ai-bubble,
+  .msg-row.ai-row .bubble {
+    font-size: 14.5px;
+    line-height: 1.65;
+    padding: 4px 0;
+  }
+  /* AI 气泡内的代码块 / 表格能横滚 */
+  .ai-bubble pre, .bubble pre {
+    font-size: 12.5px !important;
+    padding: 12px !important;
+    overflow-x: auto;
+    max-width: 100%;
+  }
+  .ai-bubble table, .bubble table {
+    display: block;
+    overflow-x: auto;
+    max-width: 100%;
+    -webkit-overflow-scrolling: touch;
+  }
+  .msg-actions { gap: 4px; }
+  .msg-actions button { width: 30px; height: 30px; font-size: 13px; }
+
+  /* 底部输入框 — 两行布局: textarea 一行,控件一行 */
+  #bottom-area {
+    width: calc(100% - 24px) !important;
+    bottom: 12px !important;
+    left: auto !important;
+    right: auto !important;
+    margin: 0 auto !important;
+    transform: none !important;
+    max-width: 100% !important;
+  }
+  #bottom-box {
+    padding: 12px 14px !important;
+    border-radius: 20px !important;
+    flex-wrap: wrap !important;
+    align-items: center !important;
+    gap: 8px !important;
+    width: 100% !important;
+    max-width: 100% !important;
+  }
+  /* textarea 独占第一行 */
+  #bottom-input {
+    font-size: 16px !important;
+    min-height: 56px !important;
+    max-height: 35vh !important;
+    flex: 1 1 100% !important;
+    width: 100% !important;
+    order: 1 !important;
+    line-height: 1.55 !important;
+    padding: 2px 2px !important;
+  }
+  /* + 按钮放第二行最左 */
+  #bottom-plus, .plus-panel-wrap {
+    order: 2 !important;
+  }
+  /* model select 放第二行中间(宽度由 JS 按选中文案自动设) */
+  #bottom-model-sel {
+    order: 3 !important;
+    flex: 0 0 auto !important;
+    max-width: calc(100vw - 130px) !important;
+  }
+  /* send / stop 放第二行最右 */
+  #bottom-send, #bottom-stop {
+    order: 4 !important;
+    margin-left: auto !important;
+  }
+  #bottom-send, #bottom-stop, #bottom-plus,
+  .bottom-action-btn {
+    width: 38px !important;
+    height: 38px !important;
+    min-width: 38px;
+    flex-shrink: 0;
+  }
+  /* 中间 center-box 也改两行布局 */
+  #center-box {
+    max-width: 100% !important;
+    flex-wrap: wrap !important;
+    gap: 8px !important;
+    padding: 12px 14px !important;
+    align-items: center !important;
+  }
+  #center-input {
+    font-size: 16px !important;
+    min-height: 56px !important;
+    flex: 1 1 100% !important;
+    width: 100% !important;
+    order: 1 !important;
+    line-height: 1.55 !important;
+    height: auto !important;
+  }
+  #center-model-sel {
+    order: 2 !important;
+    flex: 0 0 auto !important;
+    max-width: calc(100vw - 130px) !important;
+  }
+  #center-send {
+    order: 3 !important;
+    margin-left: auto !important;
+    width: 38px !important;
+    height: 38px !important;
+    border-radius: 10px !important;
+  }
+  /* 键盘快捷键提示对手机用户没意义,隐藏 */
+  #bottom-hint { display: none !important; }
+
+  /* paste-card / 文件预览 */
+  .paste-card-area-alt, #paste-card-area, #paste-card-area-quick {
+    max-width: 100%;
+    overflow-x: auto;
+  }
+
+  /* 模态弹窗 */
+  #modal, .modal { width: 92vw !important; max-width: 92vw !important; padding: 18px !important; border-radius: 14px !important; max-height: 90vh; overflow-y: auto; }
+  #modal h3, .modal h3 { font-size: 15px; }
+  #v34-share-panel {
+    width: 92vw !important;
+    max-width: 92vw !important;
+    padding: 20px !important;
+  }
+  #v34-profile-overlay { padding: 12px !important; }
+  #v34-profile-overlay .v34-pf-panel,
+  #v34-profile-overlay .v34-pf-section {
+    width: 100% !important;
+    max-width: 100% !important;
+    padding: 16px !important;
+  }
+  #v34-profile-overlay .v34-pf-header { padding: 14px 16px 12px !important; }
+  .v34-pf-tabs { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+
+  /* 触摸目标 */
+  .nav-btn, .ws-item, .convo-item, .v34-conv-item, .sug-btn, .v34-pf-tab {
+    min-height: 40px;
+  }
+
+  /* tool / plan / reflect / recommend 卡片 */
+  .tool-card, .plan-card, .reflect-card, .recommend-card {
+    padding: 12px 14px;
+    font-size: 13px;
+  }
+
+  /* URL 来源卡 / 搜索来源卡 横滚 */
+  .url-source-card, .source-card {
+    max-width: 100%;
+    overflow-x: auto;
+  }
+
+  /* 防 iOS 自动 zoom 全局兜底 */
+  input[type="text"], input[type="tel"], input[type="email"],
+  input[type="password"], input[type="search"], input[type="number"],
+  textarea, select { font-size: 16px !important; }
+}
+
+@media (max-width: 640px) {
+  #main-header { padding: 56px 12px 6px !important; }
+  #greeting h1 { font-size: 17px !important; }
+  #greeting p { font-size: 12px !important; }
+  #header-right { top: 8px !important; right: 10px !important; }
+  #v33-plan-bar { padding: 4px 9px; font-size: 10.5px; }
+  #cards-grid { padding: 0 12px 12px !important; gap: 10px !important; }
+  #quick-card { padding: 14px !important; }
+  #quick-box { padding: 9px 11px; gap: 6px; }
+  .v33-chip { padding: 7px 12px; font-size: 12px; }
+  #v33-toolbar { gap: 8px; }
+  #v33-chips { gap: 7px; }
+  #chat-topbar { padding: 8px 10px !important; }
+  #chat-ws-name { font-size: 13px; max-width: 32vw; }
+  .msg-row { padding: 0 12px; margin: 12px auto; }
+  .msg-row.user-row .bubble,
+  .msg-row.user-row .user-bubble { font-size: 14px; padding: 9px 12px; }
+  .msg-row.ai-row .ai-bubble,
+  .msg-row.ai-row .bubble { font-size: 14px; }
+  #v34-share-panel { width: 94vw !important; }
+  #modal { padding: 16px !important; }
+  #ws-sidebar { width: 260px !important; }
+}
 </style>
 </head>
 <body>
 
 <div id="icon-bar">
-  <div id="icon-logo" onclick="goChoosePage()" title="返回选择页">阿</div>
+  <div id="icon-logo" onclick="goChoosePage()" title="返回选择页">川</div>
   <div class="nav-btn active" onclick="showHome()" title="工作台">⊞</div>
   <div class="nav-btn" onclick="goChoosePage()" title="返回选择">⇠</div>
   <div class="nav-btn" title="历史">◷</div>
   <div class="nav-btn" title="设置">⚙</div>
   <div id="icon-bar-bottom">
-    <div id="user-av">阿</div>
+    <div id="user-av">川</div>
   </div>
 </div>
 
@@ -4497,6 +4876,7 @@ textarea.ws-dialog-input,
     <span class="cv-agent" id="cv-agent-txt">agent</span>
   </div>
   <div id="main-header">
+    <button class="m-hamburger" aria-label="菜单" onclick="toggleFrontDrawer()">☰</button>
     <div id="greeting">
       <h1>Hi，欢迎回来！</h1>
       <p>今天想创作什么内容？</p>
@@ -4541,6 +4921,7 @@ textarea.ws-dialog-input,
 
   <div id="chat-view">
     <div id="chat-topbar">
+      <button class="m-hamburger" aria-label="菜单" onclick="toggleFrontDrawer()">☰</button>
       <button id="chat-back" onclick="showHome()">←</button>
       <div id="chat-ws-name">写作助手</div>
       <select id="model-sel" onchange="changeModel(this.value)" style="display:none">
@@ -4731,6 +5112,8 @@ window.addEventListener('storage', (e) => {
 let _userPlan = 'free'; // 全局存套餐信息，供侧栏限额用
 let _enabledFeatures = [];
 let _planFeaturesLoaded = false;
+let _creditBalance = 0;
+let _creditFeaturePrices = {};
 
 function planFeatureLabel(key){
   return {
@@ -4751,8 +5134,10 @@ function hasPlanFeature(key){
 
 function requirePlanFeatureClient(key){
   if(hasPlanFeature(key)) return true;
+  const creditPrice = Number(_creditFeaturePrices[key] || 0);
+  if (creditPrice > 0 && _creditBalance >= creditPrice) return true;
   const message = '当前套餐暂不支持' + planFeatureLabel(key);
-  if(typeof showToast === 'function') showToast(message + ' · 可在会员中心升级', 3500);
+  if(typeof showToast === 'function') showToast(message + ' · 可在会员中心购买套餐或积分', 3500);
   return false;
 }
 
@@ -4773,7 +5158,15 @@ function requirePlanFeatureClient(key){
     const info = await res.json();
     _userPlan = info.plan_type || 'free';
     _enabledFeatures = Array.isArray(info.enabled_features) ? info.enabled_features : [];
+    _creditBalance = Number(info.credit_balance || 0);
     _planFeaturesLoaded = true;
+    try {
+      const planRes = await fetch(APP_API_BASE + '/pay/plans');
+      if (planRes.ok) {
+        const planData = await planRes.json();
+        _creditFeaturePrices = (planData.credit_billing && planData.credit_billing.feature_prices) || {};
+      }
+    } catch (_) {}
     // [batch5] 存用户名 · 用于动态问候
     if (info.nickname || info.phone) {
       window._userName = info.nickname || ('用户' + (info.phone || '').slice(-4));
@@ -4816,6 +5209,9 @@ function requirePlanFeatureClient(key){
       badge.textContent = '免费版';
       badge.className = 'plan-badge free';
       if (planText) planText.textContent = '免费版 · 剩余 ' + (info.remaining ?? 0) + ' 次';
+    }
+    if (typeof v34UpdateCreditsMini === 'function') {
+      v34UpdateCreditsMini(Number(info.credit_total_used || 0), Number(info.credit_total_bought || 0), Number(info.credit_balance || 0));
     }
     renderWsList(); // 套餐信息到手后重新渲染侧栏（为了显示限额）
   } catch (_) {}
@@ -5515,8 +5911,10 @@ function showHome(){
   document.getElementById('chat-view').style.display='none';
   if(typeof refreshAllModelControls === 'function') refreshAllModelControls();
   renderWsList();
+  if (typeof closeFrontDrawerIfMobile === 'function') closeFrontDrawerIfMobile();
 }
 function openChat(id, convoId, fallbackWs){
+  if (typeof closeFrontDrawerIfMobile === 'function') closeFrontDrawerIfMobile();
   currentWsId=id;
   // 🔧 Bug 修复：老系统用 findWs(id) match PRESET_FUNCTIONS；
   // 新项目系统走 openBackendConv 会传 fallbackWs 进来（因为项目 agent_type 不在 PRESET_FUNCTIONS 里）
@@ -5954,8 +6352,42 @@ function fillModelSelect(sel, selected){
   if(!sel) return;
   const models = getAvailableChatModels();
   const chosen = models.some(m => m.id === selected) ? selected : getDefaultChatModel();
-  sel.innerHTML = models.map(m => `<option value="${escapeHtml(m.id)}">${escapeHtml(m.name || m.id)}${m.quota_free ? '（不扣量）' : ''}</option>`).join('');
+  sel.innerHTML = models.map(m => {
+    const suffix = m.quota_free ? '（不扣量）' : ((!m.available_by_plan && Number(m.credit_price || 0) > 0) ? `（${Number(m.credit_price)}积分/次）` : '');
+    return `<option value="${escapeHtml(m.id)}">${escapeHtml(m.name || m.id)}${suffix}</option>`;
+  }).join('');
   sel.value = chosen;
+  autoSizeChatModelSelect(sel);
+}
+
+/** 根据当前选中文字长度动态设宽,避免固定 max-width 在短文案时显宽 */
+function autoSizeChatModelSelect(sel){
+  if(!sel || !sel.classList.contains('chat-model-select')) return;
+  const opt = sel.options[sel.selectedIndex];
+  if(!opt) return;
+  // 用一个隐藏 span 测量(继承精确字体,比 canvas measureText 准)
+  if(!window._modelSelSpan){
+    const s = document.createElement('span');
+    s.style.cssText = 'position:absolute;left:-9999px;top:-9999px;visibility:hidden;white-space:nowrap;pointer-events:none';
+    document.body.appendChild(s);
+    window._modelSelSpan = s;
+  }
+  const span = window._modelSelSpan;
+  const cs = getComputedStyle(sel);
+  span.style.font = cs.font || `${cs.fontStyle} ${cs.fontVariant} ${cs.fontWeight} ${cs.fontSize}/${cs.lineHeight} ${cs.fontFamily}`;
+  span.style.letterSpacing = cs.letterSpacing;
+  span.textContent = opt.textContent || '';
+  const textW = span.getBoundingClientRect().width;
+  const padX = parseFloat(cs.paddingLeft) + parseFloat(cs.paddingRight);
+  const borderX = parseFloat(cs.borderLeftWidth) + parseFloat(cs.borderRightWidth);
+  // box-sizing:border-box → 总宽 = border + padding + 内容区(text)
+  // +6 缓冲避免亚像素四舍五入截断末字
+  // safety 6: 用自定义箭头 + appearance:none 后,padding-right 完全包住箭头,余量只需防亚像素截断
+  const total = Math.ceil(textW + padX + borderX + 6);
+  const capMobile = Math.max(160, window.innerWidth - 100);
+  const finalW = Math.min(total, capMobile);
+  sel.style.setProperty('width', finalW + 'px', 'important');
+  sel.style.setProperty('max-width', capMobile + 'px', 'important');
 }
 
 function refreshAllModelControls(){
@@ -5969,7 +6401,7 @@ function refreshAllModelControls(){
       ${models.map(m => `
         <div class="ms-item" data-model="${escapeHtml(m.id)}" onclick="selectModel('${escapeHtml(m.id)}')">
           <span class="ms-dot"></span>
-          <span class="ms-name">${escapeHtml(m.name || m.id)}${m.quota_free ? '（不扣量）' : ''}</span>
+          <span class="ms-name">${escapeHtml(m.name || m.id)}${m.quota_free ? '（不扣量）' : ((!m.available_by_plan && Number(m.credit_price || 0) > 0) ? `（${Number(m.credit_price)}积分/次）` : '')}</span>
           <span class="ms-desc">${escapeHtml(m.description || '')}</span>
         </div>
       `).join('')}
@@ -12203,6 +12635,14 @@ function v30ToggleSidebar() {
   try { localStorage.setItem('v30_sidebar_mode', next); } catch(e) {}
 }
 
+// 移动端抽屉式侧边栏 toggle (≤900px 生效)
+function toggleFrontDrawer() {
+  document.body.classList.toggle('drawer-open');
+}
+function closeFrontDrawerIfMobile() {
+  if (window.innerWidth <= 900) document.body.classList.remove('drawer-open');
+}
+
 (function setupResize() {
   function init() {
     const handle = document.getElementById('v30-resize-handle');
@@ -13407,11 +13847,20 @@ window.v34StartAgent = function(type) {
 };
 
 // [batch6] 底部积分条更新
-window.v34UpdateCreditsMini = function(used, total) {
+window.v34UpdateCreditsMini = function(used, total, balance) {
   var label = document.getElementById('v34-cm-label');
   var value = document.getElementById('v34-cm-value');
   var fill = document.getElementById('v34-cm-fill');
   if (!label || !value || !fill) return;
+  if (Number.isFinite(Number(balance))) {
+    value.textContent = Number(balance).toFixed(0) + ' 积分';
+    var bought = Number(total || 0);
+    var usedVal = Number(used || 0);
+    var pctBalance = bought > 0 ? Math.min(100, Math.round(usedVal / bought * 100)) : 0;
+    fill.style.width = pctBalance + '%';
+    fill.style.background = pctBalance > 80 ? 'linear-gradient(90deg, #C26B3F, #D94A3D)' : 'linear-gradient(90deg, #C26B3F, #E8945A)';
+    return;
+  }
   if (total <= 0) {
     value.textContent = '不限';
     fill.style.width = '0%';
@@ -13425,15 +13874,7 @@ window.v34UpdateCreditsMini = function(used, total) {
   if (pct > 80) fill.style.background = 'linear-gradient(90deg, #C26B3F, #D94A3D)';
   else fill.style.background = 'linear-gradient(90deg, #C26B3F, #E8945A)';
 };
-// 页面加载后尝试更新积分条
-setTimeout(function() {
-  // 暂用占位数据 · 后续接通后端 /member/usage API
-  var plan = window._userPlan || 'free';
-  if (plan === 'free') v34UpdateCreditsMini(0, 5);
-  else if (plan === 'monthly') v34UpdateCreditsMini(0, 3000);
-  else if (plan === 'yearly' || plan === 'annual') v34UpdateCreditsMini(0, 45000);
-  else v34UpdateCreditsMini(0, 0); // 私教卡不限
-}, 2000);
+// 页面加载后由 /member/info 的真实积分余额刷新底部积分条。
 
 // hook 老 renderWorkspace 等函数 · 让它们调用完后顺便刷新 v34
 (function v34HookRenderers() {
@@ -14307,11 +14748,12 @@ async function v34LoadProfileData() {
     var planEl = document.getElementById('v34-pf-plan');
     if (planEl) {
       var isPaid = info.plan_type && info.plan_type !== 'free';
-      planEl.textContent = isPaid ? '会员 💎' : '免费版';
+      planEl.textContent = isPaid ? (info.plan_name || '会员') : (info.plan_name || '免费版');
       planEl.className = 'v34-pf-badge ' + (isPaid ? 'paid' : 'free');
     }
     var expireEl = document.getElementById('v34-pf-expire');
     if (expireEl) expireEl.textContent = info.expire_at ? String(info.expire_at).slice(0, 10) : '永久';
+    v34RenderProfileCredits(info);
     // 动态高亮当前套餐按钮
     var planBtns = {
       free: document.getElementById('v34-plan-btn-free'),
@@ -14339,7 +14781,178 @@ async function v34LoadProfileData() {
     var sysPrompt = localStorage.getItem('v34_system_prompt') || '';
     var promptEl = document.getElementById('v34-pf-system-prompt');
     if (promptEl) promptEl.value = sysPrompt;
+    try {
+      var planRes = await fetch(APP_API_BASE + '/pay/plans');
+      if (planRes.ok) v34RenderMembershipProducts(info, await planRes.json());
+    } catch(e) { console.warn('[profile] pay plans load failed:', e); }
   } catch(e) { console.warn('[profile] load failed:', e); }
+}
+
+function v34Money(v) {
+  var n = Number(v || 0);
+  return Number.isFinite(n) ? n.toFixed(2).replace(/\.00$/, '') : String(v || '0');
+}
+function v34Esc(value) {
+  if (typeof escapeHtml === 'function') return escapeHtml(value);
+  return String(value ?? '').replace(/[&<>"']/g, function(ch) {
+    return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[ch];
+  });
+}
+function v34PlanPeriod(plan) {
+  var days = Number(plan.duration_days || 0);
+  if (!days) return '永久';
+  if (days >= 360) return '年';
+  if (days >= 80) return '季';
+  if (days >= 28) return '月';
+  return days + '天';
+}
+function v34RenderProfileCredits(info) {
+  var balance = Number(info.credit_balance || 0);
+  var bought = Number(info.credit_total_bought || 0);
+  var used = Number(info.credit_total_used || 0);
+  var text = document.getElementById('v34-credits-text');
+  var bar = document.getElementById('v34-credits-bar');
+  var hint = document.getElementById('v34-credits-hint');
+  if (text) text.textContent = balance.toFixed(0) + ' 积分可用';
+  if (bar) bar.style.width = bought > 0 ? Math.min(100, Math.round(used / bought * 100)) + '%' : '0%';
+  if (hint) hint.textContent = '已购买 ' + bought.toFixed(0) + ' · 已使用 ' + used.toFixed(0) + ' · 购买积分永久有效';
+  if (typeof v34UpdateCreditsMini === 'function') v34UpdateCreditsMini(used, bought, balance);
+}
+function v34FeatureName(id) {
+  return {
+    image_generation: '图片生成',
+    video_generation: '视频生成',
+    ppt_generation: 'PPT 生成',
+    web_search: '联网搜索',
+    web_scrape: '网页抓取',
+    file_upload: '附件上传',
+    custom_workspace: '自建工作空间',
+  }[id] || id;
+}
+function v34RenderPlanBenefits(plan) {
+  var benefits = Array.isArray(plan.benefits) && plan.benefits.length
+    ? plan.benefits
+    : [
+      (plan.period === 'day' ? '每天' : '每月') + ' ' + Number(plan.quota || 0) + ' 次对话',
+      '可用模型：' + (plan.allowed_models || []).join('、'),
+    ];
+  return benefits.map(function(item) { return '<div style="line-height:1.9;">✅ ' + v34Esc(item) + '</div>'; }).join('');
+}
+function v34RenderMembershipProducts(info, data) {
+  var wrap = document.getElementById('v34-pf-tab-membership');
+  if (!wrap) return;
+  var plans = [data.free_plan].concat(data.plans || []).filter(Boolean);
+  var packages = data.credit_packages || [];
+  var modelPrices = (data.credit_billing && data.credit_billing.model_prices) || {};
+  var featurePrices = (data.credit_billing && data.credit_billing.feature_prices) || {};
+  var current = info.plan_type || 'free';
+  var planCards = plans.map(function(plan) {
+    var isFree = plan.id === 'free';
+    var isCurrent = current === plan.id || (isFree && current === 'free');
+    var canBuy = !isFree && data.payments_enabled;
+    return `
+      <div style="border:1px solid #E4DECF;border-radius:12px;padding:18px;text-align:left;background:${isFree ? '#FAFAF7' : '#fff'};">
+        <div style="font-size:15px;font-weight:700;color:#1A1814;">${v34Esc(plan.name)}</div>
+        <div style="font-size:26px;font-weight:700;color:#C26B3F;margin:10px 0;">¥${v34Money(plan.amount)}<span style="font-size:12px;font-weight:400;color:#9A9485;"> / ${v34PlanPeriod(plan)}</span></div>
+        <div style="font-size:12px;color:#5C5647;min-height:88px;">${v34RenderPlanBenefits(plan)}</div>
+        <button class="v34-pf-btn ${isCurrent || !canBuy ? 'outline' : ''}" style="width:100%;margin-top:14px;" ${isFree || isCurrent || !canBuy ? 'disabled' : `onclick="v34StartPurchase('membership','${v34Esc(plan.id)}')"`}>${isCurrent ? '当前套餐' : (canBuy ? '立即订阅' : '已售罄')}</button>
+      </div>
+    `;
+  }).join('');
+  var creditCards = packages.map(function(pkg) {
+    var canBuy = data.payments_enabled;
+    return `
+      <div style="border:1px solid #E4DECF;border-radius:12px;padding:18px;text-align:left;background:#fff;">
+        <div style="font-size:15px;font-weight:700;color:#1A1814;">${v34Esc(pkg.name)}</div>
+        <div style="font-size:26px;font-weight:700;color:#C26B3F;margin:10px 0;">¥${v34Money(pkg.amount)}<span style="font-size:12px;font-weight:400;color:#9A9485;"> / ${Number(pkg.credits || 0)} 积分</span></div>
+        <div style="font-size:12px;color:#5C5647;line-height:1.9;min-height:72px;">✅ 永久有效<br>✅ 套餐额度用完后自动使用<br>✅ 支付成功立即到账</div>
+        <button class="v34-pf-btn ${canBuy ? '' : 'outline'}" style="width:100%;margin-top:14px;" ${canBuy ? `onclick="v34StartPurchase('credits','${v34Esc(pkg.id)}')"` : 'disabled'}>${canBuy ? '购买积分' : '已售罄'}</button>
+      </div>
+    `;
+  }).join('') || '<div style="font-size:13px;color:#9A9485;">暂无上架积分包</div>';
+  var billingRows = [];
+  Object.keys(modelPrices).forEach(function(k){ if(Number(modelPrices[k]) > 0) billingRows.push([k, modelPrices[k]]); });
+  Object.keys(featurePrices).forEach(function(k){ if(Number(featurePrices[k]) > 0) billingRows.push([v34FeatureName(k), featurePrices[k]]); });
+  wrap.innerHTML = `
+    <div class="v34-pf-section" style="text-align:center;padding:24px;max-width:900px;">
+      <div style="font-size:22px;font-weight:700;margin-bottom:4px;">选择你的套餐</div>
+      <div style="font-size:13px;color:#9A9485;margin-bottom:20px;">套餐额度优先 · 积分余额兜底</div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:12px;">${planCards}</div>
+    </div>
+    <div class="v34-pf-section" style="max-width:900px;">
+      <div class="v34-pf-section-title">💰 购买积分</div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:12px;">${creditCards}</div>
+    </div>
+    <div class="v34-pf-section" style="max-width:900px;">
+      <div class="v34-pf-section-title">📋 积分消耗标准</div>
+      <table style="width:100%;font-size:12px;border-collapse:collapse;color:#5C5647;">
+        <tbody>${billingRows.map(function(row){ return `<tr style="border-bottom:0.5px solid #F0ECE0;"><td style="padding:7px 4px;">${v34Esc(row[0])}</td><td>${Number(row[1])} 积分/次</td></tr>`; }).join('') || '<tr><td style="padding:7px 4px;">暂无可用积分单价</td></tr>'}</tbody>
+      </table>
+    </div>
+  `;
+}
+var v34PayPollTimer = null;
+function v34EnsurePayOverlay() {
+  var ov = document.getElementById('v34-pay-overlay');
+  if (ov) return ov;
+  ov = document.createElement('div');
+  ov.id = 'v34-pay-overlay';
+  ov.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.42);z-index:10000;display:none;align-items:center;justify-content:center;';
+  ov.innerHTML = '<div style="width:320px;max-width:92vw;background:#fff;border-radius:14px;padding:24px;text-align:center;box-shadow:0 20px 80px rgba(0,0,0,.24);"><button onclick="v34ClosePayOverlay()" style="float:right;font-size:18px;color:#9A9485;">×</button><div id="v34-pay-title" style="font-size:18px;font-weight:700;margin:8px 0;">正在创建订单</div><div id="v34-pay-amount" style="font-size:24px;font-weight:800;color:#C26B3F;margin:8px 0;"></div><img id="v34-pay-qr" style="width:210px;height:210px;margin:8px auto;display:none;"><div id="v34-pay-status" style="font-size:13px;color:#5C5647;margin-top:10px;">请稍候...</div></div>';
+  document.body.appendChild(ov);
+  return ov;
+}
+function v34ClosePayOverlay() {
+  if (v34PayPollTimer) clearInterval(v34PayPollTimer);
+  var ov = document.getElementById('v34-pay-overlay');
+  if (ov) ov.style.display = 'none';
+}
+async function v34StartPurchase(productType, productId) {
+  var token = localStorage.getItem('token');
+  if (!token) { location.replace('login.html'); return; }
+  var ov = v34EnsurePayOverlay();
+  ov.style.display = 'flex';
+  document.getElementById('v34-pay-title').textContent = '正在创建订单';
+  document.getElementById('v34-pay-status').textContent = '请稍候...';
+  document.getElementById('v34-pay-qr').style.display = 'none';
+  try {
+    var r = await fetch(APP_API_BASE + '/pay/create', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+      body: JSON.stringify(productType === 'credits' ? { product_type: 'credits', package_id: productId } : { plan: productId }),
+    });
+    var d = await r.json();
+    if (!r.ok) throw new Error(typeof d.detail === 'string' ? d.detail : '创建订单失败');
+    document.getElementById('v34-pay-title').textContent = '支付宝扫码支付';
+    document.getElementById('v34-pay-amount').textContent = '¥' + d.amount;
+    var img = document.getElementById('v34-pay-qr');
+    img.src = 'https://api.qrserver.com/v1/create-qr-code/?size=210x210&data=' + encodeURIComponent(d.pay_url);
+    img.style.display = 'block';
+    document.getElementById('v34-pay-status').textContent = '等待支付...';
+    if (v34PayPollTimer) clearInterval(v34PayPollTimer);
+    var attempts = 0;
+    v34PayPollTimer = setInterval(async function() {
+      attempts++;
+      if (attempts > 60) {
+        clearInterval(v34PayPollTimer);
+        document.getElementById('v34-pay-status').textContent = '支付超时，请关闭后重试';
+        return;
+      }
+      try {
+        var sr = await fetch(APP_API_BASE + '/pay/status/' + d.order_id, { headers: { 'Authorization': 'Bearer ' + token } });
+        var sd = await sr.json();
+        if (sd.pay_status === 'paid') {
+          clearInterval(v34PayPollTimer);
+          document.getElementById('v34-pay-status').textContent = productType === 'credits' ? '支付成功，积分已到账' : '支付成功，会员已开通';
+          showToast && showToast('支付成功', 2000);
+          setTimeout(function(){ v34ClosePayOverlay(); v34LoadProfileData(); }, 1200);
+        }
+      } catch(e) {}
+    }, 5000);
+  } catch(e) {
+    document.getElementById('v34-pay-title').textContent = '创建订单失败';
+    document.getElementById('v34-pay-status').textContent = e.message || '请稍后重试';
+  }
 }
 async function v34SaveNickname() {
   var nickEl = document.getElementById('v34-pf-nickname');
@@ -14574,7 +15187,11 @@ document.addEventListener('keydown', function(e) {
     <div class="v34-pf-tab-content" id="v34-pf-tab-membership">
       <div class="v34-pf-section" style="text-align:center;padding:24px;max-width:820px;">
         <div style="font-size:22px;font-weight:700;margin-bottom:4px;">选择你的套餐</div>
-        <div style="font-size:13px;color:#9A9485;margin-bottom:24px;">解锁全部模型 · 更多积分 · 专属功能</div>
+        <div style="font-size:13px;color:#9A9485;margin-bottom:16px;">套餐额度优先扣减 · 积分可单独购买</div>
+        <div style="display:flex;justify-content:center;gap:10px;flex-wrap:wrap;margin-bottom:24px;">
+          <button class="v34-pf-btn outline" onclick="location.href='member.html#plan-section'">查看完整套餐</button>
+          <button class="v34-pf-btn" onclick="location.href='member.html#credit-section'">购买积分</button>
+        </div>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;max-width:500px;margin:0 auto;">
           <!-- 免费 -->
           <div style="border:1px solid #F0ECE0;border-radius:12px;padding:20px;text-align:center;background:#FAFAF7;">
@@ -14632,6 +15249,33 @@ document.addEventListener('keydown', function(e) {
             </div>
             <button class="v34-pf-btn outline" style="width:100%;margin-top:16px;" onclick="showToast('请联系客服咨询',2000)">联系咨询</button>
           </div>
+        </div>
+      </div>
+      <!-- 积分购买入口 -->
+      <div class="v34-pf-section" style="max-width:820px;">
+        <div class="v34-pf-section-title">💰 购买积分</div>
+        <div style="font-size:13px;color:#5C5647;margin-bottom:14px;">适合临时补量或不订阅套餐时按量使用。购买后永久有效，套餐额度用完后自动使用积分。</div>
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;">
+          <div style="border:1px solid #E4DECF;border-radius:12px;padding:16px;background:#fff;">
+            <div style="font-size:13px;font-weight:700;color:#1A1814;">体验积分包</div>
+            <div style="font-size:24px;font-weight:700;color:#C26B3F;margin:10px 0 4px;">100 <span style="font-size:12px;color:#9A9485;font-weight:400;">积分</span></div>
+            <div style="font-size:12px;color:#9A9485;line-height:1.7;">适合短期试用和临时补量</div>
+          </div>
+          <div style="border:2px solid #C26B3F;border-radius:12px;padding:16px;background:#FFFCF6;position:relative;">
+            <div style="position:absolute;top:-10px;right:12px;background:#C26B3F;color:#fff;font-size:10px;padding:2px 10px;border-radius:10px;font-weight:600;">常用</div>
+            <div style="font-size:13px;font-weight:700;color:#1A1814;">标准积分包</div>
+            <div style="font-size:24px;font-weight:700;color:#C26B3F;margin:10px 0 4px;">500 <span style="font-size:12px;color:#9A9485;font-weight:400;">积分</span></div>
+            <div style="font-size:12px;color:#9A9485;line-height:1.7;">适合日常按量调用模型</div>
+          </div>
+          <div style="border:1px solid #E4DECF;border-radius:12px;padding:16px;background:#fff;">
+            <div style="font-size:13px;font-weight:700;color:#1A1814;">大额积分包</div>
+            <div style="font-size:24px;font-weight:700;color:#C26B3F;margin:10px 0 4px;">2000 <span style="font-size:12px;color:#9A9485;font-weight:400;">积分</span></div>
+            <div style="font-size:12px;color:#9A9485;line-height:1.7;">适合图片、视频、PPT 等高频使用</div>
+          </div>
+        </div>
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:14px;flex-wrap:wrap;">
+          <div style="font-size:12px;color:#9A9485;">实际积分包、价格、上下架状态以后端配置为准。</div>
+          <button class="v34-pf-btn" onclick="location.href='member.html#credit-section'">去购买积分</button>
         </div>
       </div>
       <!-- 积分消耗明细表 -->
@@ -14852,5 +15496,6 @@ document.addEventListener('keydown', function(e) {
 })();
 </script>
 
+<div class="m-overlay" onclick="toggleFrontDrawer()"></div>
 </body>
 </html>

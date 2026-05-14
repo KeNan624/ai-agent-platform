@@ -37,6 +37,8 @@ from sqlalchemy.orm import Session
 
 from auth import get_current_user
 from database import get_db
+from credit_config import get_credit_billing_config, get_purchasable_credit_packages
+from credit_service import grant_credits
 from models import Membership, Order, User
 from plan_config import get_plan_definition, get_purchasable_plans
 
@@ -205,17 +207,38 @@ def _activate_membership(order: Order, db: Session) -> None:
             expire_at=expire_at,
             status="active",
         ))
-    db.commit()
+    db.flush()
 
 
-def _mark_paid_and_activate(order: Order, db: Session) -> None:
-    """Idempotent: mark order paid + activate membership exactly once."""
+def _activate_credit_order(order: Order, db: Session) -> None:
+    credit_amount = Decimal(str(order.credit_amount or "0"))
+    if credit_amount <= 0:
+        raise RuntimeError(f"Invalid credit amount for order {order.id}")
+    grant_credits(
+        db,
+        user_id=int(order.user_id),
+        amount=credit_amount,
+        source_type="order",
+        source_id=str(order.id),
+        description=order.plan_label or "积分购买",
+    )
+
+
+def _mark_paid_and_fulfill(order: Order, db: Session) -> None:
+    """Idempotent: mark order paid and fulfill membership or credit purchase."""
     if order.pay_status == "paid":
+        if getattr(order, "order_type", "membership") == "credits":
+            _activate_credit_order(order, db)
+            db.commit()
         return
     order.pay_status = "paid"
     order.paid_at = datetime.utcnow()
+    db.flush()
+    if getattr(order, "order_type", "membership") == "credits":
+        _activate_credit_order(order, db)
+    else:
+        _activate_membership(order, db)
     db.commit()
-    _activate_membership(order, db)
 
 
 # ---------------------------------------------------------------------------
@@ -223,7 +246,9 @@ def _mark_paid_and_activate(order: Order, db: Session) -> None:
 # ---------------------------------------------------------------------------
 
 class CreateOrderRequest(BaseModel):
-    plan: str
+    plan: Optional[str] = None
+    product_type: str = "membership"
+    package_id: Optional[str] = None
 
 
 class CreateOrderResponse(BaseModel):
@@ -232,12 +257,15 @@ class CreateOrderResponse(BaseModel):
     amount: str
     pay_url: str
     is_mock: bool
+    order_type: str = "membership"
+    credit_amount: str = "0.00"
 
 
 class PaymentPlanItem(BaseModel):
     id: str
     name: str
     description: str
+    benefits: list[str] = []
     amount: str
     duration_days: int
     period: str
@@ -250,10 +278,20 @@ class PaymentPlanItem(BaseModel):
     practice_publish: bool
 
 
+class PaymentCreditPackageItem(BaseModel):
+    id: str
+    name: str
+    description: str = ""
+    amount: str
+    credits: int
+
+
 class PaymentPlansResponse(BaseModel):
     payments_enabled: bool
     free_plan: Optional[PaymentPlanItem] = None
     plans: list[PaymentPlanItem]
+    credit_packages: list[PaymentCreditPackageItem] = []
+    credit_billing: dict = {}
 
 
 class OrderStatusResponse(BaseModel):
@@ -263,6 +301,8 @@ class OrderStatusResponse(BaseModel):
     amount: str
     plan_label: Optional[str] = None
     plan_duration_days: Optional[int] = None
+    order_type: str = "membership"
+    credit_amount: str = "0.00"
     pay_status: str
     paid_at: Optional[datetime]
 
@@ -277,6 +317,11 @@ def list_payment_plans(db: Session = Depends(get_db)):
         payments_enabled=_payments_enabled(),
         free_plan=PaymentPlanItem(**get_plan_definition("free", db)),
         plans=[PaymentPlanItem(**plan) for plan in get_purchasable_plans(db)],
+        credit_packages=[
+            PaymentCreditPackageItem(**package)
+            for package in get_purchasable_credit_packages(db)
+        ],
+        credit_billing=get_credit_billing_config(db),
     )
 
 
@@ -289,14 +334,40 @@ def create_order(
     if not _payments_enabled():
         raise HTTPException(status_code=409, detail="当前套餐已售罄")
 
-    plan = body.plan.strip().lower()
-    purchasable = {item["id"]: item for item in get_purchasable_plans(db)}
-    plan_cfg = purchasable.get(plan)
-    if plan_cfg is None:
-        raise HTTPException(
-            status_code=400,
-            detail=f"Invalid plan. Choose from: {list(purchasable.keys())}",
-        )
+    product_type = (body.product_type or "membership").strip().lower()
+    if product_type not in {"membership", "credits"}:
+        raise HTTPException(status_code=400, detail="Invalid product_type")
+
+    if product_type == "credits":
+        package_id = (body.package_id or body.plan or "").strip().lower()
+        packages = {item["id"]: item for item in get_purchasable_credit_packages(db)}
+        product_cfg = packages.get(package_id)
+        if product_cfg is None:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Invalid credit package. Choose from: {list(packages.keys())}",
+            )
+        product_id = product_cfg["id"]
+        amount = product_cfg["amount"]
+        label = product_cfg["name"]
+        duration_days = None
+        credit_amount = Decimal(str(product_cfg["credits"]))
+        subject = f"阿川工作台 - {label}"
+    else:
+        plan = (body.plan or "").strip().lower()
+        purchasable = {item["id"]: item for item in get_purchasable_plans(db)}
+        product_cfg = purchasable.get(plan)
+        if product_cfg is None:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Invalid plan. Choose from: {list(purchasable.keys())}",
+            )
+        product_id = product_cfg["id"]
+        amount = product_cfg["amount"]
+        label = product_cfg["name"]
+        duration_days = int(product_cfg["duration_days"])
+        credit_amount = Decimal("0")
+        subject = f"阿川工作台 - {label}"
 
     if not _alipay_configured():
         raise HTTPException(status_code=503, detail="支付暂未开放")
@@ -305,10 +376,12 @@ def create_order(
 
     order = Order(
         user_id=current_user.id,
-        plan=plan,
-        amount=Decimal(str(plan_cfg["amount"])),
-        plan_label=plan_cfg["name"],
-        plan_duration_days=int(plan_cfg["duration_days"]),
+        plan=product_id,
+        amount=Decimal(str(amount)),
+        plan_label=label,
+        plan_duration_days=duration_days,
+        order_type=product_type,
+        credit_amount=credit_amount,
         pay_status="pending",
         trade_no=trade_no,
         created_at=datetime.utcnow(),
@@ -320,8 +393,8 @@ def create_order(
     try:
         pay_url = _build_qr_url(
             trade_no,
-            plan_cfg["amount"],
-            f"阿川工作台 - {plan_cfg['name']}",
+            amount,
+            subject,
         )
     except Exception as e:
         raise HTTPException(status_code=502, detail=f"Alipay error: {e}")
@@ -329,9 +402,11 @@ def create_order(
     return CreateOrderResponse(
         order_id=order.id,
         trade_no=trade_no,
-        amount=plan_cfg["amount"],
+        amount=amount,
         pay_url=pay_url,
         is_mock=False,
+        order_type=product_type,
+        credit_amount=str(credit_amount),
     )
 
 
@@ -362,7 +437,7 @@ async def alipay_callback(request: Request, db: Session = Depends(get_db)):
     if order is None:
         return "fail"
 
-    _mark_paid_and_activate(order, db)
+    _mark_paid_and_fulfill(order, db)
     return "success"
 
 
@@ -401,7 +476,7 @@ def order_status(
     ):
         trade_status = _query_trade_status(order.trade_no)
         if trade_status in ("TRADE_SUCCESS", "TRADE_FINISHED"):
-            _mark_paid_and_activate(order, db)
+            _mark_paid_and_fulfill(order, db)
             db.refresh(order)
 
     return OrderStatusResponse(
@@ -411,6 +486,8 @@ def order_status(
         amount=str(order.amount),
         plan_label=order.plan_label,
         plan_duration_days=order.plan_duration_days,
+        order_type=getattr(order, "order_type", "membership"),
+        credit_amount=str(getattr(order, "credit_amount", 0) or 0),
         pay_status=order.pay_status,
         paid_at=order.paid_at,
     )

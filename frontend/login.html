@@ -63,7 +63,7 @@
     overflow: hidden;
   }
   .left::before{
-    content: '阿';
+    content: '川';
     position: absolute;
     bottom: -12vh; right: -4vw;
     font-family: var(--serif-cn);
@@ -383,6 +383,21 @@
     .foot-note{ margin-top: 40px; }
   }
 
+  @media (max-width: 640px){
+    .left{ padding: 32px 22px; min-height: auto; }
+    .right{ padding: 36px 22px 48px; }
+    .hero-title{ font-size: 28px; }
+    .hero-sub{ font-size: 13px; }
+    .form-h{ font-size: 24px; }
+    .text-input, .cc-box, .code-btn{ height: 48px; font-size: 16px; }
+    .login-btn{ height: 50px; font-size: 15px; }
+    .wechat-btn{ min-height: 46px; }
+    .left::before{ font-size: clamp(220px, 60vw, 320px); bottom: -4vh; }
+    .foot-note{ margin-top: 24px; font-size: 9.5px; }
+    .brand{ font-size: 15px; }
+    .brand-mark{ width: 28px; height: 28px; font-size: 14px; }
+  }
+
   @media (prefers-reduced-motion: reduce){
     *, *::before, *::after{
       animation-duration: .01ms !important;
@@ -399,7 +414,7 @@
   <div class="left">
 
     <div class="brand">
-      <span class="brand-mark">阿</span>
+      <span class="brand-mark">川</span>
       <span>阿川 AI 超级助手</span>
     </div>
 

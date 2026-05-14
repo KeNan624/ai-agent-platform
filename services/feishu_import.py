@@ -410,7 +410,8 @@ class FeishuMarkdownRenderer:
         first = (first or "").strip()
         second = (second or "").strip()
         if first and second:
-            return f"{first}{' ' if compact else '\n\n'}{second}"
+            sep = " " if compact else "\n\n"
+            return f"{first}{sep}{second}"
         return first or second
 
     def _text_field_name(self, block: dict[str, Any]) -> str:

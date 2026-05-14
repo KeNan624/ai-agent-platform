@@ -155,7 +155,7 @@
   /* ═══════════════════════════════════════════ */
   .plan-bar{
     max-width: 960px;
-    margin: 24px auto 48px;
+    margin: 24px auto 18px;
     padding: 0 40px;
     position: relative; z-index: 1;
     display: flex; justify-content: center;
@@ -181,6 +181,63 @@
   @keyframes pulse{
     0%, 100%{ opacity: 1; }
     50%{ opacity: .5; }
+  }
+
+  .purchase-switch{
+    max-width: 960px;
+    margin: 0 auto 40px;
+    padding: 0 40px;
+    position: relative; z-index: 1;
+    display: flex; justify-content: center;
+  }
+  .purchase-tabs{
+    display: inline-flex; align-items: center; gap: 4px;
+    padding: 4px;
+    background: rgba(250,246,236,.76);
+    border: 1px solid var(--line);
+    border-radius: 999px;
+  }
+  .purchase-tab{
+    height: 34px;
+    padding: 0 18px;
+    border-radius: 999px;
+    font-size: 13px;
+    color: var(--ink-soft);
+    white-space: nowrap;
+    transition: all .2s var(--ease);
+  }
+  .purchase-tab:hover,
+  .purchase-tab.active{
+    background: var(--ink);
+    color: var(--bg-card);
+  }
+  .section-heading{
+    max-width: 1080px;
+    margin: 0 auto 18px;
+    padding: 0 40px;
+    position: relative; z-index: 1;
+    display: flex;
+    justify-content: space-between;
+    gap: 18px;
+    align-items: end;
+  }
+  .section-title{
+    font-family: var(--serif-cn);
+    font-size: clamp(26px, 3vw, 38px);
+    font-weight: 500;
+    line-height: 1.1;
+  }
+  .section-title .gold{
+    font-family: var(--serif-en);
+    font-style: italic;
+    color: var(--gold);
+    font-weight: 400;
+  }
+  .section-note{
+    max-width: 420px;
+    font-size: 13px;
+    color: var(--ink-soft);
+    text-align: right;
   }
 
   /* ═══════════════════════════════════════════ */
@@ -619,16 +676,38 @@
   /* ═══════════════════════════════════════════ */
   /*  RESPONSIVE                                 */
   /* ═══════════════════════════════════════════ */
-  @media (max-width: 880px){
+  @media (max-width: 900px) and (min-width: 641px){
+    .plans{ grid-template-columns: repeat(2, 1fr); max-width: 680px; padding: 0 32px 50px; }
+    .plan-card.featured{ order: 0; }
+    .hero{ padding: 60px 32px 30px; }
+    .section-heading{ padding: 0 32px; }
+  }
+  @media (max-width: 640px){
     .plans{ grid-template-columns: 1fr; max-width: 480px; }
     .plan-card.featured{ order: -1; }
   }
   @media (max-width: 640px){
-    .topbar{ padding: 14px 18px; }
+    .topbar{ padding: 12px 16px; }
     .brand{ font-size: 14px; }
+    .back-link{ min-height: 44px; padding: 8px 4px; }
     .hero{ padding: 60px 24px 30px; }
+    .hero-title{ font-size: 32px; line-height: 1.15; }
+    .hero-sub{ font-size: 13.5px; }
+    .purchase-switch{ padding: 0 24px 30px; margin-bottom: 0; }
+    .purchase-tabs{ width: 100%; }
+    .purchase-tab{ flex: 1; padding: 0 10px; min-height: 44px; }
+    .section-heading{ padding: 0 24px; flex-direction: column; align-items: flex-start; }
+    .section-note{ text-align: left; }
     .plans{ padding: 0 24px 40px; }
+    .plan-card{ padding: 24px 20px 22px; }
+    .plan-name{ font-size: 20px; }
+    .price-main{ font-size: 44px; }
+    .plan-features li{ font-size: 12.5px; }
+    .btn-plan, .btn-mock{ min-height: 46px; font-size: 13px; }
     .faq{ padding: 0 24px; }
+    .faq-title{ font-size: 24px; }
+    .faq-q{ font-size: 14.5px; }
+    body::before{ display: none; }
   }
 </style>
 </head>
@@ -637,7 +716,7 @@
 <!-- Top bar -->
 <div class="topbar">
   <a href="choose.html" class="brand">
-    <span class="brand-mark">阿</span>
+    <span class="brand-mark">川</span>
     <span>阿川 AI 超级助手</span>
   </a>
   <a href="choose.html" class="back-link">
@@ -665,13 +744,38 @@
   </div>
 </div>
 
-<!-- Plans -->
+<div class="purchase-switch" aria-label="购买类型">
+  <div class="purchase-tabs">
+    <button class="purchase-tab active" type="button" onclick="scrollToPurchaseSection('plansContainer')">会员套餐</button>
+    <button class="purchase-tab" type="button" onclick="scrollToPurchaseSection('credit-section')">购买积分</button>
+  </div>
+</div>
+
+<div class="section-heading" id="plan-section">
+  <h2 class="section-title">会员<span class="gold">套餐</span></h2>
+  <p class="section-note">适合长期使用，套餐额度优先扣减；额度不足时可继续使用积分。</p>
+</div>
+
 <div class="plans" id="plansContainer">
   <div class="plan-card">
     <div class="plan-name">加载中</div>
     <p class="plan-desc">正在读取套餐配置…</p>
   </div>
 </div>
+
+<div class="section-heading" id="credit-section">
+  <h2 class="section-title">积分<span class="gold">包</span></h2>
+  <p class="section-note">适合临时补量或按量使用。购买后永久有效，支付成功立即到账。</p>
+</div>
+
+<div class="plans" id="creditPackagesContainer">
+  <div class="plan-card">
+    <div class="plan-name">加载中</div>
+    <p class="plan-desc">正在读取积分包配置…</p>
+  </div>
+</div>
+
+<div class="faq" id="creditBillingContainer"></div>
 
 <!-- FAQ -->
 <div class="faq">
@@ -748,7 +852,7 @@
   let pollTimer = null;
   let currentOrderId = null;
   let memberInfo = null;
-  let paymentPlans = { payments_enabled: false, free_plan: null, plans: [] };
+  let paymentPlans = { payments_enabled: false, free_plan: null, plans: [], credit_packages: [], credit_billing: {} };
 
   function esc(v) {
     return String(v ?? '').replace(/[&<>"']/g, ch => ({
@@ -804,7 +908,26 @@
     return allDisplayPlans().find(p => p.id === id);
   }
 
+  function findCreditPackage(id) {
+    return (paymentPlans.credit_packages || []).find(p => p.id === id);
+  }
+
+  function scrollToPurchaseSection(id) {
+    document.querySelectorAll('.purchase-tab').forEach(btn => btn.classList.remove('active'));
+    const target = document.getElementById(id);
+    if (!target) return;
+    if (id === 'credit-section') {
+      document.querySelectorAll('.purchase-tab')[1]?.classList.add('active');
+    } else {
+      document.querySelectorAll('.purchase-tab')[0]?.classList.add('active');
+    }
+    target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+
   function renderPlanFeatures(plan) {
+    if (Array.isArray(plan.benefits) && plan.benefits.length) {
+      return plan.benefits.map(item => `<li><span class="ck">✓</span><span class="label">${esc(item)}</span></li>`).join('');
+    }
     const features = [
       `${periodText(plan)} ${Number(plan.quota || 0)} 次对话`,
       ...(plan.allowed_models || []).map(modelName),
@@ -833,7 +956,7 @@
       const cardClass = `plan-card ${plan.id === 'yearly' ? 'featured' : ''} ${(!isFree && !canBuy) ? 'sold-out' : ''}`;
       const btn = isFree
         ? `<button class="btn-plan current" disabled>${isCurrent ? '当前套餐' : '免费版'}</button>`
-        : `<button class="btn-plan ${canBuy ? (plan.id === 'yearly' ? 'yearly-btn' : 'monthly-btn') : 'soldout'}" ${canBuy ? `onclick="openPayModal('${esc(plan.id)}')"` : 'disabled'}>${canBuy ? (isCurrent ? '续费' : '立即开通') + ' <span class="arr">→</span>' : '已售罄'}</button>`;
+        : `<button class="btn-plan ${canBuy ? (plan.id === 'yearly' ? 'yearly-btn' : 'monthly-btn') : 'soldout'}" ${canBuy ? `onclick="openPayModal('membership','${esc(plan.id)}')"` : 'disabled'}>${canBuy ? (isCurrent ? '续费' : '立即开通') + ' <span class="arr">→</span>' : '已售罄'}</button>`;
       return `
         <div class="${cardClass}">
           <div class="plan-name">${esc(plan.name)}</div>
@@ -850,6 +973,61 @@
     }).join('');
   }
 
+  function renderCreditPackages() {
+    const wrap = document.getElementById('creditPackagesContainer');
+    const packages = paymentPlans.credit_packages || [];
+    if (!packages.length) {
+      wrap.innerHTML = '<div class="plan-card"><div class="plan-name">暂无可购买积分包</div><p class="plan-desc">管理员上架积分包后会显示在这里。</p></div>';
+      return;
+    }
+    wrap.innerHTML = packages.map(pkg => {
+      const canBuy = paymentPlans.payments_enabled;
+      return `
+        <div class="plan-card">
+          <div class="plan-name">${esc(pkg.name)}</div>
+          <div class="plan-name-en">${esc(pkg.id)}</div>
+          <div class="plan-price">
+            <span class="price-main">¥${esc(pkg.amount || '0.00').replace(/\.00$/, '')}</span>
+            <span class="price-unit">/ ${Number(pkg.credits || 0)} 积分</span>
+          </div>
+          <p class="plan-desc">${esc(pkg.description || '购买后永久有效，可用于按量调用模型和功能。')}</p>
+          <ul class="plan-features">
+            <li><span class="ck">✓</span><span class="label">${Number(pkg.credits || 0)} 积分立即到账</span></li>
+            <li><span class="ck">✓</span><span class="label">永久有效，不随会员周期清零</span></li>
+            <li><span class="ck">✓</span><span class="label">套餐额度用完后自动使用积分</span></li>
+          </ul>
+          <button class="btn-plan ${canBuy ? 'monthly-btn' : 'soldout'}" ${canBuy ? `onclick="openPayModal('credits','${esc(pkg.id)}')"` : 'disabled'}>${canBuy ? '购买积分 <span class="arr">→</span>' : '已售罄'}</button>
+        </div>
+      `;
+    }).join('');
+  }
+
+  function renderCreditBilling() {
+    const wrap = document.getElementById('creditBillingContainer');
+    const billing = paymentPlans.credit_billing || {};
+    const rows = [];
+    Object.entries(billing.model_prices || {}).forEach(([key, price]) => {
+      if (Number(price) > 0) rows.push([modelName(key), price]);
+    });
+    Object.entries(billing.feature_prices || {}).forEach(([key, price]) => {
+      if (Number(price) > 0) rows.push([featureName(key), price]);
+    });
+    if (!rows.length) {
+      wrap.innerHTML = '';
+      return;
+    }
+    wrap.innerHTML = `
+      <h2 class="faq-title">积分<span class="gold">消耗</span></h2>
+      <p class="faq-sub">Credit Billing</p>
+      ${rows.map(([name, price]) => `
+        <div class="faq-item">
+          <div class="faq-q">${esc(name)}</div>
+          <div class="faq-a">每次消耗 ${Number(price)} 积分。套餐额度可用时优先扣套餐额度。</div>
+        </div>
+      `).join('')}
+    `;
+  }
+
   // Load current plan info
   async function loadPlanInfo() {
     try {
@@ -860,7 +1038,7 @@
         fetch(API + '/pay/plans')
       ]);
       paymentPlans = await planRes.json();
-      if (!planRes.ok) paymentPlans = { payments_enabled: false, free_plan: null, plans: [] };
+      if (!planRes.ok) paymentPlans = { payments_enabled: false, free_plan: null, plans: [], credit_packages: [], credit_billing: {} };
       if (r.status === 401) {
         localStorage.removeItem('token');
         location.replace('login.html');
@@ -873,8 +1051,10 @@
       const text = document.getElementById('planText');
       dot.className = 'dot ' + (plan === 'free' ? 'free' : (plan === 'yearly' ? 'yearly' : 'monthly'));
       const expire = d.expire_at ? '，到期 ' + new Date(d.expire_at).toLocaleDateString('zh-CN') : '';
-      text.textContent = '当前套餐：' + (d.plan_name || findPaymentPlan(plan)?.name || plan) + expire;
+      text.textContent = '当前套餐：' + (d.plan_name || findPaymentPlan(plan)?.name || plan) + expire + ' · 积分余额 ' + (d.credit_balance || '0.00');
       renderPlans();
+      renderCreditPackages();
+      renderCreditBilling();
     } catch (e) {
       console.error(e);
     }
@@ -886,9 +1066,14 @@
     });
   }
 
-  async function openPayModal(plan) {
-    const planCfg = findPaymentPlan(plan);
-    if (!paymentPlans.payments_enabled || !planCfg) {
+  async function openPayModal(productType, productId) {
+    if (!productId) {
+      productId = productType;
+      productType = 'membership';
+    }
+    const isCredits = productType === 'credits';
+    const productCfg = isCredits ? findCreditPackage(productId) : findPaymentPlan(productId);
+    if (!paymentPlans.payments_enabled || !productCfg) {
       document.getElementById('payModal').classList.add('active');
       showStep('stepLoading');
       document.querySelector('#stepLoading .modal-title').textContent = '当前已售罄';
@@ -904,7 +1089,7 @@
       const r = await fetch(API + '/pay/create', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
-        body: JSON.stringify({ plan })
+        body: JSON.stringify(isCredits ? { product_type: 'credits', package_id: productId } : { plan: productId })
       });
       if (r.status === 401) {
         localStorage.removeItem('token');
@@ -916,7 +1101,9 @@
       currentOrderId = d.order_id;
 
       document.getElementById('qrAmount').textContent = '¥' + d.amount;
-      document.getElementById('qrLabel').textContent = `${planCfg.name} · ${priceUnit(planCfg)}`;
+      document.getElementById('qrLabel').textContent = isCredits
+        ? `${productCfg.name} · ${Number(productCfg.credits || 0)} 积分`
+        : `${productCfg.name} · ${priceUnit(productCfg)}`;
       showStep('stepQR');
 
       const qrImg = document.getElementById('qrImg');
@@ -927,7 +1114,7 @@
         qrImg.onload = () => { qrImg.style.display = 'block'; qrPlaceholder.style.display = 'none'; };
       } catch (e) {}
 
-      startPolling(d.order_id, plan);
+      startPolling(d.order_id, productType, productId);
     } catch (e) {
       showStep('stepLoading');
       document.querySelector('#stepLoading .modal-title').textContent = '当前已售罄';
@@ -935,7 +1122,7 @@
     }
   }
 
-  function startPolling(orderId, plan) {
+  function startPolling(orderId, productType, productId) {
     let attempts = 0;
     const max = 60;
     pollTimer = setInterval(async () => {
@@ -952,16 +1139,19 @@
         const d = await r.json();
         if (d.pay_status === 'paid') {
           clearInterval(pollTimer);
-          showSuccess(plan);
+          showSuccess(productType, productId);
         }
       } catch (e) {}
     }, 5000);
   }
 
-  function showSuccess(plan) {
-    const planCfg = findPaymentPlan(plan);
+  function showSuccess(productType, productId) {
+    const isCredits = productType === 'credits';
+    const planCfg = isCredits ? findCreditPackage(productId) : findPaymentPlan(productId);
     document.getElementById('successDesc').textContent =
-      ((planCfg && planCfg.name) || '会员') + ' 已开通，立即享受全部 AI 能力';
+      isCredits
+        ? (((planCfg && planCfg.name) || '积分包') + ' 已到账，可继续使用 AI 能力')
+        : (((planCfg && planCfg.name) || '会员') + ' 已开通，立即享受全部 AI 能力');
     showStep('stepSuccess');
   }
 
@@ -976,7 +1166,17 @@
     if (e.target === this) closeModal();
   });
 
-  loadPlanInfo();
+  function applyInitialPurchaseHash() {
+    const hash = location.hash || '';
+    if (hash === '#credit-section') {
+      setTimeout(() => scrollToPurchaseSection('credit-section'), 120);
+    } else if (hash === '#plan-section') {
+      setTimeout(() => scrollToPurchaseSection('plan-section'), 120);
+    }
+  }
+
+  loadPlanInfo().finally(applyInitialPurchaseHash);
+  window.addEventListener('hashchange', applyInitialPurchaseHash);
 </script>
 
 </body>

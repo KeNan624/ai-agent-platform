@@ -475,6 +475,14 @@ body {
 .detail-content.protected-content {
   user-select: none;
   -webkit-user-select: none;
+  -webkit-touch-callout: none;  /* iOS 长按弹复制/保存菜单 */
+  -ms-user-select: none;
+}
+.detail-content.protected-content img,
+.detail-content.protected-content video {
+  -webkit-touch-callout: none;
+  -webkit-user-drag: none;
+  pointer-events: auto;
 }
 .detail-content h1,.detail-content h2,.detail-content h3 {
   color: var(--ink); margin: 24px 0 12px; font-family: var(--serif-cn);
@@ -1116,11 +1124,38 @@ span[class*="fs-bg-"]{padding:1px 4px;border-radius:4px}
   .course-grid { grid-template-columns: repeat(2, 1fr); }
 }
 @media (max-width: 768px) {
-  .nav-inner { padding: 0 16px; }
+  /* nav 换为两行: 第一行 logo+搜索+管理+返回 | 第二行 tabs 横滚 */
+  .nav { height: auto; }
+  .nav-inner {
+    padding: 8px 14px;
+    height: auto;
+    flex-wrap: wrap;
+    gap: 8px;
+    row-gap: 4px;
+  }
+  .nav-logo { margin-right: 0; gap: 8px; flex-shrink: 0; }
+  .nav-logo-icon { width: 32px; height: 32px; font-size: 14px; border-radius: 8px; }
   .nav-logo-text { display: none; }
-  .admin-entry { padding: 7px 10px; font-size: 0; gap: 0; }
-  .admin-entry::before { content: '⚙'; font-size: 14px; }
-  .nav-search input { width: 100px; }
+  .nav-right { gap: 6px; margin-left: auto; flex-wrap: nowrap; flex-shrink: 0; }
+  .admin-entry { padding: 8px 10px; font-size: 0; gap: 0; min-height: 36px; }
+  .admin-entry::before { content: '⚙'; font-size: 15px; }
+  .nav-search { padding: 5px 10px; }
+  .nav-search input { width: 90px; font-size: 13px; }
+  .nav-back { padding: 8px 10px; font-size: 12.5px; min-height: 36px; }
+  /* tabs 独占第二行 */
+  .nav-tabs {
+    flex: 1 1 100% !important;
+    width: 100%;
+    order: 99;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    flex-wrap: nowrap;
+    gap: 4px;
+    padding-bottom: 4px;
+    scrollbar-width: none;
+  }
+  .nav-tabs::-webkit-scrollbar { display: none; }
+  .nav-tab { padding: 7px 14px; font-size: 14px; min-height: 36px; display: inline-flex; align-items: center; }
   .hero { padding: 32px 16px 4px; }
   .hero-slogan { font-size: 24px; }
   .main { padding: 16px 16px 60px; }
@@ -1153,6 +1188,39 @@ span[class*="fs-bg-"]{padding:1px 4px;border-radius:4px}
   }
   .column-sidebar .lesson-item { margin: 8px 10px; }
   .filter-sort { margin-left: 0; width: 100%; margin-top: 8px; }
+  /* tabs 在窄屏可横向滚动,不被压扁 */
+  .nav-tabs { overflow-x: auto; -webkit-overflow-scrolling: touch; flex-wrap: nowrap; gap: 6px; }
+  .nav-tab { white-space: nowrap; padding: 8px 12px; font-size: 13px; flex-shrink: 0; min-height: 40px; }
+  .nav-right { gap: 6px; flex-shrink: 0; }
+  .nav-back { padding: 6px 10px; font-size: 12px; min-height: 36px; display: inline-flex; align-items: center; }
+  /* 防 iOS zoom */
+  input, textarea, select { font-size: 16px !important; }
+}
+@media (max-width: 640px) {
+  .nav-inner { padding: 0 10px; gap: 6px; }
+  .nav-logo-icon { width: 30px; height: 30px; font-size: 13px; }
+  .nav-search input { width: 80px !important; padding: 6px 8px; }
+  .nav-search { flex-shrink: 1; }
+  .nav-tab { padding: 7px 10px; font-size: 12.5px; }
+  .hero { padding: 24px 14px 4px; }
+  .hero-slogan { font-size: 20px; line-height: 1.25; }
+  .main { padding: 14px 12px 60px; }
+  .card-grid { gap: 12px; }
+  .filter-sort { flex-wrap: wrap; gap: 6px; }
+  .filter-sort button, .filter-sort select { min-height: 36px; font-size: 13px; }
+  .detail-header { padding: 18px 14px 14px; }
+  .detail-content { padding: 16px; font-size: 14.5px; }
+  .detail-subscribe-bar { padding: 10px 14px 14px; flex-wrap: wrap; gap: 8px; }
+  .detail-subscribe-bar button, .detail-subscribe-bar a { min-height: 44px; }
+  .course-sidebar, .column-sidebar { max-height: 280px; }
+  .column-reader { padding: 18px 14px 28px; }
+  .column-reader .detail-content { font-size: 15px; }
+  .column-reader .course-lesson-title { font-size: 18px; }
+  /* 卡片内部紧凑 */
+  .card { padding: 14px; }
+  .card-title { font-size: 15px; }
+  .card-meta { font-size: 11px; }
+  .toast { width: 86vw; max-width: 86vw; font-size: 13px; }
 }
 </style>
 </head>
@@ -1162,7 +1230,7 @@ span[class*="fs-bg-"]{padding:1px 4px;border-radius:4px}
 <nav class="nav">
   <div class="nav-inner">
     <a class="nav-logo" href="choose.html">
-      <div class="nav-logo-icon">阿</div>
+      <div class="nav-logo-icon">川</div>
       <span class="nav-logo-text">阿川 AI</span>
     </a>
     <div class="nav-tabs">
@@ -1337,10 +1405,21 @@ let currentUserIsAdmin = false;
 function hardenVideoElements(root = document) {
   if (!root) return;
   root.querySelectorAll('video').forEach(video => {
-    video.setAttribute('controlsList', 'nodownload noremoteplayback');
+    video.setAttribute('controlsList', 'nodownload noremoteplayback noplaybackrate');
     video.setAttribute('oncontextmenu', 'return false');
     video.setAttribute('disablePictureInPicture', '');
     video.setAttribute('disableRemotePlayback', '');
+    /* 手机端: 内联播放 + 拦截长按菜单 */
+    video.setAttribute('playsinline', '');
+    video.setAttribute('webkit-playsinline', '');
+    video.setAttribute('x5-playsinline', '');
+    video.style.webkitTouchCallout = 'none';
+    video.style.webkitUserSelect = 'none';
+    video.addEventListener('contextmenu', e => e.preventDefault());
+    video.addEventListener('touchstart', e => { video._touchStart = Date.now(); }, { passive: true });
+    video.addEventListener('touchend', e => {
+      if (Date.now() - (video._touchStart || 0) > 400) e.preventDefault();
+    });
   });
 }
 

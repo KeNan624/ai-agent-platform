@@ -837,6 +837,52 @@
     .scroll-hint{ bottom: 24px; }
   }
 
+  @media (max-width: 640px){
+    .nav{ padding: 12px 14px; }
+    .nav.scrolled{ padding: 10px 14px; }
+    .brand{ font-size: 15px; gap: 8px; }
+    .brand-mark{ width: 28px; height: 28px; font-size: 14px; }
+    .nav.scrolled .brand-mark{ width: 26px; height: 26px; font-size: 13px; }
+    .nav-cta{ min-height: 40px; padding: 6px 14px; font-size: 12px; }
+
+    .hero{ padding: 100px 16px 48px; min-height: auto; }
+    .hero-title, .hero h1{ font-size: clamp(32px, 9vw, 48px); line-height: 1.1; }
+    .hero-sub{ font-size: 14px; line-height: 1.7; }
+    .hero-eyebrow{ font-size: 10px; letter-spacing: .18em; }
+    .hero-divider{ margin: 36px 0 20px; }
+    .hero-cta, .hero-cta a, .hero-cta button{ min-height: 46px; font-size: 13px; padding: 12px 18px; }
+
+    .abilities{ padding: 70px 16px 70px; }
+    .abilities-head{ margin-bottom: 44px; }
+    .abilities-title{ font-size: clamp(26px, 7vw, 36px); line-height: 1.2; }
+    .ability{ padding: 24px 0 !important; min-height: 150px; }
+    .ability-name{ font-size: 18px; }
+    .ability-desc{ font-size: 13px; line-height: 1.7; }
+
+    .ecosystem{ padding: 70px 16px 70px; }
+    .eco-head{ margin-bottom: 40px; }
+    .eco-card{ padding: 28px 0 !important; }
+    .eco-title{ font-size: 18px; }
+    .eco-desc{ font-size: 13px; }
+    .eco-stats{ padding: 32px 16px; margin-top: 48px; }
+    .stats-row{ gap: 22px; }
+    .stat-num{ font-size: 36px; }
+    .stat-label{ font-size: 11px; }
+
+    .closing{ padding: 70px 16px 48px; }
+    .closing-title{ font-size: clamp(28px, 8vw, 40px); line-height: 1.15; }
+
+    footer{ padding: 40px 16px 24px; }
+    .foot-grid{ grid-template-columns: 1fr; gap: 24px; }
+    .foot-grid > *:first-child{ grid-column: span 1; }
+    .foot-title{ font-size: 12px; }
+    .foot-link{ font-size: 12px; }
+
+    /* iOS 防 zoom + 触摸目标 */
+    input, textarea, select{ font-size: 16px !important; }
+    a.btn, button.btn, .btn{ min-height: 44px; }
+  }
+
   @media (prefers-reduced-motion: reduce){
     *, *::before, *::after{
       animation-duration: .01ms !important;
@@ -852,7 +898,7 @@
 <!-- ═════════════════════════════════════════════ -->
 <nav class="nav" id="nav">
   <a href="/" class="brand">
-    <span class="brand-mark">阿</span>
+    <span class="brand-mark">川</span>
     <span>阿川 AI 超级助手</span>
   </a>
   <div class="nav-right">

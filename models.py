@@ -52,6 +52,25 @@ class Credit(Base):
     user = relationship("User", back_populates="credits")
 
 
+class CreditTransaction(Base):
+    __tablename__ = "credit_transactions"
+    __table_args__ = (
+        UniqueConstraint("source_type", "source_id", name="uq_credit_tx_source"),
+    )
+
+    id = Column(BigInteger, primary_key=True, index=True)
+    user_id = Column(BigInteger, ForeignKey("users.id"), nullable=False, index=True)
+    amount = Column(Numeric(12, 2), nullable=False)
+    balance_after = Column(Numeric(12, 2), nullable=False)
+    transaction_type = Column(String(32), nullable=False, index=True)
+    source_type = Column(String(32), nullable=True, index=True)
+    source_id = Column(String(64), nullable=True, index=True)
+    item_type = Column(String(32), nullable=True)
+    item_key = Column(String(64), nullable=True)
+    description = Column(String(200), nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False, index=True)
+
+
 class Order(Base):
     __tablename__ = "orders"
 
@@ -61,6 +80,8 @@ class Order(Base):
     amount = Column(Numeric(10, 2), nullable=False)
     plan_label = Column(String(100), nullable=True)
     plan_duration_days = Column(Integer, nullable=True)
+    order_type = Column(String(16), default="membership", nullable=False)
+    credit_amount = Column(Numeric(12, 2), default=0, nullable=False)
     pay_status = Column(
         Enum("pending", "paid", "failed", "refunded", name="pay_status"),
         default="pending",

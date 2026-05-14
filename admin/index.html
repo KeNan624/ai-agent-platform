@@ -225,9 +225,10 @@ select.form-input{cursor:pointer}
 .plan-checks{display:flex;gap:10px;align-items:center;white-space:nowrap}
 .plan-checks label,.mini-check{display:flex;align-items:center;gap:4px;font-size:11px;color:var(--muted)}
 .plan-table-wrap{overflow-x:auto;overflow-y:hidden;-webkit-overflow-scrolling:touch}
-.plan-table{width:2290px;min-width:2290px;table-layout:fixed}
+.plan-table{width:2600px;min-width:2600px;table-layout:fixed}
 .plan-table th,.plan-table td{box-sizing:border-box}
-.plan-table input,.plan-table select{width:100%;min-width:0;padding:6px 8px;border:1px solid var(--border);border-radius:6px;font-size:12px;background:#fff}
+.plan-table input,.plan-table select,.plan-table textarea{width:100%;min-width:0;padding:6px 8px;border:1px solid var(--border);border-radius:6px;font-size:12px;background:#fff}
+.plan-table textarea{min-height:72px;resize:vertical;font-family:inherit;line-height:1.45}
 .plan-table input[type="checkbox"]{width:auto}
 .plan-table input[disabled]{background:#f8fafc;color:var(--muted)}
 .plan-table input[type="number"]{font-variant-numeric:tabular-nums}
@@ -237,6 +238,14 @@ select.form-input{cursor:pointer}
 .plan-feature-row label{min-width:0;overflow:hidden;text-overflow:ellipsis}
 .plan-feature-quota{width:76px!important;min-width:76px;text-align:right}
 .plan-flags{display:flex;flex-direction:column;gap:5px;min-width:110px}
+.credit-config-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:16px}
+.credit-config-card{border:1px solid var(--border);border-radius:10px;background:#fff;padding:14px}
+.credit-config-card h4{font-size:13px;margin-bottom:10px;color:var(--text)}
+.credit-price-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:8px 12px}
+.credit-price-row{display:grid;grid-template-columns:minmax(0,1fr) 82px;gap:8px;align-items:center;font-size:12px;color:var(--muted)}
+.credit-price-row input,.credit-package-table input{padding:6px 8px;border:1px solid var(--border);border-radius:6px;font-size:12px}
+.credit-package-table{width:100%;min-width:760px}
+.credit-package-table th,.credit-package-table td{padding:8px;border-bottom:1px solid #eef2f7;text-align:left;font-size:12px}
 .model-row-actions{display:flex;gap:6px}
 .model-status-line{font-size:11px;color:var(--muted);margin-top:8px;line-height:1.5}
 .toggle{
@@ -272,6 +281,79 @@ select.form-input{cursor:pointer}
 #toast.show{transform:translateY(0);opacity:1}
 #toast.ok{background:#1e293b;color:#f8fafc}
 #toast.err{background:#dc2626;color:#fff}
+
+/* ── Mobile / iPad Portrait ─────────────────────────── */
+.m-hamburger{display:none;background:transparent;border:none;color:var(--muted);font-size:22px;width:44px;height:44px;cursor:pointer;align-items:center;justify-content:center;padding:0;border-radius:8px}
+.m-hamburger:hover{background:#f1f5f9;color:var(--text)}
+.m-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:99}
+.m-scroll-hint{display:none;font-size:11px;color:var(--subtle);padding:8px 14px;background:#f8fafc;border-bottom:1px solid var(--border);text-align:center;letter-spacing:.05em}
+body.drawer-open{overflow:hidden}
+body.drawer-open .m-overlay{display:block}
+
+@media (max-width:900px){
+  .m-hamburger{display:flex}
+  #sidebar{position:fixed;top:0;left:0;height:100vh;z-index:100;transform:translateX(-100%);transition:transform .25s ease;box-shadow:2px 0 16px rgba(0,0,0,.25)}
+  body.drawer-open #sidebar{transform:translateX(0)}
+  #main{width:100%}
+  #topbar{padding:10px 14px;gap:10px}
+  #topbar-title{font-size:15px}
+  #topbar-sub{font-size:11px}
+  #topbar-right{gap:8px}
+  #topbar-right .badge{display:none}
+  #content{padding:16px}
+  .stats-grid{grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:18px}
+  .stat-card{padding:14px}
+  .stat-val{font-size:22px}
+  .stat-icon{font-size:18px;margin-bottom:8px}
+  .config-grid{grid-template-columns:1fr;gap:14px}
+  .model-provider-card{grid-template-columns:1fr;gap:10px}
+  .credit-config-grid{grid-template-columns:1fr;gap:12px}
+  .modal{width:92vw;padding:22px;max-height:90vh;overflow-y:auto;border-radius:12px}
+  .modal h3{font-size:15px}
+  .toolbar{flex-wrap:wrap;gap:8px}
+  .toolbar .input{flex:1 1 140px;min-width:0;font-size:16px}
+  .toolbar select.input{flex:1 1 120px}
+  .btn{min-height:40px;padding:9px 14px}
+  .btn-sm{min-height:36px;padding:7px 12px}
+  .page-btn,.nav-item{min-height:40px}
+  .nav-item{font-size:14px;padding:11px 14px}
+  .form-input{font-size:16px;padding:11px 12px}
+  select.form-input{font-size:16px}
+  .input{font-size:16px}
+  .api-input{width:100%;max-width:100%;font-size:14px;padding:9px 11px}
+  .price-input{font-size:14px;padding:8px 10px}
+  .card-header{padding:14px 16px;flex-wrap:wrap;gap:10px}
+  .card-body{padding:16px}
+  .config-section{padding:16px}
+  .pagination{flex-wrap:wrap;justify-content:center;gap:6px}
+  th,td{padding:9px 10px}
+  .plan-table-wrap > .m-scroll-hint,
+  .model-table-wrap > .m-scroll-hint{display:block}
+  .config-row{flex-direction:column;align-items:flex-start;gap:6px;padding:12px 0}
+  .config-row > *:last-child{align-self:stretch}
+  .price-input{width:100%;text-align:left}
+  .login-box{width:88vw;padding:32px 26px;max-width:380px}
+}
+
+@media (max-width:640px){
+  .stats-grid{grid-template-columns:1fr;gap:10px}
+  #content{padding:12px}
+  #topbar{padding:10px 12px}
+  th,td{padding:8px 10px;font-size:12px}
+  th{font-size:10px}
+  table{font-size:12px}
+  .tag{font-size:10px;padding:3px 7px}
+  .btn-sm{font-size:12px}
+  .modal{padding:20px}
+  .modal-actions{flex-direction:column-reverse;gap:8px}
+  .modal-actions .btn{width:100%;min-height:44px}
+  .form-row{margin-bottom:12px}
+  .login-input{font-size:16px}
+  .login-btn{min-height:46px}
+  .card-header{padding:12px 14px}
+  .card-body{padding:14px}
+  .config-section{padding:14px}
+}
 </style>
 </head>
 <body>
@@ -329,7 +411,8 @@ select.form-input{cursor:pointer}
 <!-- ═══════════════════ MAIN ═══════════════════ -->
 <div id="main">
   <div id="topbar">
-    <div>
+    <button class="m-hamburger" id="m-hamburger-btn" aria-label="菜单" onclick="toggleAdminDrawer()">☰</button>
+    <div style="flex:1;min-width:0">
       <div id="topbar-title">数据总览</div>
       <div id="topbar-sub">实时平台运营数据</div>
     </div>
@@ -374,7 +457,7 @@ select.form-input{cursor:pointer}
           <div class="tbl-wrap">
             <table>
               <thead><tr>
-                <th>订单号</th><th>手机号</th><th>套餐</th><th>金额</th><th>状态</th><th>时间</th>
+                <th>订单号</th><th>手机号</th><th>商品</th><th>金额</th><th>状态</th><th>时间</th>
               </tr></thead>
               <tbody id="overview-orders-body">
                 <tr><td colspan="6" class="loading"><span class="spinner"></span>加载中...</td></tr>
@@ -401,10 +484,10 @@ select.form-input{cursor:pointer}
             <table>
               <thead><tr>
                 <th>ID</th><th>手机号</th><th>昵称</th><th>注册时间</th>
-                <th>状态</th><th>会员等级</th><th>到期时间</th><th>操作</th>
+                <th>状态</th><th>会员等级</th><th>到期时间</th><th>积分余额</th><th>操作</th>
               </tr></thead>
               <tbody id="users-body">
-                <tr><td colspan="8" class="loading"><span class="spinner"></span>加载中...</td></tr>
+                <tr><td colspan="9" class="loading"><span class="spinner"></span>加载中...</td></tr>
               </tbody>
             </table>
           </div>
@@ -424,11 +507,11 @@ select.form-input{cursor:pointer}
           <div class="tbl-wrap">
             <table>
               <thead><tr>
-                <th>ID</th><th>手机号</th><th>套餐</th><th>金额</th>
+                <th>ID</th><th>手机号</th><th>类型</th><th>商品</th><th>金额</th>
                 <th>支付状态</th><th>交易号</th><th>创建时间</th><th>支付时间</th>
               </tr></thead>
               <tbody id="orders-body">
-                <tr><td colspan="8" class="loading"><span class="spinner"></span>加载中...</td></tr>
+                <tr><td colspan="9" class="loading"><span class="spinner"></span>加载中...</td></tr>
               </tbody>
             </table>
           </div>
@@ -717,6 +800,11 @@ function payStatusTag(s) {
   return map[s] || `<span class="tag tag-gray">${s}</span>`;
 }
 
+function orderTypeTag(s) {
+  if (s === 'credits') return '<span class="tag tag-amber">积分</span>';
+  return '<span class="tag tag-blue">会员</span>';
+}
+
 function planLabel(p) {
   const plan = planConfigData?.plans?.find(item => item.id === p);
   return plan?.name || {free:'免费',monthly:'月度',quarterly:'季度',yearly:'年度'}[p] || p;
@@ -768,6 +856,10 @@ document.querySelectorAll('.nav-item').forEach(item => {
   item.addEventListener('click', () => switchSection(item.dataset.section));
 });
 
+function toggleAdminDrawer() {
+  document.body.classList.toggle('drawer-open');
+}
+
 function switchSection(name) {
   document.querySelectorAll('.nav-item').forEach(n => n.classList.toggle('active', n.dataset.section===name));
   document.querySelectorAll('.section').forEach(s => s.classList.toggle('active', s.id===`section-${name}`));
@@ -779,6 +871,7 @@ function switchSection(name) {
   if (name === 'orders')   loadOrders();
   if (name === 'usage')    loadUsageStats();
   if (name === 'config')   initConfig();
+  if (window.innerWidth <= 900) document.body.classList.remove('drawer-open');
 }
 
 document.getElementById('refresh-btn').addEventListener('click', () => {
@@ -811,7 +904,7 @@ async function loadOverviewOrders() {
       <tr>
         <td style="font-family:monospace;font-size:11px;color:var(--muted)">${o.trade_no?.slice(-10) || o.id}</td>
         <td>${o.phone}</td>
-        <td>${planLabel(o.plan)}</td>
+        <td>${escapeHtml(o.plan_label || planLabel(o.plan))}</td>
         <td>¥${o.amount}</td>
         <td>${payStatusTag(o.pay_status)}</td>
         <td style="font-size:12px;color:var(--muted)">${fmtDate(o.created_at)}</td>
@@ -832,12 +925,12 @@ function loadOverview() {
 async function loadUsers(page = 1) {
   usersPage = page;
   const tbody = document.getElementById('users-body');
-  tbody.innerHTML = '<tr><td colspan="8" class="loading"><span class="spinner"></span>加载中...</td></tr>';
+  tbody.innerHTML = '<tr><td colspan="9" class="loading"><span class="spinner"></span>加载中...</td></tr>';
   try {
     const phone = userPhoneFilter ? `&phone=${encodeURIComponent(userPhoneFilter)}` : '';
     const d = await api('GET', `/admin/users?page=${page}&page_size=15${phone}`);
     if (!d.items.length) {
-      tbody.innerHTML = '<tr><td colspan="8" class="empty">暂无用户</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="9" class="empty">暂无用户</td></tr>';
       renderPagination('users-pagination', 0, 15, page, loadUsers);
       return;
     }
@@ -852,6 +945,7 @@ async function loadUsers(page = 1) {
           : '<span class="tag tag-red">禁用</span>'}</td>
         <td>${planTag(u.membership?.plan_type)}</td>
         <td style="font-size:12px;color:var(--muted)">${u.membership?.expire_at ? fmtDate(u.membership.expire_at) : '–'}</td>
+        <td><strong>${escapeHtml(u.credit_balance || '0.00')}</strong></td>
         <td>
           <div style="display:flex;gap:6px">
             <button class="btn btn-ghost btn-sm" onclick="openGrantModalForPhone('${u.phone}')">开通</button>
@@ -861,7 +955,7 @@ async function loadUsers(page = 1) {
       </tr>`).join('');
     renderPagination('users-pagination', d.total, 15, page, loadUsers);
   } catch(e) {
-    tbody.innerHTML = `<tr><td colspan="8" class="empty">加载失败：${e.message}</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="9" class="empty">加载失败：${e.message}</td></tr>`;
   }
 }
 
@@ -884,12 +978,12 @@ document.getElementById('user-search').addEventListener('keydown', e => {
 async function loadOrders(page = 1) {
   ordersPage = page;
   const tbody = document.getElementById('orders-body');
-  tbody.innerHTML = '<tr><td colspan="8" class="loading"><span class="spinner"></span>加载中...</td></tr>';
+  tbody.innerHTML = '<tr><td colspan="9" class="loading"><span class="spinner"></span>加载中...</td></tr>';
   try {
     const d = await api('GET', `/admin/orders?page=${page}&page_size=15`);
     document.getElementById('orders-total-badge').textContent = `共 ${d.total} 条`;
     if (!d.items.length) {
-      tbody.innerHTML = '<tr><td colspan="8" class="empty">暂无订单</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="9" class="empty">暂无订单</td></tr>';
       renderPagination('orders-pagination', 0, 15, page, loadOrders);
       return;
     }
@@ -897,7 +991,8 @@ async function loadOrders(page = 1) {
       <tr>
         <td style="color:var(--muted);font-size:12px">${o.id}</td>
         <td>${o.phone}</td>
-        <td>${planLabel(o.plan)}</td>
+        <td>${orderTypeTag(o.order_type)}</td>
+        <td>${escapeHtml(o.plan_label || planLabel(o.plan))}${o.order_type === 'credits' ? `<span style="color:var(--muted);font-size:11px"> · ${escapeHtml(o.credit_amount || '0')} 积分</span>` : ''}</td>
         <td>¥${o.amount}</td>
         <td>${payStatusTag(o.pay_status)}</td>
         <td style="font-family:monospace;font-size:11px;color:var(--muted);max-width:160px;overflow:hidden;text-overflow:ellipsis">${o.trade_no || '–'}</td>
@@ -906,7 +1001,7 @@ async function loadOrders(page = 1) {
       </tr>`).join('');
     renderPagination('orders-pagination', d.total, 15, page, loadOrders);
   } catch(e) {
-    tbody.innerHTML = `<tr><td colspan="8" class="empty">加载失败：${e.message}</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="9" class="empty">加载失败：${e.message}</td></tr>`;
   }
 }
 
@@ -1293,6 +1388,68 @@ function renderFeatureCheckboxes(plan) {
   `).join('');
 }
 
+function renderCreditBillingConfig() {
+  const billing = planConfigData?.credit_billing || {};
+  const modelPrices = billing.model_prices || {};
+  const featurePrices = billing.feature_prices || {};
+  const models = enabledChatModels();
+  return `
+    <div class="credit-config-card">
+      <h4>积分单价</h4>
+      <div class="note" style="margin-bottom:10px">0 表示不能用积分购买使用；套餐额度仍优先扣减。</div>
+      <div class="credit-price-grid">
+        ${models.map(m => `
+          <label class="credit-price-row">
+            <span>${esc(m.name || m.id)}</span>
+            <input class="cb-model-price" data-model="${esc(m.id)}" type="number" min="0" step="1" value="${Number(modelPrices[m.id] || 0)}">
+          </label>
+        `).join('')}
+        ${planFeatureDefs().map(f => `
+          <label class="credit-price-row">
+            <span>${esc(f.label)}</span>
+            <input class="cb-feature-price" data-feature="${esc(f.key)}" type="number" min="0" step="1" value="${Number(featurePrices[f.key] || 0)}">
+          </label>
+        `).join('')}
+      </div>
+    </div>
+  `;
+}
+
+function renderCreditPackages() {
+  const packages = planConfigData?.credit_packages || [];
+  return `
+    <div class="credit-config-card">
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:10px">
+        <h4 style="margin:0">积分包</h4>
+        <button class="btn btn-sm" onclick="addCreditPackageRow()">新增积分包</button>
+      </div>
+      <div class="note" style="margin-bottom:10px">默认示例包是下架状态；启用后才会在前台售卖。</div>
+      <div class="model-table-wrap">
+        <div class="m-scroll-hint">← 左右滑动查看更多 →</div>
+        <table class="credit-package-table">
+          <thead>
+            <tr><th style="width:130px">ID</th><th style="width:130px">名称</th><th>说明</th><th style="width:90px">价格</th><th style="width:90px">积分</th><th style="width:70px">启用</th><th style="width:80px">排序</th><th style="width:70px">操作</th></tr>
+          </thead>
+          <tbody>
+            ${packages.map((p, idx) => `
+              <tr class="credit-package-row" data-idx="${idx}">
+                <td><input class="cp-id" value="${esc(p.id)}" ${p._isNew ? '' : 'disabled'}></td>
+                <td><input class="cp-name" value="${esc(p.name || '')}"></td>
+                <td><input class="cp-desc" value="${esc(p.description || '')}"></td>
+                <td><input class="cp-amount" type="number" min="0" step="0.01" value="${esc(p.amount || '0.00')}"></td>
+                <td><input class="cp-credits" type="number" min="0" step="1" value="${Number(p.credits || 0)}"></td>
+                <td><label class="mini-check"><input class="cp-enabled" type="checkbox" ${p.enabled ? 'checked' : ''}>上架</label></td>
+                <td><input class="cp-sort" type="number" value="${Number(p.sort_order || 0)}"></td>
+                <td><button class="btn btn-sm" onclick="removeCreditPackageRow(${idx})">删除</button></td>
+              </tr>
+            `).join('') || '<tr><td colspan="8" class="empty">暂无积分包</td></tr>'}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  `;
+}
+
 function renderPlanConfig() {
   const panel = document.getElementById('plan-config-panel');
   const plans = planConfigData?.plans || [];
@@ -1302,10 +1459,12 @@ function renderPlanConfig() {
   }
   panel.innerHTML = `
     <div class="model-table-wrap plan-table-wrap">
+      <div class="m-scroll-hint">← 左右滑动查看更多 →</div>
       <table class="model-table plan-table">
         <colgroup>
           <col style="width:140px">
           <col style="width:160px">
+          <col style="width:260px">
           <col style="width:260px">
           <col style="width:110px">
           <col style="width:100px">
@@ -1324,6 +1483,7 @@ function renderPlanConfig() {
             <th>套餐 ID</th>
             <th>显示名</th>
             <th>说明</th>
+            <th>权益文案</th>
             <th>价格</th>
             <th>天数</th>
             <th>额度</th>
@@ -1343,6 +1503,7 @@ function renderPlanConfig() {
               <td><input class="pc-id" value="${esc(p.id)}" ${p._isNew ? '' : 'disabled'}></td>
               <td><input class="pc-name" value="${esc(p.name || '')}"></td>
               <td><input class="pc-desc" value="${esc(p.description || '')}"></td>
+              <td><textarea class="pc-benefits" placeholder="每行一条权益">${esc((p.benefits || []).join('\n'))}</textarea></td>
               <td><input class="pc-amount" type="number" min="0" step="0.01" value="${esc(p.amount || '0.00')}" ${p.id === 'free' ? 'disabled' : ''}></td>
               <td><input class="pc-days" type="number" min="0" value="${Number(p.duration_days || 0)}" ${p.id === 'free' ? 'disabled' : ''}></td>
               <td><input class="pc-quota" type="number" min="0" value="${Number(p.quota || 0)}"></td>
@@ -1376,6 +1537,10 @@ function renderPlanConfig() {
         </tbody>
       </table>
     </div>
+    <div class="credit-config-grid">
+      ${renderCreditBillingConfig()}
+      ${renderCreditPackages()}
+    </div>
   `;
 }
 
@@ -1406,6 +1571,11 @@ function collectPlanConfig() {
       id,
       name: row.querySelector('.pc-name')?.value.trim() || id,
       description: row.querySelector('.pc-desc')?.value.trim() || '',
+      benefits: (row.querySelector('.pc-benefits')?.value || '')
+        .split('\n')
+        .map(s => s.trim())
+        .filter(Boolean)
+        .slice(0, 12),
       enabled: id === 'free' ? true : !!row.querySelector('.pc-enabled')?.checked,
       purchasable: id === 'free' ? false : !!row.querySelector('.pc-purchasable')?.checked,
       amount: id === 'free' ? '0.00' : String(Number(row.querySelector('.pc-amount')?.value || 0).toFixed(2)),
@@ -1422,7 +1592,50 @@ function collectPlanConfig() {
     };
   });
   if (!plans.some(p => p.id === 'free')) throw new Error('必须保留 free 套餐');
-  return {plans};
+  return {
+    plans,
+    credit_packages: collectCreditPackages(),
+    credit_billing: collectCreditBilling(),
+  };
+}
+
+function collectCreditBilling() {
+  const model_prices = {};
+  document.querySelectorAll('.cb-model-price').forEach(el => {
+    const key = el.dataset.model;
+    model_prices[key] = Math.max(0, parseInt(el.value, 10) || 0);
+  });
+  const feature_prices = {};
+  document.querySelectorAll('.cb-feature-price').forEach(el => {
+    const key = el.dataset.feature;
+    feature_prices[key] = Math.max(0, parseInt(el.value, 10) || 0);
+  });
+  return {model_prices, feature_prices};
+}
+
+function collectCreditPackages() {
+  const rows = Array.from(document.querySelectorAll('.credit-package-row'));
+  const seen = new Set();
+  return rows.map((row, idx) => {
+    const id = row.querySelector('.cp-id')?.value.trim().toLowerCase();
+    if (!/^[a-z0-9][a-z0-9_-]{0,31}$/.test(id || '')) throw new Error('积分包 ID 只能使用小写字母、数字、_、-，且最多 32 位');
+    if (seen.has(id)) throw new Error('积分包 ID 不能重复：' + id);
+    seen.add(id);
+    const enabled = !!row.querySelector('.cp-enabled')?.checked;
+    const amount = String(Number(row.querySelector('.cp-amount')?.value || 0).toFixed(2));
+    const credits = parseInt(row.querySelector('.cp-credits')?.value, 10) || 0;
+    if (enabled && Number(amount) <= 0) throw new Error(`积分包 ${id} 上架时价格必须大于 0`);
+    if (enabled && credits <= 0) throw new Error(`积分包 ${id} 上架时积分数必须大于 0`);
+    return {
+      id,
+      name: row.querySelector('.cp-name')?.value.trim() || id,
+      description: row.querySelector('.cp-desc')?.value.trim() || '',
+      enabled,
+      amount,
+      credits,
+      sort_order: parseInt(row.querySelector('.cp-sort')?.value, 10) || idx * 10,
+    };
+  });
 }
 
 function addPlanRow() {
@@ -1434,6 +1647,7 @@ function addPlanRow() {
     id: 'plan_' + Date.now(),
     name: '新套餐',
     description: '',
+    benefits: [],
     enabled: true,
     purchasable: true,
     amount: '99.00',
@@ -1449,6 +1663,28 @@ function addPlanRow() {
     sort_order: planConfigData.plans.length * 10,
     _isNew: true,
   });
+  renderPlanConfig();
+}
+
+function addCreditPackageRow() {
+  planConfigData = planConfigData || {};
+  planConfigData.credit_packages = planConfigData.credit_packages || [];
+  planConfigData.credit_packages.push({
+    id: 'credits_' + Date.now(),
+    name: '新积分包',
+    description: '',
+    enabled: false,
+    amount: '19.90',
+    credits: 100,
+    sort_order: planConfigData.credit_packages.length * 10,
+    _isNew: true,
+  });
+  renderPlanConfig();
+}
+
+function removeCreditPackageRow(idx) {
+  if (!planConfigData?.credit_packages) return;
+  planConfigData.credit_packages.splice(idx, 1);
   renderPlanConfig();
 }
 
@@ -1523,6 +1759,7 @@ function renderModelConfig() {
       </div>
     </div>
     <div class="model-table-wrap">
+      <div class="m-scroll-hint">← 左右滑动查看更多 →</div>
       <table class="model-table">
         <thead>
           <tr>
@@ -1680,5 +1917,7 @@ if (savedToken) {
   });
 }
 </script>
+
+<div class="m-overlay" onclick="toggleAdminDrawer()"></div>
 </body>
 </html>

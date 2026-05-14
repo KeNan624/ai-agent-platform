@@ -177,6 +177,8 @@ body {
 .article-body.protected-content {
   user-select: none;
   -webkit-user-select: none;
+  -webkit-touch-callout: none;  /* iOS 长按弹复制/保存菜单 */
+  -ms-user-select: none;
 }
 .article-body h1 { font-size: 22px; font-weight: 700; color: var(--ink); margin: 32px 0 14px; }
 .article-body h2 { font-size: 19px; font-weight: 600; color: var(--ink); margin: 28px 0 12px; }
@@ -217,8 +219,10 @@ body {
   user-select: text;
   -webkit-user-select: text;
 }
-.article-body.protected-content img {
+.article-body.protected-content img,
+.article-body.protected-content video {
   -webkit-user-drag: none;
+  -webkit-touch-callout: none;
 }
 .code-copy-btn {
   position: absolute; top: 10px; right: 10px;
@@ -362,11 +366,41 @@ span[class*="fs-bg-"]{padding:1px 4px;border-radius:4px}
 .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
 
 /* ─── 响应式 ─── */
+@media (max-width: 900px) {
+  /* 顶部导航在窄屏紧凑 */
+  .nav-inner { padding: 0 14px; gap: 10px; }
+  .nav-logo-text { display: none; }
+  .nav-tabs { overflow-x: auto; -webkit-overflow-scrolling: touch; flex-wrap: nowrap; gap: 6px; }
+  .nav-tab { white-space: nowrap; padding: 8px 12px; flex-shrink: 0; min-height: 40px; }
+  .nav-search input { width: 100px; }
+  /* iOS 防 zoom */
+  input, textarea, select { font-size: 16px !important; }
+}
 @media (max-width: 768px) {
   .article-wrap { padding: 20px 16px 32px; }
-  .article-title { font-size: 22px; }
-  .article-body { font-size: 15px; }
+  .article-title { font-size: 22px; line-height: 1.3; }
+  .article-body { font-size: 15px; line-height: 1.8; }
   .author-avatar { width: 38px; height: 38px; font-size: 16px; }
+  .author-bar { flex-wrap: wrap; gap: 10px; }
+}
+@media (max-width: 640px) {
+  .nav-inner { padding: 0 10px; gap: 6px; }
+  .nav-search input { width: 70px !important; padding: 6px 8px; }
+  .nav-back, .admin-entry { padding: 6px 9px; font-size: 12px; min-height: 36px; display: inline-flex; align-items: center; }
+  .article-wrap { padding: 16px 12px 28px; max-width: 100%; }
+  .article-title { font-size: 20px; }
+  .article-body { font-size: 14.5px; }
+  .article-body h1, .article-body h2 { font-size: 18px; line-height: 1.3; }
+  .article-body h3 { font-size: 16px; }
+  .article-body pre, .article-body code { font-size: 12.5px; }
+  .article-body pre { padding: 12px; overflow-x: auto; }
+  .article-body img { max-width: 100%; height: auto; }
+  .article-body table { display: block; overflow-x: auto; max-width: 100%; }
+  .author-bar { padding: 14px; }
+  .author-avatar { width: 34px; height: 34px; font-size: 14px; }
+  .author-name { font-size: 14px; }
+  .author-bio { font-size: 12px; }
+  .toast { width: 86vw; max-width: 86vw; font-size: 13px; }
 }
 </style>
 </head>
@@ -376,7 +410,7 @@ span[class*="fs-bg-"]{padding:1px 4px;border-radius:4px}
 <nav class="nav">
   <div class="nav-inner">
     <a class="nav-logo" href="choose.html">
-      <div class="nav-logo-icon">阿</div>
+      <div class="nav-logo-icon">川</div>
       <span class="nav-logo-text">阿川 AI</span>
     </a>
     <div class="nav-tabs">
@@ -412,10 +446,21 @@ let currentUserName = '';
 function hardenVideoElements(root = document) {
   if (!root) return;
   root.querySelectorAll('video').forEach(video => {
-    video.setAttribute('controlsList', 'nodownload noremoteplayback');
+    video.setAttribute('controlsList', 'nodownload noremoteplayback noplaybackrate');
     video.setAttribute('oncontextmenu', 'return false');
     video.setAttribute('disablePictureInPicture', '');
     video.setAttribute('disableRemotePlayback', '');
+    /* 手机端: 内联播放 + 拦截长按菜单 */
+    video.setAttribute('playsinline', '');
+    video.setAttribute('webkit-playsinline', '');
+    video.setAttribute('x5-playsinline', '');
+    video.style.webkitTouchCallout = 'none';
+    video.style.webkitUserSelect = 'none';
+    video.addEventListener('contextmenu', e => e.preventDefault());
+    video.addEventListener('touchstart', e => { video._touchStart = Date.now(); }, { passive: true });
+    video.addEventListener('touchend', e => {
+      if (Date.now() - (video._touchStart || 0) > 400) e.preventDefault();
+    });
   });
 }
 
@@ -590,7 +635,7 @@ async function loadArticle() {
     <div class="article-wrap">
       <!-- 作者 -->
       <div class="author-bar">
-        <div class="author-avatar">阿</div>
+        <div class="author-avatar">川</div>
         <div class="author-info">
           <div class="author-name">阿川 <span class="author-tag">${esc(data.project_type === 'camp' ? '专栏' : '实战')}</span></div>
           <div class="author-meta">${dateStr}</div>
