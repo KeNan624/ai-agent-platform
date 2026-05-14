@@ -38,11 +38,15 @@ from sqlalchemy.orm import Session
 from auth import get_current_user
 from chat_model_config import get_chat_model_config
 from database import get_db
-from credit_config import get_credit_billing_config, get_purchasable_credit_packages
+from credit_config import (
+    decrement_credit_package_stock,
+    get_credit_billing_config,
+    get_purchasable_credit_packages,
+)
 from credit_service import grant_credits
 from models import Membership, Order, User
 from permissions import ensure_plan_period_credits_for_user_id
-from plan_config import get_plan_definition, get_purchasable_plans
+from plan_config import decrement_plan_stock, get_plan_definition, get_purchasable_plans
 
 load_dotenv()
 
@@ -84,8 +88,8 @@ def _alipay_configured() -> bool:
 
 
 def _payments_enabled() -> bool:
-    """Payments are closed by default; set PAYMENTS_ENABLED=true to reopen sales."""
-    return os.getenv("PAYMENTS_ENABLED", "false").strip().lower() in {"1", "true", "yes", "on"}
+    """True when payment credentials are present. Product sale state is controlled by stock."""
+    return _alipay_configured()
 
 
 # ---------------------------------------------------------------------------
@@ -245,8 +249,10 @@ def _mark_paid_and_fulfill(order: Order, db: Session) -> None:
     db.flush()
     if getattr(order, "order_type", "membership") == "credits":
         _activate_credit_order(order, db)
+        decrement_credit_package_stock(str(order.plan), db)
     else:
         _activate_membership(order, db)
+        decrement_plan_stock(str(order.plan), db)
     db.commit()
 
 
@@ -279,6 +285,7 @@ class PaymentPlanItem(BaseModel):
     duration_days: int
     period: str
     quota: int
+    stock: int = 0
     allowed_models: list[str]
     free_models: list[str]
     enabled_features: list[str]
@@ -293,6 +300,7 @@ class PaymentCreditPackageItem(BaseModel):
     description: str = ""
     amount: str
     credits: int
+    stock: int = 0
 
 
 class PaymentPlansResponse(BaseModel):
@@ -348,9 +356,6 @@ def create_order(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    if not _payments_enabled():
-        raise HTTPException(status_code=409, detail="当前套餐已售罄")
-
     product_type = (body.product_type or "membership").strip().lower()
     if product_type not in {"membership", "credits"}:
         raise HTTPException(status_code=400, detail="Invalid product_type")
@@ -386,7 +391,10 @@ def create_order(
         credit_amount = Decimal(str(product_cfg.get("quota") or "0"))
         subject = f"阿川工作台 - {label}"
 
-    if not _alipay_configured():
+    if int(product_cfg.get("stock") or 0) <= 0:
+        raise HTTPException(status_code=409, detail="当前产品已售罄")
+
+    if not _payments_enabled():
         raise HTTPException(status_code=503, detail="支付暂未开放")
 
     trade_no = f"AI{datetime.utcnow().strftime('%Y%m%d%H%M%S')}{uuid.uuid4().hex[:8].upper()}"

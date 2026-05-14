@@ -225,7 +225,7 @@ select.form-input{cursor:pointer}
 .plan-checks{display:flex;gap:10px;align-items:center;white-space:nowrap}
 .plan-checks label,.mini-check{display:flex;align-items:center;gap:4px;font-size:11px;color:var(--muted)}
 .plan-table-wrap{overflow-x:auto;overflow-y:hidden;-webkit-overflow-scrolling:touch}
-.plan-table{width:2600px;min-width:2600px;table-layout:fixed}
+.plan-table{width:2700px;min-width:2700px;table-layout:fixed}
 .plan-table th,.plan-table td{box-sizing:border-box}
 .plan-table input,.plan-table select,.plan-table textarea{width:100%;min-width:0;padding:6px 8px;border:1px solid var(--border);border-radius:6px;font-size:12px;background:#fff}
 .plan-table textarea{min-height:72px;resize:vertical;font-family:inherit;line-height:1.45}
@@ -243,7 +243,7 @@ select.form-input{cursor:pointer}
 .credit-price-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:8px 12px}
 .credit-price-row{display:grid;grid-template-columns:minmax(0,1fr) 82px;gap:8px;align-items:center;font-size:12px;color:var(--muted)}
 .credit-price-row input,.credit-package-table input{padding:6px 8px;border:1px solid var(--border);border-radius:6px;font-size:12px}
-.credit-package-table{width:100%;min-width:760px}
+.credit-package-table{width:100%;min-width:840px}
 .credit-package-table th,.credit-package-table td{padding:8px;border-bottom:1px solid #eef2f7;text-align:left;font-size:12px}
 .model-row-actions{display:flex;gap:6px}
 .model-status-line{font-size:11px;color:var(--muted);margin-top:8px;line-height:1.5}
@@ -622,7 +622,7 @@ body.drawer-open .m-overlay{display:block}
         <div class="config-section plan-config-section">
           <h3>💳 套餐权限配置</h3>
           <div class="note" style="margin-bottom:14px">
-            套餐价格、有效期、赠送积分、积分发放周期、可用模型、不扣积分模型、功能权限和实战区权限都会立即同步到前台与后端校验。模型和功能实际消耗由下方「积分单价」统一控制。
+            套餐价格、有效期、赠送积分、库存、积分发放周期、可用模型、不扣积分模型、功能权限和实战区权限都会立即同步到前台与后端校验。库存为 0 时前台显示已售罄；模型和功能实际消耗由下方「积分单价」统一控制。
           </div>
           <div id="plan-config-panel">
             <div class="loading">加载套餐配置...</div>
@@ -1420,12 +1420,12 @@ function renderCreditPackages() {
         <h4 style="margin:0">积分包</h4>
         <button class="btn btn-sm" onclick="addCreditPackageRow()">新增积分包</button>
       </div>
-      <div class="note" style="margin-bottom:10px">默认示例包是下架状态；启用后才会在前台售卖。</div>
+      <div class="note" style="margin-bottom:10px">默认示例包是下架状态；启用且库存大于 0 时前台可购买，库存为 0 时显示已售罄。</div>
       <div class="model-table-wrap">
         <div class="m-scroll-hint">← 左右滑动查看更多 →</div>
         <table class="credit-package-table">
           <thead>
-            <tr><th style="width:130px">ID</th><th style="width:130px">名称</th><th>说明</th><th style="width:90px">价格</th><th style="width:90px">积分</th><th style="width:70px">启用</th><th style="width:80px">排序</th><th style="width:70px">操作</th></tr>
+            <tr><th style="width:130px">ID</th><th style="width:130px">名称</th><th>说明</th><th style="width:90px">价格</th><th style="width:90px">积分</th><th style="width:90px">库存</th><th style="width:70px">启用</th><th style="width:80px">排序</th><th style="width:70px">操作</th></tr>
           </thead>
           <tbody>
             ${packages.map((p, idx) => `
@@ -1435,11 +1435,12 @@ function renderCreditPackages() {
                 <td><input class="cp-desc" value="${esc(p.description || '')}"></td>
                 <td><input class="cp-amount" type="number" min="0" step="0.01" value="${esc(p.amount || '0.00')}"></td>
                 <td><input class="cp-credits" type="number" min="0" step="1" value="${Number(p.credits || 0)}"></td>
+                <td><input class="cp-stock" type="number" min="0" step="1" value="${Number(p.stock ?? 0)}"></td>
                 <td><label class="mini-check"><input class="cp-enabled" type="checkbox" ${p.enabled ? 'checked' : ''}>上架</label></td>
                 <td><input class="cp-sort" type="number" value="${Number(p.sort_order || 0)}"></td>
                 <td><button class="btn btn-sm" onclick="removeCreditPackageRow(${idx})">删除</button></td>
               </tr>
-            `).join('') || '<tr><td colspan="8" class="empty">暂无积分包</td></tr>'}
+            `).join('') || '<tr><td colspan="9" class="empty">暂无积分包</td></tr>'}
           </tbody>
         </table>
       </div>
@@ -1464,6 +1465,7 @@ function renderPlanConfig() {
           <col style="width:260px">
           <col style="width:260px">
           <col style="width:110px">
+          <col style="width:90px">
           <col style="width:100px">
           <col style="width:110px">
           <col style="width:100px">
@@ -1484,6 +1486,7 @@ function renderPlanConfig() {
             <th>价格</th>
             <th>天数</th>
             <th>赠送积分</th>
+            <th>库存</th>
             <th>发放周期</th>
             <th>可用模型</th>
             <th>不扣积分模型</th>
@@ -1504,6 +1507,7 @@ function renderPlanConfig() {
               <td><input class="pc-amount" type="number" min="0" step="0.01" value="${esc(p.amount || '0.00')}" ${p.id === 'free' ? 'disabled' : ''}></td>
               <td><input class="pc-days" type="number" min="0" value="${Number(p.duration_days || 0)}" ${p.id === 'free' ? 'disabled' : ''}></td>
               <td><input class="pc-quota" type="number" min="0" value="${Number(p.quota || 0)}"></td>
+              <td><input class="pc-stock" type="number" min="0" value="${Number(p.stock ?? 0)}" ${p.id === 'free' ? 'disabled' : ''}></td>
               <td>
                 <select class="pc-period">
                   <option value="day" ${p.period === 'day' ? 'selected' : ''}>每日发放</option>
@@ -1571,6 +1575,7 @@ function collectPlanConfig() {
       amount: id === 'free' ? '0.00' : String(Number(row.querySelector('.pc-amount')?.value || 0).toFixed(2)),
       duration_days: id === 'free' ? 0 : (parseInt(row.querySelector('.pc-days')?.value, 10) || 0),
       quota: parseInt(row.querySelector('.pc-quota')?.value, 10) || 0,
+      stock: id === 'free' ? 0 : (parseInt(row.querySelector('.pc-stock')?.value, 10) || 0),
       period: row.querySelector('.pc-period')?.value === 'day' ? 'day' : 'month',
       allowed_models: allowed,
       free_models: freeModels,
@@ -1614,6 +1619,7 @@ function collectCreditPackages() {
     const enabled = !!row.querySelector('.cp-enabled')?.checked;
     const amount = String(Number(row.querySelector('.cp-amount')?.value || 0).toFixed(2));
     const credits = parseInt(row.querySelector('.cp-credits')?.value, 10) || 0;
+    const stock = parseInt(row.querySelector('.cp-stock')?.value, 10) || 0;
     if (enabled && Number(amount) <= 0) throw new Error(`积分包 ${id} 上架时价格必须大于 0`);
     if (enabled && credits <= 0) throw new Error(`积分包 ${id} 上架时积分数必须大于 0`);
     return {
@@ -1623,6 +1629,7 @@ function collectCreditPackages() {
       enabled,
       amount,
       credits,
+      stock,
       sort_order: parseInt(row.querySelector('.cp-sort')?.value, 10) || idx * 10,
     };
   });
@@ -1644,6 +1651,7 @@ function addPlanRow() {
     duration_days: 30,
     period: 'month',
     quota: 500,
+    stock: 100,
     allowed_models: firstModel ? [firstModel] : [],
     free_models: [],
     enabled_features: planFeatureDefs().map(f => f.key),
@@ -1666,6 +1674,7 @@ function addCreditPackageRow() {
     enabled: false,
     amount: '19.90',
     credits: 100,
+    stock: 100,
     sort_order: planConfigData.credit_packages.length * 10,
     _isNew: true,
   });

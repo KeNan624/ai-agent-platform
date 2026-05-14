@@ -15,6 +15,7 @@ from app_config import get_app_setting
 PLAN_CONFIG_KEY = "PLAN_CONFIG"
 PLAN_ID_RE = re.compile(r"^[a-z0-9][a-z0-9_-]{0,31}$")
 PLAN_PERIODS = {"day", "month"}
+DEFAULT_SALE_STOCK = 999
 FEATURE_UNLIMITED_QUOTA = -1
 PLAN_FEATURE_DEFINITIONS: list[dict[str, str]] = [
     {"key": "image_generation", "label": "图片生成"},
@@ -48,6 +49,7 @@ DEFAULT_PLAN_CONFIG: dict[str, Any] = {
             "duration_days": 0,
             "period": "day",
             "quota": 10,
+            "stock": 0,
             "allowed_models": DEFAULT_ALLOWED_MODELS["free"],
             "free_models": [],
             "enabled_features": list(PLAN_FEATURE_KEYS),
@@ -67,6 +69,7 @@ DEFAULT_PLAN_CONFIG: dict[str, Any] = {
             "duration_days": 30,
             "period": "month",
             "quota": 500,
+            "stock": DEFAULT_SALE_STOCK,
             "allowed_models": DEFAULT_ALLOWED_MODELS["monthly"],
             "free_models": [],
             "enabled_features": list(PLAN_FEATURE_KEYS),
@@ -86,6 +89,7 @@ DEFAULT_PLAN_CONFIG: dict[str, Any] = {
             "duration_days": 90,
             "period": "month",
             "quota": 500,
+            "stock": DEFAULT_SALE_STOCK,
             "allowed_models": DEFAULT_ALLOWED_MODELS["quarterly"],
             "free_models": [],
             "enabled_features": list(PLAN_FEATURE_KEYS),
@@ -105,6 +109,7 @@ DEFAULT_PLAN_CONFIG: dict[str, Any] = {
             "duration_days": 365,
             "period": "month",
             "quota": 1000,
+            "stock": DEFAULT_SALE_STOCK,
             "allowed_models": DEFAULT_ALLOWED_MODELS["yearly"],
             "free_models": [],
             "enabled_features": list(PLAN_FEATURE_KEYS),
@@ -303,6 +308,7 @@ def normalize_plan_config(
             "duration_days": 30,
             "period": "month",
             "quota": 0,
+            "stock": DEFAULT_SALE_STOCK,
             "allowed_models": [],
             "free_models": [],
             "enabled_features": list(PLAN_FEATURE_KEYS),
@@ -339,6 +345,7 @@ def normalize_plan_config(
             "duration_days": _as_int(item.get("duration_days", base.get("duration_days", 30)), int(base.get("duration_days", 30))),
             "period": str(item.get("period") or base.get("period") or "month").strip().lower(),
             "quota": _as_int(item.get("quota", base.get("quota", 0)), int(base.get("quota", 0))),
+            "stock": _as_int(item.get("stock", base.get("stock", DEFAULT_SALE_STOCK)), int(base.get("stock", DEFAULT_SALE_STOCK))),
             "allowed_models": allowed_models,
             "free_models": free_models,
             "enabled_features": enabled_features,
@@ -355,6 +362,7 @@ def normalize_plan_config(
             plan["purchasable"] = False
             plan["amount"] = "0.00"
             plan["duration_days"] = 0
+            plan["stock"] = 0
         if plan["enabled"] and not plan["allowed_models"]:
             errors.append(f"套餐 {plan_id} 至少需要选择一个可用模型")
         if plan["practice_publish"]:
@@ -389,6 +397,12 @@ def save_plan_config(
         valid_model_ids=valid_model_ids,
         strict=True,
     )
+    _write_plan_config(db, clean)
+    db.commit()
+    return clean
+
+
+def _write_plan_config(db: Session, clean: dict[str, Any]) -> None:
     db.execute(
         text("""
             INSERT INTO app_settings (key, value, is_secret, updated_at)
@@ -403,8 +417,23 @@ def save_plan_config(
             "value": json.dumps(clean, ensure_ascii=False, separators=(",", ":")),
         },
     )
-    db.commit()
-    return clean
+
+
+def decrement_plan_stock(plan_id: str, db: Session) -> bool:
+    target = str(plan_id or "").strip().lower()
+    config = get_plan_config(db)
+    for plan in config["plans"]:
+        if plan["id"] != target:
+            continue
+        stock = _as_int(plan.get("stock"), DEFAULT_SALE_STOCK)
+        if stock <= 0:
+            return False
+        plan["stock"] = stock - 1
+        clean = normalize_plan_config(config, db=db)
+        _write_plan_config(db, clean)
+        db.commit()
+        return True
+    return False
 
 
 def list_plan_definitions(db: Optional[Session] = None, *, include_disabled: bool = True) -> list[dict[str, Any]]:

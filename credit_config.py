@@ -16,6 +16,7 @@ from plan_config import PLAN_FEATURE_KEYS
 CREDIT_PACKAGE_CONFIG_KEY = "CREDIT_PACKAGE_CONFIG"
 CREDIT_BILLING_CONFIG_KEY = "CREDIT_BILLING_CONFIG"
 CREDIT_PACKAGE_ID_RE = re.compile(r"^[a-z0-9][a-z0-9_-]{0,31}$")
+DEFAULT_CREDIT_PACKAGE_STOCK = 100
 
 DEFAULT_MODEL_CREDIT_PRICES: dict[str, int] = {
     "deepseek-chat": 1,
@@ -47,6 +48,7 @@ DEFAULT_CREDIT_PACKAGE_CONFIG: dict[str, Any] = {
             "enabled": False,
             "amount": "19.90",
             "credits": 100,
+            "stock": DEFAULT_CREDIT_PACKAGE_STOCK,
             "sort_order": 10,
         },
         {
@@ -56,6 +58,7 @@ DEFAULT_CREDIT_PACKAGE_CONFIG: dict[str, Any] = {
             "enabled": False,
             "amount": "89.90",
             "credits": 500,
+            "stock": DEFAULT_CREDIT_PACKAGE_STOCK,
             "sort_order": 20,
         },
     ],
@@ -144,6 +147,7 @@ def normalize_credit_package_config(raw: Any = None, *, strict: bool = False) ->
             "enabled": bool(item.get("enabled", False)),
             "amount": _as_amount(item.get("amount", "0.00")),
             "credits": _as_int(item.get("credits"), 0),
+            "stock": _as_int(item.get("stock"), DEFAULT_CREDIT_PACKAGE_STOCK),
             "sort_order": _as_int(item.get("sort_order"), len(packages) * 10),
         }
         if package["enabled"] and Decimal(package["amount"]) <= 0:
@@ -218,6 +222,23 @@ def save_credit_package_config(db: Session, config: dict[str, Any]) -> dict[str,
     _write_config(db, CREDIT_PACKAGE_CONFIG_KEY, clean)
     db.commit()
     return clean
+
+
+def decrement_credit_package_stock(package_id: str, db: Session) -> bool:
+    target = str(package_id or "").strip().lower()
+    config = get_credit_package_config(db)
+    for package in config["packages"]:
+        if package["id"] != target:
+            continue
+        stock = _as_int(package.get("stock"), DEFAULT_CREDIT_PACKAGE_STOCK)
+        if stock <= 0:
+            return False
+        package["stock"] = stock - 1
+        clean = normalize_credit_package_config(config)
+        _write_config(db, CREDIT_PACKAGE_CONFIG_KEY, clean)
+        db.commit()
+        return True
+    return False
 
 
 def get_credit_billing_config(db: Optional[Session] = None) -> dict[str, Any]:

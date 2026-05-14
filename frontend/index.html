@@ -14820,6 +14820,17 @@ function v34PaymentModelName(id, data) {
   }
   return id;
 }
+function v34ProductStock(product) {
+  var stock = parseInt(product && product.stock != null ? product.stock : 0, 10);
+  return Number.isFinite(stock) ? Math.max(0, stock) : 0;
+}
+function v34IsSoldOut(product) {
+  return v34ProductStock(product) <= 0;
+}
+function v34ProductStockLine(product) {
+  var stock = v34ProductStock(product);
+  return stock > 0 ? `<div style="font-size:11px;color:#9A9485;margin:-4px 0 10px;">剩余 ${stock} 份</div>` : '';
+}
 function v34RenderProfileCredits(info) {
   var balance = Number(info.credit_balance || 0);
   var totalGranted = Number(info.credit_total_bought || 0);
@@ -14863,24 +14874,29 @@ function v34RenderMembershipProducts(info, data) {
   var planCards = plans.map(function(plan) {
     var isFree = plan.id === 'free';
     var isCurrent = current === plan.id || (isFree && current === 'free');
-    var canBuy = !isFree && data.payments_enabled;
+    var soldOut = !isFree && v34IsSoldOut(plan);
+    var canBuy = !isFree && !soldOut && data.payments_enabled;
+    var label = isCurrent ? '当前套餐' : (canBuy ? '立即订阅' : (soldOut ? '已售罄' : '暂未开放'));
     return `
       <div style="border:1px solid #E4DECF;border-radius:12px;padding:18px;text-align:left;background:${isFree ? '#FAFAF7' : '#fff'};">
         <div style="font-size:15px;font-weight:700;color:#1A1814;">${v34Esc(plan.name)}</div>
         <div style="font-size:26px;font-weight:700;color:#C26B3F;margin:10px 0;">¥${v34Money(plan.amount)}<span style="font-size:12px;font-weight:400;color:#9A9485;"> / ${v34PlanPeriod(plan)}</span></div>
+        ${isFree ? '' : v34ProductStockLine(plan)}
         <div style="font-size:12px;color:#5C5647;min-height:88px;">${v34RenderPlanBenefits(plan, data)}</div>
-        <button class="v34-pf-btn ${isCurrent || !canBuy ? 'outline' : ''}" style="width:100%;margin-top:14px;" ${isFree || isCurrent || !canBuy ? 'disabled' : `onclick="v34StartPurchase('membership','${v34Esc(plan.id)}')"`}>${isCurrent ? '当前套餐' : (canBuy ? '立即订阅' : '已售罄')}</button>
+        <button class="v34-pf-btn ${isCurrent || !canBuy ? 'outline' : ''}" style="width:100%;margin-top:14px;" ${isFree || isCurrent || !canBuy ? 'disabled' : `onclick="v34StartPurchase('membership','${v34Esc(plan.id)}')"`}>${label}</button>
       </div>
     `;
   }).join('');
   var creditCards = packages.map(function(pkg) {
-    var canBuy = data.payments_enabled;
+    var soldOut = v34IsSoldOut(pkg);
+    var canBuy = !soldOut && data.payments_enabled;
     return `
       <div style="border:1px solid #E4DECF;border-radius:12px;padding:18px;text-align:left;background:#fff;">
         <div style="font-size:15px;font-weight:700;color:#1A1814;">${v34Esc(pkg.name)}</div>
         <div style="font-size:26px;font-weight:700;color:#C26B3F;margin:10px 0;">¥${v34Money(pkg.amount)}<span style="font-size:12px;font-weight:400;color:#9A9485;"> / ${Number(pkg.credits || 0)} 积分</span></div>
+        ${v34ProductStockLine(pkg)}
         <div style="font-size:12px;color:#5C5647;line-height:1.9;min-height:72px;">✅ 永久有效<br>✅ 按积分单价扣减<br>✅ 支付成功立即到账</div>
-        <button class="v34-pf-btn ${canBuy ? '' : 'outline'}" style="width:100%;margin-top:14px;" ${canBuy ? `onclick="v34StartPurchase('credits','${v34Esc(pkg.id)}')"` : 'disabled'}>${canBuy ? '购买积分' : '已售罄'}</button>
+        <button class="v34-pf-btn ${canBuy ? '' : 'outline'}" style="width:100%;margin-top:14px;" ${canBuy ? `onclick="v34StartPurchase('credits','${v34Esc(pkg.id)}')"` : 'disabled'}>${canBuy ? '购买积分' : (soldOut ? '已售罄' : '暂未开放')}</button>
       </div>
     `;
   }).join('') || '<div style="font-size:13px;color:#9A9485;">暂无上架积分包</div>';
