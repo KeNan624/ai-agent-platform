@@ -73,7 +73,7 @@ def _allowed_map(kind: str) -> dict[str, str]:
 def _max_bytes(kind: str) -> int:
     if kind == "image":
         return _get_int_env("PRACTICE_IMAGE_MAX_MB", 10) * 1024 * 1024
-    return _get_int_env("PRACTICE_VIDEO_MAX_MB", 300) * 1024 * 1024
+    return _get_int_env("PRACTICE_VIDEO_MAX_MB", 20480) * 1024 * 1024
 
 
 def _clean_ext(filename: str, content_type: str | None, kind: str) -> tuple[str, str]:

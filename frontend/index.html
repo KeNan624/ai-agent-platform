@@ -2556,6 +2556,27 @@ body{display:flex;height:100vh;background:#f5f0e6;overflow:hidden}
   z-index:100;
 }
 .model-switcher.open .ms-menu{ display:block; }
+.model-fixed-hidden{ display:none !important; }
+.chat-model-select{
+  flex-shrink:0;
+  max-width:150px;
+  height:32px;
+  padding:0 26px 0 10px;
+  border:0.5px solid #E4DECF;
+  border-radius:16px;
+  background:#FAF6EC;
+  color:#6B6558;
+  font-size:12px;
+  font-family:'Inter','Noto Serif SC',sans-serif;
+  outline:none;
+  cursor:pointer;
+}
+.chat-model-select:hover,
+.chat-model-select:focus{
+  border-color:#9A7A3D;
+  color:#1A1814;
+  background:#F7F1E5;
+}
 
 .ms-group-title{
   font-size:10.5px; color:#A39B8A;
@@ -2969,6 +2990,9 @@ body[data-sidebar-mode="expanded"] .nav-rail-old { display: none !important; }
   align-items: flex-end !important;
   gap: 12px !important;
 }
+#quick-model-sel {
+  align-self: center !important;
+}
 #quick-input {
   background: transparent !important;
   border: none !important;
@@ -3130,6 +3154,39 @@ body[data-sidebar-mode="expanded"] .nav-rail-old { display: none !important; }
 #v33-toolbar select:hover {
   background: #F5F0E6 !important;
   color: #1A1814 !important;
+}
+#v33-toolbar #quick-model-sel {
+  height: 32px !important;
+  max-width: 150px !important;
+  padding: 0 26px 0 10px !important;
+  background: #FAF6EC !important;
+  border: 0.5px solid #E4DECF !important;
+  border-radius: 16px !important;
+  color: #6B6558 !important;
+  font-size: 12px !important;
+  font-family: 'Inter','Noto Serif SC',sans-serif !important;
+}
+#v33-toolbar #quick-model-sel:hover,
+#v33-toolbar #quick-model-sel:focus {
+  background: #F7F1E5 !important;
+  border-color: #9A7A3D !important;
+  color: #1A1814 !important;
+}
+#v33-toolbar #v33-chips {
+  flex: 1 !important;
+  width: auto !important;
+  max-width: none !important;
+  margin: 0 0 0 8px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: flex-start !important;
+  gap: 8px !important;
+}
+#v33-toolbar #v33-chips .v33-chip {
+  height: 32px !important;
+  padding: 0 14px !important;
+  display: inline-flex !important;
+  align-items: center !important;
 }
 
 /* ② 会员状态条 · 替换原徽章 */
@@ -4175,6 +4232,14 @@ body[data-sidebar-mode="expanded"] #v33-sidebar-profile {
   margin-bottom: 0 !important;
 }
 
+@media (max-width: 640px) {
+  .chat-model-select{
+    max-width:108px;
+    font-size:11px;
+    padding-left:8px;
+  }
+}
+
 input.ws-dialog-input,
 .conv-search,
 .v34-chats-search,
@@ -4457,6 +4522,7 @@ textarea.ws-dialog-input,
         <div id="v33-toolbar">
           <div class="v33-tb-left">
             <button class="v33-tb-btn" onclick="document.getElementById('v33-file-input')?.click()" title="上传文件">+</button>
+            <select id="quick-model-sel" class="chat-model-select" onchange="changeModel(this.value)" title="选择新对话模型"></select>
             <input type="file" id="v33-file-input" style="display:none" onchange="v33HandleFileUpload(event)">
           </div>
           <div class="v33-tb-right" style="display:none"></div>
@@ -4496,6 +4562,7 @@ textarea.ws-dialog-input,
         <!-- batch5 · 主页粘贴卡片 -->
         <div id="paste-card-area-center" class="paste-card-area-alt"></div>
         <div id="center-box">
+          <select id="center-model-sel" class="chat-model-select" onchange="changeModel(this.value)" title="切换本对话模型"></select>
           <textarea id="center-input" placeholder="输入你的任务..." onkeydown="handleKey(event,'center')" oninput="autoResizeInput(this)"></textarea>
           <button id="center-send" onclick="sendMsg('center')">↑</button>
         </div>
@@ -4584,6 +4651,7 @@ textarea.ws-dialog-input,
           </div>
         </div>
         <input type="file" id="bottom-file-input" accept="image/jpeg,image/png,image/gif,image/webp,.pdf,.docx,.xlsx,.xls,.csv,.txt,.md,.markdown" multiple style="display:none" onchange="handleFileSelect(event)">
+        <select id="bottom-model-sel" class="chat-model-select" onchange="changeModel(this.value)" title="切换本对话模型"></select>
         <textarea id="bottom-input" placeholder="继续输入..." onkeydown="handleKey(event,'bottom')" oninput="autoResizeInput(this)"></textarea>
         <button id="bottom-send" onclick="sendMsg('bottom')">↑</button>
         <button id="bottom-stop" onclick="stopStream()" title="停止生成"><span class="stop-icon"></span></button>
@@ -4661,6 +4729,33 @@ window.addEventListener('storage', (e) => {
 
 // ── Plan badge + upgrade button ──
 let _userPlan = 'free'; // 全局存套餐信息，供侧栏限额用
+let _enabledFeatures = [];
+let _planFeaturesLoaded = false;
+
+function planFeatureLabel(key){
+  return {
+    image_generation: '图片生成',
+    video_generation: '视频生成',
+    ppt_generation: 'PPT 生成',
+    web_search: '联网搜索',
+    web_scrape: '网页抓取',
+    file_upload: '附件上传',
+    custom_workspace: '自建工作空间',
+  }[key] || key;
+}
+
+function hasPlanFeature(key){
+  if(!_planFeaturesLoaded) return true;
+  return _enabledFeatures.includes(key);
+}
+
+function requirePlanFeatureClient(key){
+  if(hasPlanFeature(key)) return true;
+  const message = '当前套餐暂不支持' + planFeatureLabel(key);
+  if(typeof showToast === 'function') showToast(message + ' · 可在会员中心升级', 3500);
+  return false;
+}
+
 (async () => {
   try {
     const res = await fetch(APP_API_BASE + '/member/info', {
@@ -4677,6 +4772,8 @@ let _userPlan = 'free'; // 全局存套餐信息，供侧栏限额用
     if (!res.ok) return;
     const info = await res.json();
     _userPlan = info.plan_type || 'free';
+    _enabledFeatures = Array.isArray(info.enabled_features) ? info.enabled_features : [];
+    _planFeaturesLoaded = true;
     // [batch5] 存用户名 · 用于动态问候
     if (info.nickname || info.phone) {
       window._userName = info.nickname || ('用户' + (info.phone || '').slice(-4));
@@ -5416,6 +5513,7 @@ function showHome(){
   if(mainHeader) mainHeader.style.display='flex';
   document.getElementById('cards-grid').style.display='grid';
   document.getElementById('chat-view').style.display='none';
+  if(typeof refreshAllModelControls === 'function') refreshAllModelControls();
   renderWsList();
 }
 function openChat(id, convoId, fallbackWs){
@@ -5462,6 +5560,7 @@ function openChat(id, convoId, fallbackWs){
   const isBackendConvo = String(convoId || '').startsWith('db:');
   if(history.length>0 || isBackendConvo){toConvo();loadHistory();}
   else{document.getElementById('chat-welcome').style.display='flex';document.getElementById('convo-wrap').style.display='none';document.getElementById('bottom-area').style.display='none';}
+  if(typeof refreshAllModelControls === 'function') refreshAllModelControls();
   renderWsList();
   window._pendingSkillPrompt = null;
 }
@@ -5484,6 +5583,7 @@ function toConvo(){
   document.getElementById('chat-welcome').style.display='none';
   document.getElementById('convo-wrap').style.display='flex';
   document.getElementById('bottom-area').style.display='block';
+  if(typeof syncModelControlsVisibility === 'function') syncModelControlsVisibility();
 }
 function loadHistory(){
   const msgs=document.getElementById('messages');msgs.innerHTML='';
@@ -5763,8 +5863,26 @@ function addBubble(text,cls,meta){
   msgs.appendChild(row);msgs.scrollTop=msgs.scrollHeight;return row;
 }
 function changeModel(val){
+  const model = String(val || '').trim();
+  if(!model || !isAvailableChatModel(model)){
+    showToast && showToast('这个模型当前不可用', 2200);
+    refreshAllModelControls && refreshAllModelControls();
+    return getCurrentConvoModel();
+  }
+  selectedChatModel = model;
+  try { localStorage.setItem('v34_selected_chat_model', model); } catch(e) {}
+  const convo = getCurrentConvo && getCurrentConvo();
+  if(convo){
+    convo.model = model;
+    try {
+      window._suppressSaveSync = true;
+      save && save();
+    } finally {
+      window._suppressSaveSync = false;
+    }
+  }
   refreshAllModelControls && refreshAllModelControls();
-  return getDefaultChatModel();
+  return model;
 }
 
 // ═════════════════════════════════════════════════════════════════
@@ -5786,6 +5904,7 @@ let CHAT_MODEL_STATE = {
     {id:'claude-sonnet-4-6', name:'Claude Sonnet 4.6', description:'平衡 · 推荐', supports_vision:true},
   ],
 };
+let selectedChatModel = localStorage.getItem('v34_selected_chat_model') || '';
 
 function chatModelShortName(model){
   const meta = getChatModelMeta(model);
@@ -5820,7 +5939,9 @@ function getDefaultChatModel(){
 }
 
 function getSelectedChatModel(){
-  return getDefaultChatModel();
+  return (selectedChatModel && isAvailableChatModel(selectedChatModel))
+    ? selectedChatModel
+    : getDefaultChatModel();
 }
 
 function refreshModelLabelMap(){
@@ -5833,7 +5954,7 @@ function fillModelSelect(sel, selected){
   if(!sel) return;
   const models = getAvailableChatModels();
   const chosen = models.some(m => m.id === selected) ? selected : getDefaultChatModel();
-  sel.innerHTML = models.map(m => `<option value="${escapeHtml(m.id)}">${escapeHtml(m.name || m.id)}</option>`).join('');
+  sel.innerHTML = models.map(m => `<option value="${escapeHtml(m.id)}">${escapeHtml(m.name || m.id)}${m.quota_free ? '（不扣量）' : ''}</option>`).join('');
   sel.value = chosen;
 }
 
@@ -5848,18 +5969,48 @@ function refreshAllModelControls(){
       ${models.map(m => `
         <div class="ms-item" data-model="${escapeHtml(m.id)}" onclick="selectModel('${escapeHtml(m.id)}')">
           <span class="ms-dot"></span>
-          <span class="ms-name">${escapeHtml(m.name || m.id)}</span>
+          <span class="ms-name">${escapeHtml(m.name || m.id)}${m.quota_free ? '（不扣量）' : ''}</span>
           <span class="ms-desc">${escapeHtml(m.description || '')}</span>
         </div>
       `).join('')}
     `;
   }
   fillModelSelect(document.getElementById('model-sel'), current);
+  fillModelSelect(document.getElementById('quick-model-sel'), current);
+  fillModelSelect(document.getElementById('center-model-sel'), current);
+  fillModelSelect(document.getElementById('bottom-model-sel'), current);
   fillModelSelect(document.getElementById('ws-model'), current);
   fillModelSelect(document.getElementById('ped-model'), current);
   refreshModelMenuActive();
   refreshModelBtnLabel();
+  syncModelControlsVisibility();
   if(typeof refreshAttachBtnEnabled === 'function') refreshAttachBtnEnabled();
+}
+
+const FIXED_MODEL_AGENT_TYPES = new Set(['image', 'video', 'ppt', 'powerpoint', 'slides']);
+
+function getActiveAgentTypeForModelUi(){
+  const raw = (
+    window.currentWsId
+    || (typeof currentWsId !== 'undefined' ? currentWsId : '')
+    || window._v34ActiveAgentType
+    || ''
+  );
+  return String(raw || '').trim().toLowerCase();
+}
+
+function isFixedModelAssistantActive(){
+  return FIXED_MODEL_AGENT_TYPES.has(getActiveAgentTypeForModelUi());
+}
+
+function syncModelControlsVisibility(){
+  const hidden = isFixedModelAssistantActive();
+  ['model-switcher', 'center-model-sel', 'bottom-model-sel'].forEach(id => {
+    const el = document.getElementById(id);
+    if(!el) return;
+    el.classList.toggle('model-fixed-hidden', hidden);
+    if(hidden && id === 'model-switcher') el.classList.remove('open');
+  });
 }
 
 async function loadAvailableChatModels(){
@@ -5878,6 +6029,10 @@ async function loadAvailableChatModels(){
         global_default_model: data.global_default_model || data.default_model || data.models[0].id,
         models: data.models,
       };
+      if(!selectedChatModel || !isAvailableChatModel(selectedChatModel)){
+        selectedChatModel = getDefaultChatModel();
+        try { localStorage.setItem('v34_selected_chat_model', selectedChatModel); } catch(e) {}
+      }
       refreshAllModelControls();
     }
   }catch(e){
@@ -5888,6 +6043,7 @@ async function loadAvailableChatModels(){
 /** 点击按钮:展开/收起模型菜单 */
 function toggleModelMenu(e){
   if(e) e.stopPropagation();
+  if(isFixedModelAssistantActive()) return;
   const sw = document.getElementById('model-switcher');
   if(!sw) return;
   sw.classList.toggle('open');
@@ -5906,8 +6062,17 @@ function refreshModelMenuActive(){
 }
 
 /** 拿当前对话用的模型 · 普通新对话由后台默认模型决定 */
+function getBackendConversationDefaultModel(conv){
+  let projectIndex = null;
+  try { projectIndex = wsProjectIndex; } catch(e) {}
+  const project = conv && conv.project_id && projectIndex && projectIndex[conv.project_id];
+  if(project && project.model && isAvailableChatModel(project.model)) return project.model;
+  return getSelectedChatModel();
+}
+
 function getCurrentConvoModel(){
   const convo = getCurrentConvo && getCurrentConvo();
+  if(convo && convo.model && isAvailableChatModel(convo.model)) return convo.model;
   const dbConvId = (typeof getDbConvIdFromConvo === 'function') ? getDbConvIdFromConvo(convo) : null;
   let backendIndex = null;
   let projectIndex = null;
@@ -5918,7 +6083,7 @@ function getCurrentConvoModel(){
   const backendConv = dbConvId && backendIndex && backendIndex[dbConvId];
   const project = backendConv && backendConv.project_id && projectIndex && projectIndex[backendConv.project_id];
   if(project && project.model && isAvailableChatModel(project.model)) return project.model;
-  return getDefaultChatModel();
+  return getSelectedChatModel();
 }
 
 /** 更新顶栏按钮上显示的模型简短名 */
@@ -8632,6 +8797,10 @@ async function downloadPptArtifact(artifactId, fallbackUrl) {
 
 async function tryInterceptAsPpt(msg, historyForSend, thinkingEl, shownUserRow) {
   if (!isPptAgentActive()) return false;
+  if (!requirePlanFeatureClient('ppt_generation')) {
+    if (thinkingEl && thinkingEl.parentNode) thinkingEl.remove();
+    return true;
+  }
 
   if (thinkingEl && thinkingEl.parentNode) thinkingEl.remove();
   const convId = getActiveBackendConvId();
@@ -8941,6 +9110,11 @@ async function tryInterceptAsMedia(msg, historyForSend, alreadyShown, thinkingEl
   if(!detected) {
     // 不是媒体意图 → thinking 留着，等流式 API 响应（外层会用到）
     return false;
+  }
+  const requiredFeature = detected.intent === 'video' ? 'video_generation' : 'image_generation';
+  if(!requirePlanFeatureClient(requiredFeature)){
+    if (thinkingEl && thinkingEl.parentNode) thinkingEl.remove();
+    return true;
   }
 
   // 是媒体意图 → 撤掉 thinking 气泡（要换成确认卡）
@@ -9955,6 +10129,7 @@ function detectFileKind(file){
 
 /** 📎 按钮点击 → 触发文件选择 */
 function triggerFilePicker(){
+  if(!requirePlanFeatureClient('file_upload')) return;
   // 图片需要视觉 · 文档不需要 · 按钮这里不提前挡了 · 挡在 addAttachment 里
   const input = document.getElementById('bottom-file-input');
   if(input) input.click();
@@ -9971,6 +10146,7 @@ function handleFileSelect(e){
 /** 添加一个附件到 pending 列表 */
 async function addAttachment(file){
   if(!file) return;
+  if(!requirePlanFeatureClient('file_upload')) return;
   // 数量限制
   if(window.pendingAttachments.length >= ATT_MAX_COUNT){
     showToast && showToast(`最多只能传 ${ATT_MAX_COUNT} 个附件`, 2500);
@@ -10487,6 +10663,7 @@ document.addEventListener('click', (e)=>{
 
 /** 跳转到画图工坊(T1:直接切到 workspace)*/
 function openDrawWorkshop(){
+  if(!requirePlanFeatureClient('image_generation')) return;
   // 尝试找到"画图工坊"这个 workspace
   const target = (customWorkspaces || []).find(w => /画图工坊|draw|绘图/i.test(w.name || ''));
   if(target){
@@ -10503,6 +10680,7 @@ function openDrawWorkshop(){
 }
 /** 跳转到视频工坊 */
 function openVideoWorkshop(){
+  if(!requirePlanFeatureClient('video_generation')) return;
   const target = (customWorkspaces || []).find(w => /视频工坊|video|视频/i.test(w.name || ''));
   if(target){
     if(typeof switchWorkspace === 'function'){
@@ -10602,6 +10780,7 @@ function openModal(id){
 
   // 新建时检查配额
   if(!editId){
+    if(!requirePlanFeatureClient('custom_workspace')) return;
     const quota=getCustomQuota();
     if(customWorkspaces.length >= quota){
       const planName = _userPlan==='free' ? '免费版' : '当前套餐';
@@ -11053,6 +11232,9 @@ async function openBackendConv(convId) {
       id: 'db:' + convId,
       title: c2.title,
       messages: finalMessages,
+      model: (existingLocal && existingLocal.model && isAvailableChatModel(existingLocal.model))
+        ? existingLocal.model
+        : getBackendConversationDefaultModel(c2),
       updated_at: new Date(c2.updated_at).getTime(),
       _dbConvId: convId,
     };
@@ -11111,6 +11293,9 @@ function showCurrentConvBar() {
   // 🎯 阶段一 1.7: 刷新顶栏模型按钮为当前对话使用的模型
   if(typeof refreshModelBtnLabel === 'function'){
     refreshModelBtnLabel();
+  }
+  if(typeof syncModelControlsVisibility === 'function'){
+    syncModelControlsVisibility();
   }
   // 🖼 阶段二 v18: 切对话后刷新📎按钮状态(不同对话可能用不同模型)
   if(typeof refreshAttachBtnEnabled === 'function'){
@@ -12097,6 +12282,8 @@ function v30ToggleSidebar() {
 
 // chip 点击 · 把对应 prompt 填进输入框 · 不直接发送
 window.v33ChipClick = function(type) {
+  if(type === 'image' && !requirePlanFeatureClient('image_generation')) return;
+  if(type === 'video' && !requirePlanFeatureClient('video_generation')) return;
   const prompts = {
     content: '帮我写一篇',
     image: '帮我画一张',
@@ -12774,6 +12961,7 @@ window.v33OpenAddToProject = function() {
   openMoveDialog(convId);
 };
 window.v33OpenResearch = function() {
+  if(!requirePlanFeatureClient('web_search')) return;
   // 暂时复用现有联网搜索 · 多搜几次
   const inp = document.getElementById('bottom-input') || document.getElementById('center-input');
   if (inp) {
@@ -13977,6 +14165,7 @@ console.log('[v34] Chats 全屏页 已加载');
                 id: 'db:' + newConv.id,
                 title: newConv.title || txt,
                 messages: [],
+                model: (typeof getSelectedChatModel === 'function') ? getSelectedChatModel() : getDefaultChatModel(),
                 updated_at: Date.now(),
                 _dbConvId: newConv.id,
               };
@@ -14617,6 +14806,7 @@ document.addEventListener('keydown', function(e) {
         id: localId,
         title: detail.title || '新对话',
         messages: messages,
+        model: getBackendConversationDefaultModel(detail),
         updated_at: Date.now(),
         _dbConvId: convId,
       };
@@ -14624,6 +14814,10 @@ document.addEventListener('keydown', function(e) {
       window.wsActiveConvId = convId;
       window.currentWsId = agentType;
       window.currentConvoId = localId;
+      window._v34ActiveAgentType = agentType;
+      window._v34ActiveAgentPrompt = (typeof window.v34GetAgentSystemPrompt === 'function')
+        ? window.v34GetAgentSystemPrompt(agentType)
+        : '';
       if (typeof currentWsId !== 'undefined') currentWsId = agentType;
       if (typeof currentConvoId !== 'undefined') currentConvoId = localId;
 

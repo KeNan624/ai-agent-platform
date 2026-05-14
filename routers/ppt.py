@@ -26,6 +26,7 @@ from docmee_ppt_service import (
     refresh_ppt_download,
 )
 from models import Artifact, ChatMessage, Conversation, PptTaskToken, User
+from permissions import record_feature_usage, require_plan_feature
 
 
 router = APIRouter(prefix="/ppt", tags=["ppt"])
@@ -288,6 +289,7 @@ async def generate_ppt(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
+    require_plan_feature(current_user, "ppt_generation", db)
     prompt = " ".join(body.prompt.split()).strip()
     if not prompt:
         raise HTTPException(status_code=400, detail="PPT 主题不能为空")
@@ -357,6 +359,7 @@ async def generate_ppt(
 
     db.commit()
     db.refresh(artifact)
+    record_feature_usage(current_user, "ppt_generation", db)
     return _response_from_artifact(artifact)
 
 

@@ -26,7 +26,7 @@ from auth import get_current_user
 from chat_model_config import get_effective_default_model
 from database import get_db
 from models import Project, User
-from permissions import get_active_plan
+from permissions import get_active_plan, record_feature_usage, require_plan_feature
 
 router = APIRouter(prefix="/workspace/projects", tags=["projects"])
 
@@ -136,6 +136,8 @@ def create_project(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
+    require_plan_feature(current_user, "custom_workspace", db)
+
     # Get max sort_order for this user
     last = (
         db.query(Project)
@@ -161,6 +163,7 @@ def create_project(
     db.add(p)
     db.commit()
     db.refresh(p)
+    record_feature_usage(current_user, "custom_workspace", db)
     return ProjectOut.model_validate(p)
 
 
@@ -217,6 +220,7 @@ def clone_project(
 ):
     """把一个项目（通常是预设）克隆一份到当前用户的项目列表，然后可以改"""
     src = _assert_visible(db, current_user.id, project_id)
+    require_plan_feature(current_user, "custom_workspace", db)
 
     last = (
         db.query(Project)
@@ -242,4 +246,5 @@ def clone_project(
     db.add(new)
     db.commit()
     db.refresh(new)
+    record_feature_usage(current_user, "custom_workspace", db)
     return ProjectOut.model_validate(new)

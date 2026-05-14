@@ -26,6 +26,7 @@ import json
 import os
 import uuid
 from datetime import datetime, timedelta
+from decimal import Decimal
 from pathlib import Path
 from typing import Optional
 
@@ -37,27 +38,11 @@ from sqlalchemy.orm import Session
 from auth import get_current_user
 from database import get_db
 from models import Membership, Order, User
+from plan_config import get_plan_definition, get_purchasable_plans
 
 load_dotenv()
 
 router = APIRouter(prefix="/pay", tags=["payment"])
-
-# ---------------------------------------------------------------------------
-# Plan catalogue
-# ---------------------------------------------------------------------------
-
-PLANS: dict[str, dict] = {
-    "monthly":   {"amount": "99.00",  "duration_days": 30,  "label": "月度会员"},
-    "quarterly": {"amount": "249.00", "duration_days": 90,  "label": "季度会员"},
-    "yearly":    {"amount": "799.00", "duration_days": 365, "label": "年度会员"},
-}
-
-PLAN_TO_MEMBERSHIP: dict[str, str] = {
-    "monthly":   "monthly",
-    "quarterly": "monthly",
-    "yearly":    "yearly",
-}
-
 
 # ---------------------------------------------------------------------------
 # Key loading helpers (file-based preferred, env-based fallback)
@@ -193,25 +178,28 @@ def _verify_callback(params: dict, sign: str) -> bool:
 # Membership activation
 # ---------------------------------------------------------------------------
 
-def _activate_membership(user_id: int, plan: str, db: Session) -> None:
-    plan_cfg = PLANS[plan]
-    membership_type = PLAN_TO_MEMBERSHIP[plan]
+def _activate_membership(order: Order, db: Session) -> None:
+    plan_cfg = get_plan_definition(order.plan, db)
+    membership_type = order.plan
+    duration_days = int(order.plan_duration_days or plan_cfg.get("duration_days") or 0)
+    if duration_days <= 0:
+        raise RuntimeError(f"Invalid duration for plan {order.plan}")
     now = datetime.utcnow()
 
     existing = (
         db.query(Membership)
-        .filter(Membership.user_id == user_id, Membership.status == "active")
+        .filter(Membership.user_id == order.user_id, Membership.status == "active")
         .first()
     )
     if existing:
         base = existing.expire_at if existing.expire_at and existing.expire_at > now else now
-        expire_at = base + timedelta(days=plan_cfg["duration_days"])
+        expire_at = base + timedelta(days=duration_days)
         existing.plan_type = membership_type
         existing.expire_at = expire_at
     else:
-        expire_at = now + timedelta(days=plan_cfg["duration_days"])
+        expire_at = now + timedelta(days=duration_days)
         db.add(Membership(
-            user_id=user_id,
+            user_id=order.user_id,
             plan_type=membership_type,
             start_at=now,
             expire_at=expire_at,
@@ -227,7 +215,7 @@ def _mark_paid_and_activate(order: Order, db: Session) -> None:
     order.pay_status = "paid"
     order.paid_at = datetime.utcnow()
     db.commit()
-    _activate_membership(order.user_id, order.plan, db)
+    _activate_membership(order, db)
 
 
 # ---------------------------------------------------------------------------
@@ -246,11 +234,35 @@ class CreateOrderResponse(BaseModel):
     is_mock: bool
 
 
+class PaymentPlanItem(BaseModel):
+    id: str
+    name: str
+    description: str
+    amount: str
+    duration_days: int
+    period: str
+    quota: int
+    allowed_models: list[str]
+    free_models: list[str]
+    enabled_features: list[str]
+    feature_quotas: dict[str, int] = {}
+    practice_access: bool
+    practice_publish: bool
+
+
+class PaymentPlansResponse(BaseModel):
+    payments_enabled: bool
+    free_plan: Optional[PaymentPlanItem] = None
+    plans: list[PaymentPlanItem]
+
+
 class OrderStatusResponse(BaseModel):
     order_id: int
     trade_no: str
     plan: str
     amount: str
+    plan_label: Optional[str] = None
+    plan_duration_days: Optional[int] = None
     pay_status: str
     paid_at: Optional[datetime]
 
@@ -258,6 +270,15 @@ class OrderStatusResponse(BaseModel):
 # ---------------------------------------------------------------------------
 # Routes
 # ---------------------------------------------------------------------------
+
+@router.get("/plans", response_model=PaymentPlansResponse)
+def list_payment_plans(db: Session = Depends(get_db)):
+    return PaymentPlansResponse(
+        payments_enabled=_payments_enabled(),
+        free_plan=PaymentPlanItem(**get_plan_definition("free", db)),
+        plans=[PaymentPlanItem(**plan) for plan in get_purchasable_plans(db)],
+    )
+
 
 @router.post("/create", response_model=CreateOrderResponse)
 def create_order(
@@ -268,14 +289,15 @@ def create_order(
     if not _payments_enabled():
         raise HTTPException(status_code=409, detail="当前套餐已售罄")
 
-    plan = body.plan.lower()
-    if plan not in PLANS:
+    plan = body.plan.strip().lower()
+    purchasable = {item["id"]: item for item in get_purchasable_plans(db)}
+    plan_cfg = purchasable.get(plan)
+    if plan_cfg is None:
         raise HTTPException(
             status_code=400,
-            detail=f"Invalid plan. Choose from: {list(PLANS.keys())}",
+            detail=f"Invalid plan. Choose from: {list(purchasable.keys())}",
         )
 
-    plan_cfg = PLANS[plan]
     if not _alipay_configured():
         raise HTTPException(status_code=503, detail="支付暂未开放")
 
@@ -284,7 +306,9 @@ def create_order(
     order = Order(
         user_id=current_user.id,
         plan=plan,
-        amount=plan_cfg["amount"],
+        amount=Decimal(str(plan_cfg["amount"])),
+        plan_label=plan_cfg["name"],
+        plan_duration_days=int(plan_cfg["duration_days"]),
         pay_status="pending",
         trade_no=trade_no,
         created_at=datetime.utcnow(),
@@ -297,7 +321,7 @@ def create_order(
         pay_url = _build_qr_url(
             trade_no,
             plan_cfg["amount"],
-            f"阿川工作台 - {plan_cfg['label']}",
+            f"阿川工作台 - {plan_cfg['name']}",
         )
     except Exception as e:
         raise HTTPException(status_code=502, detail=f"Alipay error: {e}")
@@ -385,6 +409,8 @@ def order_status(
         trade_no=order.trade_no,
         plan=order.plan,
         amount=str(order.amount),
+        plan_label=order.plan_label,
+        plan_duration_days=order.plan_duration_days,
         pay_status=order.pay_status,
         paid_at=order.paid_at,
     )

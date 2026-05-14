@@ -35,7 +35,7 @@ def _is_placeholder_or_error(urls: list[str]) -> bool:
     return False
 
 
-async def generate(prompt: str, aspect_ratio: str = "1:1", n: int = 1) -> dict:
+async def generate(prompt: str, aspect_ratio: str = "1:1", n: int = 1, user_id: int = 0, db=None) -> dict:
     """
     主对话里 AI 调用的画图函数 · 封装 media.py 的 _gen_image_ephone
 
@@ -50,7 +50,21 @@ async def generate(prompt: str, aspect_ratio: str = "1:1", n: int = 1) -> dict:
     """
     # 延迟导入 · 避免循环依赖
     from app_config import get_app_setting
+    from fastapi import HTTPException
+    from permissions import record_feature_usage_for_user_id, require_plan_feature_for_user_id
     from routers.media import DEFAULT_IMAGE_MODEL, _gen_image_ephone
+
+    if user_id and db is not None:
+        try:
+            require_plan_feature_for_user_id(int(user_id), "image_generation", db)
+        except HTTPException as exc:
+            detail = exc.detail if isinstance(exc.detail, dict) else {"message": str(exc.detail)}
+            return {
+                "success": False,
+                "error": detail.get("message") or "当前套餐暂不支持图片生成",
+                "feature_not_allowed": True,
+                "prompt": prompt,
+            }
 
     use_model = (get_app_setting("IMAGE_MODEL", DEFAULT_IMAGE_MODEL) or DEFAULT_IMAGE_MODEL).strip()
     safe_n = max(1, min(5, int(n or 1)))
@@ -68,6 +82,11 @@ async def generate(prompt: str, aspect_ratio: str = "1:1", n: int = 1) -> dict:
             # 检测真图 vs 占位图
             if not _is_placeholder_or_error(urls):
                 # ✅ 拿到真图
+                if user_id and db is not None:
+                    try:
+                        record_feature_usage_for_user_id(int(user_id), "image_generation", db)
+                    except Exception as e:
+                        print(f"[image_gen] ⚠️  record feature usage failed: {e}", flush=True)
                 return {
                     "success": True,
                     "urls": urls,

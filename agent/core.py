@@ -89,6 +89,8 @@ TOOL_TIMEOUT = int(os.getenv("AGENT_TOOL_TIMEOUT", "30"))
 MAX_TOKENS_DEFAULT = int(os.getenv("AGENT_MAX_TOKENS", "4096"))
 COMPAT_STREAM_CHARS = max(1, int(os.getenv("AGENT_COMPAT_STREAM_CHARS", "6")))
 COMPAT_STREAM_DELAY = max(0.0, float(os.getenv("AGENT_COMPAT_STREAM_DELAY", "0.008")))
+COMPAT_TRUE_STREAM = os.getenv("AGENT_COMPAT_TRUE_STREAM", "1").strip().lower() not in {"0", "false", "no", "off"}
+AUTO_TOOL_GATING = os.getenv("AGENT_AUTO_TOOL_GATING", "1").strip().lower() not in {"0", "false", "no", "off"}
 
 # 🌐 v21 · 工具结果内存 LRU 缓存(10 分钟 TTL · 最多 64 条)
 # 省钱 + 提速:同样的搜索 10 分钟内不重复请求 Tavily
@@ -119,6 +121,44 @@ def _cache_put(key: str, value: str):
     _TOOL_CACHE.move_to_end(key)
     while len(_TOOL_CACHE) > _TOOL_CACHE_MAX:
         _TOOL_CACHE.popitem(last=False)
+
+
+TOOL_FEATURES = {
+    "internet_lookup": "web_search",
+    "scrape_webpage": "web_scrape",
+    "generate_image": "image_generation",
+    "generate_video": "video_generation",
+}
+
+
+def _check_tool_feature(name: str, context: Optional[dict]) -> Optional[str]:
+    """Return a serialized denial payload when the caller's plan cannot use a tool."""
+    feature = TOOL_FEATURES.get(name)
+    ctx = context or {}
+    user_id = ctx.get("user_id")
+    db = ctx.get("db")
+    if not feature or not user_id or db is None:
+        return None
+
+    try:
+        from fastapi import HTTPException
+        from permissions import require_plan_feature_for_user_id
+
+        require_plan_feature_for_user_id(int(user_id), feature, db)
+    except HTTPException as exc:
+        detail = exc.detail if isinstance(exc.detail, dict) else {"message": str(exc.detail)}
+        return json.dumps(
+            {
+                "success": False,
+                "error": detail.get("message") or "当前套餐暂不支持该功能",
+                "feature_not_allowed": True,
+                "feature": feature,
+            },
+            ensure_ascii=False,
+        )
+    except Exception as exc:
+        return json.dumps({"error": f"Tool feature check failed: {str(exc)}"}, ensure_ascii=False)
+    return None
 
 
 _client: Optional[anthropic.AsyncAnthropic] = None
@@ -167,6 +207,47 @@ def _extract_urls(text: str) -> list[str]:
     return urls[:3]
 
 
+def _message_likely_needs_tools(text: str) -> bool:
+    """Cheap local gate to avoid sending bulky tool schemas for plain chat."""
+    if not isinstance(text, str) or not text.strip():
+        return False
+    raw = text.strip()
+    lower = raw.lower()
+    if _extract_urls(raw):
+        return True
+
+    tool_patterns = [
+        # Search / fresh information.
+        r"联网|上网|搜索|搜一下|帮我搜|查一下|帮我查|查查|查找|检索",
+        r"最新|最近|实时|当前|现在|今天|昨日|昨天|明天|本周|本月|今年|202[4-9]",
+        r"新闻|价格|多少钱|报价|股价|汇率|天气|官网|文档|版本|发布|上线|榜单|排名",
+        # Image generation.
+        r"画一张|画一个|画个|帮我画|给我画|来一张|生成图|生图|出图|生成图片|做张图",
+        r"画.{0,12}(张|个|只|幅|图|图片|头像|封面|海报|插画)",
+        r"生成.{0,12}(图|图片|海报|封面|头像|插画)",
+        r"封面|海报|头像|插画|配图|picture of|draw|generate image|create image",
+        # Video generation.
+        r"做视频|生成视频|来段视频|来一段视频|短视频|动画|video|generate video|create video",
+        r"(生成|做|来|出|拍).{0,12}(视频|短片|动画)",
+        # Follow-up media edits.
+        r"再来一张|重新生成|换个背景|换个颜色|图片呢|图呢|视频呢",
+    ]
+    return any(re.search(pattern, lower, re.IGNORECASE) for pattern in tool_patterns)
+
+
+def _message_likely_needs_rich_syntax(text: str) -> bool:
+    if not isinstance(text, str):
+        return False
+    lower = text.lower()
+    return any(
+        key in lower
+        for key in (
+            "mermaid", "latex", "流程图", "架构图", "时序图", "状态图",
+            "关系图", "公式", "数学", "方程", "积分", "矩阵", "推导",
+        )
+    )
+
+
 def _has_unusable_compatible_tool_call(model: str, final_message: Any, tool_uses: list) -> bool:
     stop_reason = str(getattr(final_message, "stop_reason", "") or "").lower()
     return (
@@ -187,6 +268,166 @@ def _iter_smooth_text_chunks(text: str, *, chunk_chars: int = COMPAT_STREAM_CHAR
             buf = ""
     if buf:
         yield buf
+
+
+class _CompatContentBlock:
+    """Small final-message block used by the raw SSE compatibility path."""
+
+    def __init__(
+        self,
+        block_type: str,
+        *,
+        text: str = "",
+        block_id: str = "",
+        name: str = "",
+        input_value: Any = None,
+    ) -> None:
+        self.type = block_type
+        self.text = text
+        self.id = block_id
+        self.name = name
+        self.input = input_value if isinstance(input_value, dict) else {}
+
+    def model_dump(self) -> dict:
+        if self.type == "tool_use":
+            return {
+                "type": "tool_use",
+                "id": self.id,
+                "name": self.name,
+                "input": self.input,
+            }
+        return {"type": "text", "text": self.text}
+
+
+class _CompatMessage:
+    """Minimal Message-compatible object for existing tool-loop code."""
+
+    def __init__(
+        self,
+        *,
+        content: list[_CompatContentBlock],
+        stop_reason: Optional[str] = None,
+        stop_sequence: Optional[str] = None,
+    ) -> None:
+        self.content = content
+        self.stop_reason = stop_reason
+        self.stop_sequence = stop_sequence
+
+
+def _coerce_tool_input(value: Any) -> dict:
+    if isinstance(value, dict):
+        return value
+    return {}
+
+
+def _parse_tool_input(buffer: str, fallback: Any = None) -> dict:
+    if buffer:
+        try:
+            parsed = json.loads(buffer)
+            if isinstance(parsed, dict):
+                return parsed
+        except Exception:
+            pass
+    return _coerce_tool_input(fallback)
+
+
+async def _message_with_raw_compatible_streaming(
+    client: anthropic.AsyncAnthropic,
+    kwargs: dict,
+) -> AsyncGenerator[dict, None]:
+    """Stream compatible non-Claude models without Anthropic's snapshot parser.
+
+    Some Anthropic-compatible providers emit valid SSE deltas but trip the SDK's
+    accumulated snapshot logic around tool-call block indexes. This parser keeps
+    text deltas live for low first-token latency and only builds the final block
+    list needed by the existing tool execution loop.
+    """
+    blocks: dict[int, _CompatContentBlock] = {}
+    tool_json_buffers: dict[int, str] = {}
+    stop_reason: Optional[str] = None
+    stop_sequence: Optional[str] = None
+
+    raw_stream = await client.messages.create(**kwargs, stream=True)
+    try:
+        async for event in raw_stream:
+            event_type = getattr(event, "type", "")
+
+            if event_type == "content_block_start":
+                index = int(getattr(event, "index", len(blocks)))
+                content_block = getattr(event, "content_block", None)
+                block_type = getattr(content_block, "type", "")
+                if block_type == "tool_use":
+                    blocks[index] = _CompatContentBlock(
+                        "tool_use",
+                        block_id=str(getattr(content_block, "id", "") or ""),
+                        name=str(getattr(content_block, "name", "") or ""),
+                        input_value=getattr(content_block, "input", {}) or {},
+                    )
+                    tool_json_buffers.setdefault(index, "")
+                else:
+                    blocks[index] = _CompatContentBlock(
+                        "text",
+                        text=str(getattr(content_block, "text", "") or ""),
+                    )
+
+            elif event_type == "content_block_delta":
+                index = int(getattr(event, "index", len(blocks)))
+                delta = getattr(event, "delta", None)
+                delta_type = getattr(delta, "type", "")
+                if delta_type == "text_delta":
+                    text = str(getattr(delta, "text", "") or "")
+                    block = blocks.get(index)
+                    if block is None or block.type != "text":
+                        block = _CompatContentBlock("text")
+                        blocks[index] = block
+                    block.text += text
+                    if text:
+                        yield {"type": "text_delta", "content": text}
+                elif delta_type == "input_json_delta":
+                    tool_json_buffers[index] = (
+                        tool_json_buffers.get(index, "")
+                        + str(getattr(delta, "partial_json", "") or "")
+                    )
+
+            elif event_type == "content_block_stop":
+                index = int(getattr(event, "index", -1))
+                block = blocks.get(index)
+                if block is not None and block.type == "tool_use":
+                    block.input = _parse_tool_input(
+                        tool_json_buffers.get(index, ""),
+                        block.input,
+                    )
+
+            elif event_type == "message_delta":
+                delta = getattr(event, "delta", None)
+                stop_reason = getattr(delta, "stop_reason", None) or stop_reason
+                stop_sequence = getattr(delta, "stop_sequence", None) or stop_sequence
+    finally:
+        close = getattr(raw_stream, "close", None)
+        if close is not None:
+            maybe_awaitable = close()
+            if maybe_awaitable is not None:
+                await maybe_awaitable
+
+    for index, block in list(blocks.items()):
+        if block.type == "tool_use":
+            block.input = _parse_tool_input(tool_json_buffers.get(index, ""), block.input)
+
+    content = [
+        block
+        for _, block in sorted(blocks.items(), key=lambda item: item[0])
+        if block.type == "tool_use" or block.text
+    ]
+    if stop_reason is None:
+        stop_reason = "tool_use" if any(block.type == "tool_use" for block in content) else "end_turn"
+    yield {
+        "type": "_final_message",
+        "content": _CompatMessage(
+            content=content,
+            stop_reason=stop_reason,
+            stop_sequence=stop_sequence,
+        ),
+    }
 
 
 def _format_scraped_context(results: list[dict]) -> str:
@@ -241,10 +482,10 @@ async def _message_with_compatible_streaming(
     """Yield text deltas plus a final internal message event.
 
     ePhone's Anthropic-compatible channel can expose non-Claude models (for
-    example deepseek-chat). Their non-streaming Messages API is compatible
-    enough, but the Anthropic SDK's streaming snapshot parser may fail on
-    content block indexes during tool calls. Keep true Claude models streaming
-    and use create() for compatible non-Claude models.
+    example deepseek-chat). Use true raw SSE streaming for those models so the
+    UI gets early text deltas, while avoiding the Anthropic SDK snapshot parser
+    that can fail on tool-call block indexes. Fall back to non-streaming only if
+    the provider rejects raw streaming before anything visible was emitted.
     """
     kwargs = {
         "model": model,
@@ -264,6 +505,23 @@ async def _message_with_compatible_streaming(
                         yield {"type": "text_delta", "content": delta.text}
             final_message = await stream.get_final_message()
     else:
+        emitted_visible = False
+        if COMPAT_TRUE_STREAM:
+            try:
+                async for evt in _message_with_raw_compatible_streaming(client, kwargs):
+                    if evt["type"] == "text_delta":
+                        emitted_visible = True
+                    yield evt
+                return
+            except Exception as e:
+                if emitted_visible:
+                    raise
+                print(
+                    f"[compat-stream] raw stream failed before first delta; "
+                    f"falling back to create(): {type(e).__name__}: {e}",
+                    flush=True,
+                )
+
         final_message = await client.messages.create(**kwargs)
         for block in final_message.content:
             if getattr(block, "type", None) == "text" and getattr(block, "text", None):
@@ -284,6 +542,10 @@ async def _run_tool(name: str, inputs: dict, context: Optional[dict] = None) -> 
         context: v24 · 给需要用户/db 的工具(目前是 generate_video) 用
                  {"user_id": int, "db": Session}
     """
+    denied = _check_tool_feature(name, context)
+    if denied is not None:
+        return denied
+
     # 🌐 v21: 先查缓存(internet_lookup 查询语句相同 10 分钟内命中)
     # 🎨 v23: 画图不缓存(同样 prompt 用户可能想要不同的图)
     # 🎬 v24: 视频不缓存(同样 prompt 每次都重画 · 而且每次都要扣预算)
@@ -308,8 +570,13 @@ async def _run_tool(name: str, inputs: dict, context: Optional[dict] = None) -> 
             )
         elif name == "generate_image":
             # 🎨 v23 · P1 · 画图慢 · 单独 150 秒超时(ePhone 任务模式 · 含轮询)
+            ctx = context or {}
             result = await asyncio.wait_for(
-                image_gen_tool.generate(**inputs),
+                image_gen_tool.generate(
+                    **inputs,
+                    user_id=ctx.get("user_id", 0),
+                    db=ctx.get("db"),
+                ),
                 timeout=150,
             )
         elif name == "generate_video":
@@ -326,6 +593,19 @@ async def _run_tool(name: str, inputs: dict, context: Optional[dict] = None) -> 
             )
         else:
             return json.dumps({"error": f"Unknown tool: {name}"})
+
+        feature = TOOL_FEATURES.get(name)
+        if feature in {"web_search", "web_scrape"}:
+            ctx = context or {}
+            user_id = ctx.get("user_id")
+            db = ctx.get("db")
+            if user_id and db is not None and not (isinstance(result, dict) and result.get("error")):
+                from permissions import record_feature_usage_for_user_id
+
+                try:
+                    record_feature_usage_for_user_id(int(user_id), feature, db)
+                except Exception as exc:
+                    print(f"[tool_usage] record feature usage failed: {exc}", flush=True)
 
         result_str = json.dumps(result, ensure_ascii=False)
         # 缓存:只缓存搜索/抓取
@@ -505,6 +785,7 @@ async def _stage_execute_step(
     previous_results: list,
     prompts: dict,
     config: dict,
+    tool_context: Optional[dict] = None,
 ) -> AsyncGenerator[dict, None]:
     """
     Execute a single step. Streams text/tool events.
@@ -600,7 +881,7 @@ async def _stage_execute_step(
         if tool_uses:
             tool_results = []
             for block in tool_uses:
-                result_str = await _run_tool(block.name, block.input)
+                result_str = await _run_tool(block.name, block.input, context=tool_context)
                 tool_results.append({
                     "type": "tool_result",
                     "tool_use_id": block.id,
@@ -700,6 +981,7 @@ async def _stream_reply(
     prompts: dict,
     config: dict,
     attachments: Optional[list] = None,  # 🖼 阶段二 2.1
+    tool_context: Optional[dict] = None,
 ) -> AsyncGenerator[dict, None]:
     """Stream a conversational reply (used when is_task=False).
     🌐 v21: 闲聊分支也支持联网搜索(AI 自主决定)"""
@@ -766,7 +1048,7 @@ async def _stream_reply(
         tool_results_content = []
         for tu in tool_uses:
             yield {"type": "tool_call", "content": {"name": tu.name, "input": tu.input or {}}}
-            result_str = await _run_tool(tu.name, tu.input or {})
+            result_str = await _run_tool(tu.name, tu.input or {}, context=tool_context)
             yield {"type": "tool_result", "content": {"name": tu.name, "result": result_str}}
             try:
                 result_obj = json.loads(result_str)
@@ -813,6 +1095,8 @@ async def run_agent(
     conversation_history: Optional[list] = None,
     model: Optional[str] = None,
     attachments: Optional[list] = None,  # 🖼 阶段二 2.1: 图片附件
+    user_id: int = 0,
+    db: Any = None,
 ) -> AsyncGenerator[dict, None]:
     """
     Main agent entry. Runs the 4-stage loop and streams events.
@@ -839,6 +1123,7 @@ async def run_agent(
             return
 
         history = list(conversation_history or [])
+        tool_context = {"user_id": user_id, "db": db}
 
         # ─────────── Stage 1 · PLAN ───────────
         yield {"type": "plan_start", "content": "正在理解你的任务..."}
@@ -852,7 +1137,14 @@ async def run_agent(
                 yield {"type": "text", "content": reply}
             else:
                 # 没有 reply（_fallback=True 或解析失败）→ 流式重新生成
-                async for evt in _stream_reply(user_message, history, prompts, config, attachments=attachments):
+                async for evt in _stream_reply(
+                    user_message,
+                    history,
+                    prompts,
+                    config,
+                    attachments=attachments,
+                    tool_context=tool_context,
+                ):
                     yield evt
             yield {"type": "done", "content": None}
             return
@@ -868,7 +1160,7 @@ async def run_agent(
 
             step_complete_payload = None
             async for evt in _stage_execute_step(
-                user_message, step, all_step_results, prompts, config
+                user_message, step, all_step_results, prompts, config, tool_context=tool_context
             ):
                 if evt["type"] == "_step_complete":
                     step_complete_payload = evt["content"]
@@ -945,6 +1237,8 @@ async def run_project_agent(
             conversation_history=conversation_history,
             model=model,
             attachments=attachments,  # 🖼 透传
+            user_id=user_id,
+            db=db,
         ):
             yield evt
         return
@@ -957,7 +1251,15 @@ async def run_project_agent(
         # 🖼 阶段二 2.1: 有图片时 content 变 array,无图时保持 string(兼容)
         user_content = _build_user_content(user_message, attachments)
         messages = history + [{"role": "user", "content": user_content}]
-        tools_enabled = True
+        tools_enabled = (
+            (not AUTO_TOOL_GATING)
+            or _message_likely_needs_tools(user_message)
+            or any(
+                name in (system_prompt or "")
+                for name in ("internet_lookup", "generate_image", "generate_video", "scrape_webpage")
+            )
+        )
+        rich_syntax_enabled = _message_likely_needs_rich_syntax(user_message)
         compat_tool_fallback_used = False
 
         # ePhone's Anthropic-compatible adapter does not expose usable tool_use
@@ -1168,15 +1470,23 @@ async def run_project_agent(
             "   - 涉及希腊字母 / 上下标 / 分数时 · 一定要用 $...$ · 不要写 `pi r^2` 或 `π r²` 这种文本"
         )
 
-        effective_system = (
-            (system_prompt or "你是一个有帮助的 AI 助手。")
-            + platform_capability_note
-            + internet_lookup_capability
-            + image_gen_capability
-            + video_gen_capability
-            + url_scrape_capability
-            + mermaid_latex_capability
-        )
+        base_system = system_prompt or "你是一个有帮助的 AI 助手。"
+        if tools_enabled:
+            effective_system = (
+                base_system
+                + platform_capability_note
+                + internet_lookup_capability
+                + image_gen_capability
+                + video_gen_capability
+                + url_scrape_capability
+            )
+        else:
+            effective_system = (
+                base_system
+                + "\n\n默认用中文直接回答。除非用户明确要求步骤，否则先给结论和可执行内容。"
+            )
+        if rich_syntax_enabled:
+            effective_system += mermaid_latex_capability
 
         # 🌐 v21 · tool_use 多轮循环:Claude 可能多次搜索 / 画图 / 做视频
         # 🎨 v23 · 画图也走这个循环 · 同一对话里 AI 可能边搜边画

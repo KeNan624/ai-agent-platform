@@ -39,6 +39,8 @@ async def generate(prompt: str, duration: int = 5, aspect_ratio: str = "16:9", u
               · 失败原因可能是:超出每日预算 / 后端异常 / 参数无效
     """
     # 延迟导入 · 避免循环依赖
+    from fastapi import HTTPException
+    from permissions import record_feature_usage_for_user_id, require_plan_feature_for_user_id
     from routers.media import (
         _video_tasks,
         _run_video_task,
@@ -55,6 +57,18 @@ async def generate(prompt: str, duration: int = 5, aspect_ratio: str = "16:9", u
     # 校准 aspect_ratio
     if aspect_ratio not in ("16:9", "9:16", "1:1"):
         aspect_ratio = "16:9"
+
+    if user_id and db is not None:
+        try:
+            require_plan_feature_for_user_id(int(user_id), "video_generation", db)
+        except HTTPException as exc:
+            detail = exc.detail if isinstance(exc.detail, dict) else {"message": str(exc.detail)}
+            return {
+                "success": False,
+                "error": detail.get("message") or "当前套餐暂不支持视频生成",
+                "feature_not_allowed": True,
+                "prompt": prompt,
+            }
 
     # ─── 成本拦截:检查用户当天预算是否够 ───
     try:
@@ -94,6 +108,11 @@ async def generate(prompt: str, duration: int = 5, aspect_ratio: str = "16:9", u
         "created_at": time.time(),
     }
     asyncio.create_task(_run_video_task(task_id, body, user_id))
+    if user_id and db is not None:
+        try:
+            record_feature_usage_for_user_id(int(user_id), "video_generation", db)
+        except Exception as e:
+            print(f"[VIDEO] ⚠️  record feature usage failed: {e}", flush=True)
 
     print(f"[🎬 v24] generate_video 已起 · task_id={task_id[:8]}... · duration={safe_duration}s · prompt={prompt[:30]!r}", flush=True)
 

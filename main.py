@@ -24,7 +24,7 @@ from chat_model_config import get_effective_default_model  # noqa: E402
 from context_manager import build_conversation_context  # noqa: E402
 from database import Base, engine, get_db  # noqa: E402
 from models import ChatMessage, Conversation, User  # noqa: E402
-from permissions import check_permission, get_active_plan, record_usage  # noqa: E402
+from permissions import check_permission, get_active_plan, record_feature_usage, record_usage, require_plan_feature  # noqa: E402
 from routers import auth as auth_router  # noqa: E402
 from routers import member as member_router  # noqa: E402
 from routers import payment as payment_router  # noqa: E402
@@ -96,10 +96,35 @@ def ensure_practice_project_schema() -> None:
             conn.execute(text("ALTER TABLE practice_projects ALTER COLUMN is_featured SET DEFAULT false"))
 
 
+def ensure_plan_billing_schema() -> None:
+    """Lightweight additive migration for dynamic plan billing fields."""
+    inspector = inspect(engine)
+    table_names = set(inspector.get_table_names())
+    dialect = engine.dialect.name
+
+    with engine.begin() as conn:
+        if "usage_logs" in table_names:
+            usage_cols = {col["name"] for col in inspector.get_columns("usage_logs")}
+            if "quota_charged" not in usage_cols:
+                default_value = "1" if dialect == "sqlite" else "true"
+                conn.execute(text(
+                    "ALTER TABLE usage_logs "
+                    f"ADD COLUMN quota_charged BOOLEAN NOT NULL DEFAULT {default_value}"
+                ))
+
+        if "orders" in table_names:
+            order_cols = {col["name"] for col in inspector.get_columns("orders")}
+            if "plan_label" not in order_cols:
+                conn.execute(text("ALTER TABLE orders ADD COLUMN plan_label VARCHAR(100)"))
+            if "plan_duration_days" not in order_cols:
+                conn.execute(text("ALTER TABLE orders ADD COLUMN plan_duration_days INTEGER"))
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # Create all database tables on startup
     Base.metadata.create_all(bind=engine)
+    ensure_plan_billing_schema()
     ensure_practice_project_schema()
     ensure_practice_column_schema()
 
@@ -134,7 +159,7 @@ class Message(BaseModel):
 class ChatRequest(BaseModel):
     message: str
     history: list[Message] = []
-    model: str = "deepseek-chat"
+    model: str = ""
     system_prompt: str = ""  # Agent 的身份设定（legacy）
     agent_type: str = "simple"  # 默认通用助手；四阶段 Agent 仍可显式传 side_hustle
     project_id: Optional[int] = None  # 新：优先用 project_id，从数据库读配置
@@ -188,6 +213,16 @@ def _admin_default_chat_model(user: User, db: Session) -> str:
     return get_effective_default_model(plan_type, db)
 
 
+def _requested_or_default_chat_model(req: ChatRequest, user: User, db: Session, project=None) -> str:
+    """Use the user's per-conversation model choice, with backend defaults as fallback."""
+    requested = (req.model or "").strip()
+    if requested:
+        return requested
+    if project is not None and getattr(project, "model", None):
+        return project.model
+    return _admin_default_chat_model(user, db)
+
+
 # ---------------------------------------------------------------------------
 # Routes (API routes MUST come before static file mount)
 # ---------------------------------------------------------------------------
@@ -209,8 +244,10 @@ async def chat(
     Prefer /chat/stream for the user-facing web UI to get live typing.
     """
     current_user_id = int(current_user.id)
-    effective_model = _admin_default_chat_model(current_user, db)
+    effective_model = _requested_or_default_chat_model(req, current_user, db)
     check_permission(current_user, effective_model, db)
+    if req.attachments:
+        require_plan_feature(current_user, "file_upload", db)
 
     raw_history = [{"role": m.role, "content": m.content} for m in req.history]
     user_message = _wrap_message_with_prompt(req, len(raw_history))
@@ -233,6 +270,9 @@ async def chat(
             agent_type=req.agent_type,
             conversation_history=history,
             model=effective_model,
+            attachments=req.attachments,
+            user_id=current_user_id,
+            db=db,
         ):
             if event["type"] == "text":
                 final_text_parts.append(event["content"])
@@ -258,6 +298,8 @@ async def chat(
         raise HTTPException(status_code=500, detail=f"Agent error: {type(e).__name__}: {str(e)}")
 
     record_usage(current_user, effective_model, db)
+    if req.attachments:
+        record_feature_usage(current_user, "file_upload", db)
 
     updated_history = list(req.history) + [
         Message(role="user", content=req.message),
@@ -303,9 +345,9 @@ async def chat_stream(
         if not project:
             raise HTTPException(status_code=404, detail="Project not found")
 
-    # Ordinary conversations ignore the client-provided model. Admin controls
-    # the default in 后台管理 -> 系统配置 -> 对话模型管理.
-    effective_model = project.model if project else _admin_default_chat_model(current_user, db)
+    # Admin config controls model names / availability. The client may choose
+    # one allowed model per conversation; project.model is only the default.
+    effective_model = _requested_or_default_chat_model(req, current_user, db, project)
     print(
         f"[CHAT] /chat/stream user={current_user_id} "
         f"req_model={req.model} effective_model={effective_model} "
@@ -313,6 +355,8 @@ async def chat_stream(
         flush=True,
     )
     check_permission(current_user, effective_model, db)
+    if req.attachments:
+        require_plan_feature(current_user, "file_upload", db)
 
     raw_history = [{"role": m.role, "content": m.content} for m in req.history]
     user_message = _wrap_message_with_prompt(req, len(raw_history))
@@ -329,13 +373,19 @@ async def chat_stream(
         full_text_parts: list[str] = []
         pending_delta_text = ""
         last_delta_flush = time.monotonic()
+        sent_any_delta = False
         try:
             yield ": connected\n\n"
             # Choose agent generator based on whether project is specified
             if project is not None:
                 agent_stream = run_project_agent(
                     user_message,
-                    project=project,
+                    project={
+                        "mode": project.mode,
+                        "model": effective_model,
+                        "system_prompt": project.system_prompt or "",
+                        "four_stage_preset": project.four_stage_preset,
+                    },
                     conversation_history=history,
                     attachments=req.attachments,  # 🖼 阶段二 2.1: 透传图片附件
                     user_id=current_user_id,  # 🎬 v24 · P1.5 视频成本拦截需要
@@ -363,6 +413,8 @@ async def chat_stream(
                         conversation_history=history,
                         model=effective_model,
                         attachments=req.attachments,  # 🖼 阶段二 2.1: 透传图片附件
+                        user_id=current_user_id,
+                        db=db,
                     )
 
             async for event in agent_stream:
@@ -374,12 +426,14 @@ async def chat_stream(
                     pending_delta_text += event.get("content", "")
                     now = time.monotonic()
                     if (
-                        len(pending_delta_text) >= STREAM_DELTA_MAX_CHARS
+                        not sent_any_delta
+                        or len(pending_delta_text) >= STREAM_DELTA_MAX_CHARS
                         or (now - last_delta_flush) >= STREAM_DELTA_MAX_WAIT
                     ):
                         yield f"data: {json.dumps({'type': 'delta', 'text': pending_delta_text}, ensure_ascii=False)}\n\n"
                         pending_delta_text = ""
                         last_delta_flush = now
+                        sent_any_delta = True
 
                 elif etype == "text":
                     if pending_delta_text:
@@ -461,6 +515,8 @@ async def chat_stream(
                     # Record usage now that the call succeeded
                     try:
                         record_usage(current_user, effective_model, db)
+                        if req.attachments:
+                            record_feature_usage(current_user, "file_upload", db)
                     except Exception as e:
                         print(f"record_usage failed: {e}", flush=True)
 

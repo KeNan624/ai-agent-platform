@@ -9,10 +9,13 @@ from sqlalchemy.orm import Session
 
 from app_config import get_app_setting
 from database import SessionLocal
+from plan_config import (
+    get_allowed_model_ids_for_plan,
+    is_model_free_for_plan,
+)
 
 
 CHAT_MODEL_CONFIG_KEY = "CHAT_MODEL_CONFIG"
-PLAN_KEYS = ("free", "monthly", "yearly")
 
 
 DEFAULT_CHAT_MODEL_CONFIG: dict[str, Any] = {
@@ -69,7 +72,11 @@ def _clean_model(raw: dict[str, Any]) -> Optional[dict[str, Any]]:
     allowed = raw.get("allowed_plans") or []
     if not isinstance(allowed, list):
         allowed = []
-    clean_allowed = [p for p in PLAN_KEYS if p in set(str(x).strip() for x in allowed)]
+    clean_allowed: list[str] = []
+    for item in allowed:
+        plan_id = str(item or "").strip().lower()
+        if plan_id and plan_id not in clean_allowed:
+            clean_allowed.append(plan_id)
 
     return {
         "id": model_id,
@@ -150,9 +157,10 @@ def get_model_by_id(model_id: str, db: Optional[Session] = None) -> Optional[dic
 def get_available_chat_models(plan_type: str, db: Optional[Session] = None) -> list[dict[str, Any]]:
     plan = str(plan_type or "free").strip() or "free"
     config = get_chat_model_config(db)
+    allowed_model_ids = set(get_allowed_model_ids_for_plan(plan, db))
     return [
         m for m in config["models"]
-        if m.get("enabled") and plan in (m.get("allowed_plans") or [])
+        if m.get("enabled") and m.get("id") in allowed_model_ids
     ]
 
 
@@ -164,7 +172,14 @@ def is_model_allowed_for_plan(model_id: str, plan_type: str, db: Optional[Sessio
     model = get_model_by_id(model_id, db)
     if not model or not model.get("enabled"):
         return False
-    return str(plan_type or "free") in (model.get("allowed_plans") or [])
+    return model["id"] in set(get_allowed_model_ids_for_plan(plan_type, db))
+
+
+def is_model_quota_free_for_plan(model_id: str, plan_type: str, db: Optional[Session] = None) -> bool:
+    model = get_model_by_id(model_id, db)
+    if not model or not model.get("enabled"):
+        return False
+    return is_model_free_for_plan(plan_type, model["id"], db)
 
 
 def get_effective_default_model(plan_type: Optional[str] = None, db: Optional[Session] = None) -> str:

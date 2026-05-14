@@ -59,6 +59,8 @@ class Order(Base):
     user_id = Column(BigInteger, ForeignKey("users.id"), nullable=False, index=True)
     plan = Column(String(32), nullable=False)
     amount = Column(Numeric(10, 2), nullable=False)
+    plan_label = Column(String(100), nullable=True)
+    plan_duration_days = Column(Integer, nullable=True)
     pay_status = Column(
         Enum("pending", "paid", "failed", "refunded", name="pay_status"),
         default="pending",
@@ -78,6 +80,7 @@ class UsageLog(Base):
     user_id = Column(BigInteger, ForeignKey("users.id"), nullable=False, index=True)
     model = Column(String(64), nullable=False)
     message_count = Column(Integer, default=1, nullable=False)
+    quota_charged = Column(Boolean, default=True, nullable=False)
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
 
     user = relationship("User", back_populates="usage_logs")

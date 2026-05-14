@@ -283,8 +283,8 @@ API_CONFIG_FIELDS = [
         "label": "视频大小上限 MB",
         "description": "实战区和课程后台视频上传大小限制。",
         "secret": False,
-        "default": "300",
-        "placeholder": "300",
+        "default": "20480",
+        "placeholder": "20480",
     },
     {
         "key": "FEISHU_APP_ID",

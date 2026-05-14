@@ -99,7 +99,7 @@ tr:hover td{background:rgba(26,24,20,.015)}
 .status-line.error{color:var(--red)}
 .status-line.success{color:var(--green)}
 .cover-preview{margin-top:8px;border:1px solid var(--line);border-radius:10px;background:#fff;min-height:120px;display:flex;align-items:center;justify-content:center;overflow:hidden;color:var(--ink-mute);font-size:12px}
-.cover-preview img{width:100%;height:180px;object-fit:cover;display:block}
+.cover-preview img{width:100%;aspect-ratio:4 / 3;height:auto;object-fit:cover;display:block}
 .cover-preview.is-default{display:block;background:#fffdf7}
 .cover-preview-note{padding:8px 10px;border-top:1px solid var(--line);color:var(--ink-mute);font-size:12px}
 .cover-upload-row{display:flex;gap:8px;align-items:center}
@@ -332,6 +332,10 @@ tr:hover td{background:rgba(26,24,20,.015)}
       <div class="s-field">
         <label>内容</label>
         <input id="coverProjectTitle" class="s-input" disabled>
+      </div>
+      <div class="s-field">
+        <label>卡片简介</label>
+        <textarea id="coverProjectDesc" class="s-textarea" rows="3" maxlength="500" placeholder="展示在实战经验卡片标题下方"></textarea>
       </div>
       <div class="s-field">
         <label>封面图链接</label>
@@ -569,6 +573,7 @@ function openProjectCover(slug){
   if(!item)return;
   CURRENT_COVER_SLUG=slug;
   document.getElementById('coverProjectTitle').value=item.title||'';
+  document.getElementById('coverProjectDesc').value=item.description||'';
   document.getElementById('coverImageUrl').value=item.cover_color==='admin-cover'?(item.cover_image||''):'';
   setProjectCoverStatus('');
   updateProjectCoverPreview();
@@ -616,12 +621,13 @@ async function saveProjectCover(){
   if(!CURRENT_COVER_SLUG)return;
   const btn=document.getElementById('saveProjectCoverBtn');
   const cover_image=document.getElementById('coverImageUrl').value.trim();
+  const description=document.getElementById('coverProjectDesc').value.trim();
   btn.disabled=true;btn.textContent='保存中...';
   try{
     await adminJson(`${API}/admin/projects/${CURRENT_COVER_SLUG}/cover`,{
       method:'PUT',
       headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({cover_image})
+      body:JSON.stringify({cover_image,description})
     });
     toast('封面已保存');
     closeProjectCover();

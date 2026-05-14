@@ -46,6 +46,7 @@ from app_config import get_app_setting
 from auth import get_current_user
 from database import get_db
 from models import Artifact, ChatMessage, Conversation, User
+from permissions import record_feature_usage, require_plan_feature
 
 # ═════ 启动时打印 key 状态，方便排查 ═════
 def _mask(s: Optional[str]) -> str:
@@ -480,6 +481,7 @@ async def generate_image(
     """
     生成图片。返回 urls 列表 + 入库的 Artifact ID。
     """
+    require_plan_feature(current_user, "image_generation", db)
     # 权限校验：conversation_id 必须属于当前用户（如果有）
     if body.conversation_id:
         conv = db.query(Conversation).filter(
@@ -536,6 +538,7 @@ async def generate_image(
     db.add(artifact)
     db.commit()
     db.refresh(artifact)
+    record_feature_usage(current_user, "image_generation", db)
 
     return ImageGenerateResponse(
         artifact_id=artifact.id,
@@ -747,6 +750,7 @@ async def generate_video(
     """
     提交视频生成任务。返回 task_id，前端需轮询 GET /media/video/task/{task_id}。
     """
+    require_plan_feature(current_user, "video_generation", db)
     if body.conversation_id:
         conv = db.query(Conversation).filter(
             Conversation.id == body.conversation_id,
@@ -769,6 +773,7 @@ async def generate_video(
 
     # 启动后台任务（不阻塞响应）
     asyncio.create_task(_run_video_task(task_id, body, current_user.id))
+    record_feature_usage(current_user, "video_generation", db)
 
     return VideoTaskResponse(
         task_id=task_id,

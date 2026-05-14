@@ -666,71 +666,11 @@
 </div>
 
 <!-- Plans -->
-<div class="plans">
-
-  <!-- Free -->
+<div class="plans" id="plansContainer">
   <div class="plan-card">
-    <div class="plan-name">免费版</div>
-    <div class="plan-name-en">Free</div>
-    <div class="plan-price">
-      <span class="price-main">¥0</span>
-      <span class="price-unit">/ 永久</span>
-    </div>
-    <p class="plan-desc">体验 AI 基础能力，每天限量使用</p>
-    <ul class="plan-features">
-      <li><span class="ck">✓</span><span class="label">每天 10 次对话</span></li>
-      <li><span class="ck">✓</span><span class="label">DeepSeek 模型</span></li>
-      <li><span class="ck">✓</span><span class="label">网页搜索</span></li>
-      <li class="no"><span class="ck">—</span><span class="label">Claude Sonnet</span></li>
-      <li class="no"><span class="ck">—</span><span class="label">Claude Opus</span></li>
-    </ul>
-    <button class="btn-plan current" disabled>当前套餐</button>
+    <div class="plan-name">加载中</div>
+    <p class="plan-desc">正在读取套餐配置…</p>
   </div>
-
-  <!-- Monthly -->
-  <div class="plan-card sold-out">
-    <div class="plan-name">月度会员</div>
-    <div class="plan-name-en">Monthly</div>
-    <div class="plan-price">
-      <span class="price-main">¥99</span>
-      <span class="price-unit">/ 月</span>
-    </div>
-    <p class="plan-desc">日常重度使用，畅享 Claude Sonnet</p>
-    <ul class="plan-features">
-      <li><span class="ck">✓</span><span class="label">每月 500 次对话</span></li>
-      <li><span class="ck">✓</span><span class="label">DeepSeek 模型</span></li>
-      <li><span class="ck">✓</span><span class="label">Claude Sonnet 4.6</span></li>
-      <li><span class="ck">✓</span><span class="label">网页搜索 + 抓取</span></li>
-      <li class="no"><span class="ck">—</span><span class="label">Claude Opus</span></li>
-    </ul>
-    <button class="btn-plan soldout" id="btnMonthly" disabled>
-      已售罄
-    </button>
-  </div>
-
-  <!-- Yearly · Featured -->
-  <div class="plan-card featured sold-out">
-    <div class="plan-name">年度会员</div>
-    <div class="plan-name-en">Yearly</div>
-    <div class="plan-price">
-      <span class="price-main">¥799</span>
-      <span class="price-unit">/ 年</span>
-    </div>
-    <div class="price-orig">原价 ¥1188</div>
-    <div class="price-save">省 ¥389</div>
-    <p class="plan-desc">最强性价比，解锁全部模型包括 Opus</p>
-    <ul class="plan-features">
-      <li><span class="ck">✓</span><span class="label">每月 1000 次对话</span></li>
-      <li><span class="ck">✓</span><span class="label">DeepSeek 模型</span></li>
-      <li><span class="ck">✓</span><span class="label">Claude Sonnet 4.6</span></li>
-      <li><span class="ck">✓</span><span class="label">Claude Opus 4.6</span></li>
-      <li><span class="ck">✓</span><span class="label">网页搜索 + 抓取</span></li>
-    </ul>
-    <button class="btn-plan soldout" id="btnYearly" disabled>
-      已售罄
-    </button>
-  </div>
-
 </div>
 
 <!-- FAQ -->
@@ -802,55 +742,142 @@
 <script>
   const API = location.protocol === 'file:' ? 'http://localhost:8000' : location.origin;
   const token = localStorage.getItem('token');  // 修复：统一使用 token（原 auth_token 是 bug）
-  const SALES_SOLD_OUT = true;
 
   if (!token) { location.replace('login.html'); }
 
   let pollTimer = null;
   let currentOrderId = null;
+  let memberInfo = null;
+  let paymentPlans = { payments_enabled: false, free_plan: null, plans: [] };
+
+  function esc(v) {
+    return String(v ?? '').replace(/[&<>"']/g, ch => ({
+      '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;'
+    }[ch]));
+  }
+
+  function periodText(plan) {
+    return plan.period === 'day' ? '每天' : '每月';
+  }
+
+  function priceUnit(plan) {
+    const days = Number(plan.duration_days || 0);
+    if (!days) return '/ 永久';
+    if (days >= 360) return '/ 年';
+    if (days >= 80) return '/ 季';
+    if (days >= 28) return '/ 月';
+    return `/ ${days}天`;
+  }
+
+  function modelName(id) {
+    return {
+      'deepseek-chat': 'DeepSeek',
+      'claude-sonnet-4-6': 'Claude Sonnet 4.6',
+      'claude-opus-4-6': 'Claude Opus 4.6'
+    }[id] || id;
+  }
+
+  function featureName(id) {
+    return {
+      image_generation: '图片生成',
+      video_generation: '视频生成',
+      ppt_generation: 'PPT 生成',
+      web_search: '联网搜索',
+      web_scrape: '网页抓取',
+      file_upload: '附件上传',
+      custom_workspace: '自建工作空间',
+    }[id] || id;
+  }
+
+  function featureQuotaText(plan, feature) {
+    const quotas = plan.feature_quotas || {};
+    const quota = Number(quotas[feature]);
+    if (!Number.isFinite(quota) || quota < 0) return featureName(feature) + ' 不限次';
+    return `${featureName(feature)} ${periodText(plan)} ${quota} 次`;
+  }
+
+  function allDisplayPlans() {
+    return [paymentPlans.free_plan, ...(paymentPlans.plans || [])].filter(Boolean);
+  }
+
+  function findPaymentPlan(id) {
+    return allDisplayPlans().find(p => p.id === id);
+  }
+
+  function renderPlanFeatures(plan) {
+    const features = [
+      `${periodText(plan)} ${Number(plan.quota || 0)} 次对话`,
+      ...(plan.allowed_models || []).map(modelName),
+    ];
+    if ((plan.free_models || []).length) {
+      features.push(`${plan.free_models.map(modelName).join('、')} 不扣用量`);
+    }
+    (plan.enabled_features || []).forEach(feature => features.push(featureQuotaText(plan, feature)));
+    if (plan.practice_access) features.push('可访问实战区');
+    if (plan.practice_publish) features.push('可发布实战内容');
+    return features.map(item => `<li><span class="ck">✓</span><span class="label">${esc(item)}</span></li>`).join('');
+  }
+
+  function renderPlans() {
+    const currentPlan = memberInfo?.plan_type || 'free';
+    const plans = allDisplayPlans();
+    const wrap = document.getElementById('plansContainer');
+    if (!plans.length) {
+      wrap.innerHTML = '<div class="plan-card"><div class="plan-name">暂无可购买套餐</div><p class="plan-desc">请稍后再试</p></div>';
+      return;
+    }
+    wrap.innerHTML = plans.map(plan => {
+      const isFree = plan.id === 'free';
+      const isCurrent = currentPlan === plan.id || (isFree && currentPlan === 'free');
+      const canBuy = !isFree && paymentPlans.payments_enabled;
+      const cardClass = `plan-card ${plan.id === 'yearly' ? 'featured' : ''} ${(!isFree && !canBuy) ? 'sold-out' : ''}`;
+      const btn = isFree
+        ? `<button class="btn-plan current" disabled>${isCurrent ? '当前套餐' : '免费版'}</button>`
+        : `<button class="btn-plan ${canBuy ? (plan.id === 'yearly' ? 'yearly-btn' : 'monthly-btn') : 'soldout'}" ${canBuy ? `onclick="openPayModal('${esc(plan.id)}')"` : 'disabled'}>${canBuy ? (isCurrent ? '续费' : '立即开通') + ' <span class="arr">→</span>' : '已售罄'}</button>`;
+      return `
+        <div class="${cardClass}">
+          <div class="plan-name">${esc(plan.name)}</div>
+          <div class="plan-name-en">${esc(plan.id)}</div>
+          <div class="plan-price">
+            <span class="price-main">¥${esc(plan.amount || '0.00').replace(/\.00$/, '')}</span>
+            <span class="price-unit">${priceUnit(plan)}</span>
+          </div>
+          <p class="plan-desc">${esc(plan.description || '')}</p>
+          <ul class="plan-features">${renderPlanFeatures(plan)}</ul>
+          ${btn}
+        </div>
+      `;
+    }).join('');
+  }
 
   // Load current plan info
   async function loadPlanInfo() {
     try {
-      const r = await fetch(API + '/member/info', {
-        headers: { 'Authorization': 'Bearer ' + token }
-      });
+      const [r, planRes] = await Promise.all([
+        fetch(API + '/member/info', {
+          headers: { 'Authorization': 'Bearer ' + token }
+        }),
+        fetch(API + '/pay/plans')
+      ]);
+      paymentPlans = await planRes.json();
+      if (!planRes.ok) paymentPlans = { payments_enabled: false, free_plan: null, plans: [] };
       if (r.status === 401) {
         localStorage.removeItem('token');
         location.replace('login.html');
         return;
       }
       const d = await r.json();
+      memberInfo = d;
       const plan = d.plan_type || 'free';
       const dot = document.getElementById('planDot');
       const text = document.getElementById('planText');
-      const btnMonthly = document.getElementById('btnMonthly');
-      const btnYearly = document.getElementById('btnYearly');
-
-      if (plan === 'free') {
-        dot.className = 'dot free';
-        text.textContent = '当前套餐：免费版';
-      } else if (plan === 'monthly') {
-        dot.className = 'dot monthly';
-        const expire = d.expire_at ? '，到期 ' + new Date(d.expire_at).toLocaleDateString('zh-CN') : '';
-        text.textContent = '当前套餐：月度会员' + expire;
-        if (!SALES_SOLD_OUT) btnMonthly.innerHTML = '续费 <span class="arr">→</span>';
-      } else if (plan === 'yearly') {
-        dot.className = 'dot yearly';
-        const expire = d.expire_at ? '，到期 ' + new Date(d.expire_at).toLocaleDateString('zh-CN') : '';
-        text.textContent = '当前套餐：年度会员' + expire;
-        if (!SALES_SOLD_OUT) {
-          btnMonthly.innerHTML = '降级续费 <span class="arr">→</span>';
-          btnYearly.innerHTML = '续费 <span class="arr">→</span>';
-        }
-      }
-      if (SALES_SOLD_OUT) {
-        btnMonthly.textContent = '已售罄';
-        btnYearly.textContent = '已售罄';
-        btnMonthly.disabled = true;
-        btnYearly.disabled = true;
-      }
-    } catch (e) { console.error(e); }
+      dot.className = 'dot ' + (plan === 'free' ? 'free' : (plan === 'yearly' ? 'yearly' : 'monthly'));
+      const expire = d.expire_at ? '，到期 ' + new Date(d.expire_at).toLocaleDateString('zh-CN') : '';
+      text.textContent = '当前套餐：' + (d.plan_name || findPaymentPlan(plan)?.name || plan) + expire;
+      renderPlans();
+    } catch (e) {
+      console.error(e);
+    }
   }
 
   function showStep(id) {
@@ -860,15 +887,14 @@
   }
 
   async function openPayModal(plan) {
-    if (SALES_SOLD_OUT) {
+    const planCfg = findPaymentPlan(plan);
+    if (!paymentPlans.payments_enabled || !planCfg) {
       document.getElementById('payModal').classList.add('active');
       showStep('stepLoading');
       document.querySelector('#stepLoading .modal-title').textContent = '当前已售罄';
       document.querySelector('#stepLoading .modal-subtitle').textContent = '暂不开放购买，请稍后关注。';
       return;
     }
-    const planLabel = { monthly: '月度会员 · ¥99/月', quarterly: '季度会员 · ¥249/季', yearly: '年度会员 · ¥799/年' };
-    const planAmount = { monthly: '¥99.00', quarterly: '¥249.00', yearly: '¥799.00' };
 
     document.getElementById('payModal').classList.add('active');
     showStep('stepLoading');
@@ -886,10 +912,11 @@
         return;
       }
       const d = await r.json();
+      if (!r.ok) throw new Error(d.detail || '创建订单失败');
       currentOrderId = d.order_id;
 
-      document.getElementById('qrAmount').textContent = planAmount[plan];
-      document.getElementById('qrLabel').textContent = planLabel[plan];
+      document.getElementById('qrAmount').textContent = '¥' + d.amount;
+      document.getElementById('qrLabel').textContent = `${planCfg.name} · ${priceUnit(planCfg)}`;
       showStep('stepQR');
 
       const qrImg = document.getElementById('qrImg');
@@ -932,9 +959,9 @@
   }
 
   function showSuccess(plan) {
-    const labels = { monthly: '月度会员', quarterly: '季度会员', yearly: '年度会员' };
+    const planCfg = findPaymentPlan(plan);
     document.getElementById('successDesc').textContent =
-      (labels[plan] || '会员') + ' 已开通，立即享受全部 AI 能力';
+      ((planCfg && planCfg.name) || '会员') + ' 已开通，立即享受全部 AI 能力';
     showStep('stepSuccess');
   }
 

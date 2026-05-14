@@ -582,11 +582,11 @@
       const used = m.used || 0;
       const quota = m.quota || 10;
       const remaining = m.remaining !== undefined ? m.remaining : (quota - used);
-      const period = m.period || 'daily';
+      const period = m.period || 'day';
 
       document.getElementById('statUsed').textContent = used;
       document.getElementById('statRemain').textContent = remaining;
-      document.getElementById('statPeriod').textContent = period === 'daily' ? '次 · 今日' : '次 · 本月';
+      document.getElementById('statPeriod').textContent = period === 'day' ? '次 · 今日' : '次 · 本月';
 
       const pct = quota > 0 ? Math.min(100, Math.round(used / quota * 100)) : 0;
       document.getElementById('progressFill').style.width = pct + '%';
@@ -595,10 +595,10 @@
       const pill = document.getElementById('planPill');
       if (plan === 'free') {
         pill.className = 'plan-pill free';
-        pill.textContent = 'Free';
+        pill.textContent = m.plan_name || 'Free';
       } else {
         pill.className = 'plan-pill paid';
-        pill.textContent = plan === 'yearly' ? 'Yearly 💎' : 'Monthly ✨';
+        pill.textContent = m.plan_name || plan;
       }
 
       const memberLabel = document.getElementById('memberLabel');
@@ -606,23 +606,33 @@
       const upgradeTag = document.getElementById('upgradeTag');
 
       if (plan === 'free') {
-        memberLabel.textContent = '免费版';
+        memberLabel.textContent = m.plan_name || '免费版';
         memberSub.textContent = '升级解锁更多能力';
         upgradeTag.style.display = 'inline-block';
       } else {
-        memberLabel.textContent = plan === 'yearly' ? '年度会员' : '月度会员';
+        memberLabel.textContent = m.plan_name || plan;
         const exp = m.expire_at ? new Date(m.expire_at).toLocaleDateString('zh-CN') : '';
         memberSub.textContent = exp ? '到期时间：' + exp : '有效会员';
         upgradeTag.textContent = '续费';
       }
 
       const models = m.allowed_models || ['deepseek-chat'];
+      const freeModels = new Set(m.free_models || []);
       const modelNames = models.map(x => ({
         'deepseek-chat': 'DeepSeek',
         'claude-sonnet-4-6': 'Claude Sonnet',
         'claude-opus-4-6': 'Claude Opus'
+      }[x] || x) + (freeModels.has(x) ? '（不扣量）' : ''));
+      const featureNames = (m.enabled_features || []).map(x => ({
+        image_generation: '图片生成',
+        video_generation: '视频生成',
+        ppt_generation: 'PPT 生成',
+        web_search: '联网搜索',
+        web_scrape: '网页抓取',
+        file_upload: '附件上传',
+        custom_workspace: '自建工作空间',
       }[x] || x));
-      document.getElementById('modelList').textContent = modelNames.join(' · ');
+      document.getElementById('modelList').textContent = modelNames.concat(featureNames).join(' · ');
 
     } catch (e) {
       console.error(e);

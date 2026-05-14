@@ -18,12 +18,19 @@ class MemberInfoResponse(BaseModel):
     nickname: Optional[str] = None
     avatar: Optional[str] = None
     plan_type: str
+    plan_name: str
     expire_at: Optional[datetime]
     period: str                  # "day" or "month"
     quota: int                   # total allowed calls per period
     used: int                    # calls used in current period
     remaining: int               # calls left in current period
     allowed_models: List[str]
+    free_models: List[str] = []
+    enabled_features: List[str] = []
+    feature_quotas: dict[str, int] = {}
+    feature_usage: dict[str, int] = {}
+    practice_access: bool = False
+    practice_publish: bool = False
 
 
 class MemberInfoUpdate(BaseModel):

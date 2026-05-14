@@ -13,6 +13,8 @@ from sqlalchemy import text
 from auth import create_access_token, ensure_default_admin, get_current_user, is_default_admin_phone
 from database import get_db
 from models import PracticeCourse, PracticeLesson, User
+from permissions import get_active_plan
+from plan_config import get_plan_definition, plan_allows_practice, plan_can_publish_practice
 from services.cos_upload import CosUploadError, upload_bytes, upload_fastapi_file
 from services.feishu_import import FeishuImportError, import_feishu_docx, parse_feishu_docx_id
 from sms_service import SmsVerificationError, verify_sms_code
@@ -48,22 +50,16 @@ def row_to_dict(row):
 
 
 def _plan_can_publish(plan: Optional[str]) -> bool:
-    raw = (plan or "").strip().lower()
-    return raw in {"yearly", "annual", "year", "年卡", "private", "私教", "vip"}
+    return plan_can_publish_practice(plan)
 
 
 def _require_practice_publisher(user: User, db: Session) -> None:
     if getattr(user, "is_admin", False):
         return
-    membership = db.execute(text("""
-        SELECT plan_type FROM memberships
-        WHERE user_id = :uid AND status = 'active'
-          AND (expire_at IS NULL OR expire_at > NOW())
-        ORDER BY expire_at DESC NULLS LAST LIMIT 1
-    """), {"uid": user.id}).fetchone()
-    if membership and _plan_can_publish(membership[0]):
+    plan_type = get_active_plan(user, db)
+    if plan_can_publish_practice(plan_type, db):
         return
-    raise HTTPException(403, "需要年卡或私教会员才能发布内容")
+    raise HTTPException(403, "当前套餐无实战区发布权限")
 
 
 def _require_admin_user(user: User) -> None:
@@ -609,7 +605,7 @@ def increment_view(slug: str, req: ViewRequest = None, db: Session = Depends(get
     return {"ok": True, "new": True}
 
 
-# ─── 15. 权限检查（年卡/私教/管理员） ───
+# ─── 15. 权限检查（按后台套餐配置） ───
 @router.get("/access-check")
 def check_access(user_id: int = Query(...), db: Session = Depends(get_db)):
     # 检查管理员
@@ -626,18 +622,29 @@ def check_access(user_id: int = Query(...), db: Session = Depends(get_db)):
     # 检查会员
     membership = db.execute(text("""
         SELECT plan_type, expire_at, status FROM memberships
-        WHERE user_id = :uid AND status = 'active' AND expire_at > NOW()
-        ORDER BY expire_at DESC LIMIT 1
+        WHERE user_id = :uid AND status = 'active'
+          AND (expire_at IS NULL OR expire_at > NOW())
+        ORDER BY expire_at DESC NULLS LAST LIMIT 1
     """), {"uid": user_id}).fetchone()
 
-    if not membership:
-        return {"allowed": False, "reason": "需要年卡或私教会员", "plan": None}
-
-    plan = membership[0]  # plan_type
-    if plan in ('yearly', 'annual', 'year', '年卡', 'private', '私教', 'vip'):
-        return {"allowed": True, "plan": plan, "can_publish": True}
-    else:
-        return {"allowed": False, "reason": "需要年卡或私教会员", "plan": plan}
+    plan = membership[0] if membership else "free"
+    plan_cfg = get_plan_definition(plan, db)
+    allowed = plan_allows_practice(plan, db)
+    can_publish = plan_can_publish_practice(plan, db)
+    if allowed:
+        return {
+            "allowed": True,
+            "plan": plan,
+            "plan_name": plan_cfg["name"],
+            "can_publish": can_publish,
+        }
+    return {
+        "allowed": False,
+        "reason": "当前套餐无实战区访问权限",
+        "plan": plan,
+        "plan_name": plan_cfg["name"],
+        "can_publish": False,
+    }
 
 
 # ─── 16. 用户发布内容 ───
@@ -1634,6 +1641,7 @@ def toggle_publish(
 class CoverUpdateRequest(BaseModel):
     user_id: Optional[int] = None
     cover_image: Optional[str] = None
+    description: Optional[str] = None
 
 
 @router.put("/admin/projects/{slug}/cover")
@@ -1645,6 +1653,7 @@ def update_project_cover(
 ):
     _require_admin_user(current_user)
     cover_image = (req.cover_image or "").strip()
+    description = (req.description or "").strip()[:500] or None
     if cover_image and not cover_image.startswith(("http://", "https://")):
         raise HTTPException(400, "封面图必须是 http(s) 图片链接")
     row = db.execute(
@@ -1657,15 +1666,17 @@ def update_project_cover(
         UPDATE practice_projects
         SET cover_image = :cover_image,
             cover_color = :cover_color,
+            description = :description,
             updated_at = NOW()
         WHERE slug = :slug
     """), {
         "cover_image": cover_image or None,
         "cover_color": "admin-cover" if cover_image else "#F5EFDE",
+        "description": description,
         "slug": slug,
     })
     db.commit()
-    return {"ok": True, "cover_image": cover_image or None}
+    return {"ok": True, "cover_image": cover_image or None, "description": description}
 
 
 class FeishuSyncRequest(BaseModel):

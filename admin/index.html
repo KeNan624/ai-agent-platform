@@ -106,6 +106,11 @@ body{display:flex;height:100vh;background:var(--bg);overflow:hidden}
 .stat-icon{font-size:22px;margin-bottom:12px}
 .stat-val{font-size:28px;font-weight:700;color:var(--text);line-height:1}
 .stat-label{font-size:12px;color:var(--muted);margin-top:6px}
+.usage-stats-grid{margin-bottom:0}
+.usage-date-note{font-size:12px;color:var(--muted)}
+.usage-user-cell{display:flex;flex-direction:column;gap:2px}
+.usage-user-phone{font-weight:700;color:var(--text)}
+.usage-user-name{font-size:11px;color:var(--muted)}
 
 /* ── Card ───────────────────────────────────────────── */
 .card{background:var(--card);border-radius:12px;border:1px solid var(--border);margin-bottom:20px}
@@ -205,20 +210,33 @@ select.form-input{cursor:pointer}
 .api-input:focus{border-color:var(--blue)}
 .api-status{font-size:11px;color:var(--muted);margin-top:3px}
 .api-clear{display:flex;align-items:center;gap:5px;font-size:11px;color:var(--muted);margin-top:6px}
-.model-config-section{grid-column:1/-1}
+.model-config-section,.plan-config-section{grid-column:1/-1}
 .model-provider-card{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px}
 .model-field label{display:block;font-size:11px;font-weight:700;color:var(--muted);margin-bottom:6px}
 .model-field input,.model-field select{width:100%;padding:8px 10px;border:1px solid var(--border);
   border-radius:6px;font-size:12px;outline:none;background:#fff}
 .model-field input:focus,.model-field select:focus{border-color:var(--blue)}
 .model-actions{display:flex;gap:8px;justify-content:flex-end;margin-top:14px}
-.model-table-wrap{overflow:auto;border:1px solid var(--border);border-radius:10px;background:#fff}
+.model-table-wrap{max-width:100%;overflow:auto;border:1px solid var(--border);border-radius:10px;background:#fff}
 .model-table{width:100%;border-collapse:collapse;min-width:860px}
 .model-table th{font-size:11px;text-align:left;color:var(--muted);background:#f8fafc;padding:9px}
 .model-table td{padding:8px 9px;border-top:1px solid #eef2f7;vertical-align:middle}
 .model-table input[type="text"]{width:100%;padding:6px 8px;border:1px solid var(--border);border-radius:6px;font-size:12px}
 .plan-checks{display:flex;gap:10px;align-items:center;white-space:nowrap}
 .plan-checks label,.mini-check{display:flex;align-items:center;gap:4px;font-size:11px;color:var(--muted)}
+.plan-table-wrap{overflow-x:auto;overflow-y:hidden;-webkit-overflow-scrolling:touch}
+.plan-table{width:2290px;min-width:2290px;table-layout:fixed}
+.plan-table th,.plan-table td{box-sizing:border-box}
+.plan-table input,.plan-table select{width:100%;min-width:0;padding:6px 8px;border:1px solid var(--border);border-radius:6px;font-size:12px;background:#fff}
+.plan-table input[type="checkbox"]{width:auto}
+.plan-table input[disabled]{background:#f8fafc;color:var(--muted)}
+.plan-table input[type="number"]{font-variant-numeric:tabular-nums}
+.plan-model-grid{display:flex;flex-direction:column;gap:5px;min-width:0}
+.plan-model-grid label{display:flex;align-items:center;gap:5px;font-size:11px;color:var(--muted);white-space:nowrap}
+.plan-feature-row{display:grid;grid-template-columns:minmax(130px,1fr) 76px;gap:6px;align-items:center}
+.plan-feature-row label{min-width:0;overflow:hidden;text-overflow:ellipsis}
+.plan-feature-quota{width:76px!important;min-width:76px;text-align:right}
+.plan-flags{display:flex;flex-direction:column;gap:5px;min-width:110px}
 .model-row-actions{display:flex;gap:6px}
 .model-status-line{font-size:11px;color:var(--muted);margin-top:8px;line-height:1.5}
 .toggle{
@@ -293,6 +311,9 @@ select.form-input{cursor:pointer}
     </div>
     <div class="nav-item" data-section="orders">
       <span class="nav-icon">🧾</span>订单列表
+    </div>
+    <div class="nav-item" data-section="usage">
+      <span class="nav-icon">📈</span>用量统计
     </div>
     <div class="nav-item" data-section="config">
       <span class="nav-icon">⚙️</span>系统配置
@@ -416,6 +437,89 @@ select.form-input{cursor:pointer}
       </div>
     </div>
 
+    <!-- ── 用量统计 ── -->
+    <div id="section-usage" class="section">
+      <div class="card">
+        <div class="card-header">
+          <div>
+            <div class="card-title">用量统计</div>
+            <div class="usage-date-note" id="usage-date-note">按 UTC+08:00 自然日统计</div>
+          </div>
+          <div class="toolbar">
+            <input class="input" id="usage-start" type="date">
+            <span style="font-size:12px;color:var(--muted)">至</span>
+            <input class="input" id="usage-end" type="date">
+            <button class="btn btn-ghost btn-sm" id="usage-last7-btn">近 7 天</button>
+            <button class="btn btn-primary btn-sm" id="usage-load-btn">查询</button>
+          </div>
+        </div>
+        <div class="card-body">
+          <div class="stats-grid usage-stats-grid">
+            <div class="stat-card blue">
+              <div class="stat-icon">👥</div>
+              <div class="stat-val" id="usage-period-active">–</div>
+              <div class="stat-label">区间活跃人数</div>
+            </div>
+            <div class="stat-card green">
+              <div class="stat-icon">💬</div>
+              <div class="stat-val" id="usage-period-count">–</div>
+              <div class="stat-label">区间调用次数</div>
+            </div>
+            <div class="stat-card amber">
+              <div class="stat-icon">📨</div>
+              <div class="stat-val" id="usage-period-messages">–</div>
+              <div class="stat-label">区间消息计数</div>
+            </div>
+            <div class="stat-card red">
+              <div class="stat-icon">📊</div>
+              <div class="stat-val" id="usage-avg-active">–</div>
+              <div class="stat-label">日均活跃人数</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">每日用量明细</div>
+          <span id="usage-range-badge" class="badge badge-blue"></span>
+        </div>
+        <div class="card-body" style="padding:0">
+          <div class="tbl-wrap">
+            <table>
+              <thead><tr>
+                <th>日期</th><th>活跃人数</th><th>调用次数</th><th>消息计数</th><th>主要模型</th><th>当日最高用户</th><th>操作</th>
+              </tr></thead>
+              <tbody id="usage-days-body">
+                <tr><td colspan="7" class="loading"><span class="spinner"></span>加载中...</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">单日用量最大 10 个用户</div>
+          <div class="toolbar">
+            <select class="input" id="usage-day-select" style="min-width:150px"></select>
+          </div>
+        </div>
+        <div class="card-body" style="padding:0">
+          <div class="tbl-wrap">
+            <table>
+              <thead><tr>
+                <th>排名</th><th>用户</th><th>调用次数</th><th>消息计数</th><th>最后活跃时间</th>
+              </tr></thead>
+              <tbody id="usage-top-users-body">
+                <tr><td colspan="5" class="empty">请选择日期</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <!-- ── 系统配置 ── -->
     <div id="section-config" class="section">
       <div class="config-grid">
@@ -433,43 +537,17 @@ select.form-input{cursor:pointer}
           </div>
         </div>
 
-        <div class="config-section">
-          <h3>💰 套餐价格配置</h3>
-          <div class="config-row">
-            <div>
-              <div class="config-row-label">月度会员</div>
-              <div class="config-row-sub">monthly · 500次/月</div>
-            </div>
-            <div style="display:flex;align-items:center;gap:6px">
-              <input class="price-input" id="price-monthly" value="99" type="number" min="1">
-              <span style="font-size:12px;color:var(--muted)">元/月</span>
-            </div>
+        <div class="config-section plan-config-section">
+          <h3>💳 套餐权限配置</h3>
+          <div class="note" style="margin-bottom:14px">
+            套餐价格、有效期、对话额度、功能权限次数、可用模型、免费不扣量模型和实战区权限都会立即同步到前台与后端校验。功能次数留空或 -1 表示不限次，0 表示本周期不可用。
           </div>
-          <div class="config-row">
-            <div>
-              <div class="config-row-label">季度会员</div>
-              <div class="config-row-sub">quarterly · 500次/月</div>
-            </div>
-            <div style="display:flex;align-items:center;gap:6px">
-              <input class="price-input" id="price-quarterly" value="249" type="number" min="1">
-              <span style="font-size:12px;color:var(--muted)">元/季</span>
-            </div>
+          <div id="plan-config-panel">
+            <div class="loading">加载套餐配置...</div>
           </div>
-          <div class="config-row">
-            <div>
-              <div class="config-row-label">年度会员</div>
-              <div class="config-row-sub">yearly · 1000次/月</div>
-            </div>
-            <div style="display:flex;align-items:center;gap:6px">
-              <input class="price-input" id="price-yearly" value="799" type="number" min="1">
-              <span style="font-size:12px;color:var(--muted)">元/年</span>
-            </div>
-          </div>
-          <div class="config-save-row">
-            <button class="btn btn-primary btn-sm" id="save-prices-btn">保存价格</button>
-          </div>
-          <div class="note" style="margin-top:12px">
-            ⚠️ 价格修改保存到本地配置。同步到支付宝需在后端 <code>routers/payment.py</code> 中更新 PLANS 字典并重启服务。
+          <div class="model-actions">
+            <button class="btn btn-sm" id="add-plan-btn">新增套餐</button>
+            <button class="btn btn-primary btn-sm" id="save-plans-btn">保存套餐配置</button>
           </div>
         </div>
 
@@ -485,34 +563,6 @@ select.form-input{cursor:pointer}
             <button class="btn btn-sm" id="add-chat-model-btn">新增模型</button>
             <button class="btn btn-sm" id="test-chat-model-btn">测试默认模型</button>
             <button class="btn btn-primary btn-sm" id="save-models-btn">保存模型配置</button>
-          </div>
-        </div>
-
-        <div class="config-section">
-          <h3>📊 免费额度设置</h3>
-          <div class="config-row">
-            <div>
-              <div class="config-row-label">免费用户每日次数</div>
-              <div class="config-row-sub">free plan 每天限制</div>
-            </div>
-            <input class="price-input" id="quota-free" value="10" type="number" min="1">
-          </div>
-          <div class="config-row">
-            <div>
-              <div class="config-row-label">月度会员每月次数</div>
-              <div class="config-row-sub">monthly plan 每月限制</div>
-            </div>
-            <input class="price-input" id="quota-monthly" value="500" type="number" min="1">
-          </div>
-          <div class="config-row">
-            <div>
-              <div class="config-row-label">年度会员每月次数</div>
-              <div class="config-row-sub">yearly plan 每月限制</div>
-            </div>
-            <input class="price-input" id="quota-yearly" value="1000" type="number" min="1">
-          </div>
-          <div class="config-save-row">
-            <button class="btn btn-primary btn-sm" id="save-quotas-btn">保存额度</button>
           </div>
         </div>
 
@@ -601,6 +651,8 @@ let usersPage = 1, ordersPage = 1;
 let userPhoneFilter = '';
 let apiConfigItems = [];
 let modelConfigData = null;
+let planConfigData = null;
+let usageStatsData = null;
 
 // ═══════════════════════════════════════════════
 // Utils
@@ -638,13 +690,21 @@ function fmtDate(s) {
   return d.toLocaleDateString('zh-CN') + ' ' + d.toTimeString().slice(0,5);
 }
 
+function escapeHtml(value) {
+  return String(value ?? '').replace(/[&<>"']/g, ch => ({
+    '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;',
+  }[ch]));
+}
+
+function dateInputValue(d) {
+  const pad = n => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+}
+
 function planTag(plan) {
   if (!plan) return '<span class="tag tag-gray">免费</span>';
-  const map = {
-    monthly:'<span class="tag tag-blue">月度</span>',
-    yearly:'<span class="tag tag-green">年度</span>',
-  };
-  return map[plan] || `<span class="tag tag-amber">${plan}</span>`;
+  const cls = plan === 'yearly' ? 'tag-green' : (plan === 'free' ? 'tag-gray' : 'tag-blue');
+  return `<span class="tag ${cls}">${escapeHtml(planLabel(plan))}</span>`;
 }
 
 function payStatusTag(s) {
@@ -658,7 +718,8 @@ function payStatusTag(s) {
 }
 
 function planLabel(p) {
-  return {free:'免费',monthly:'月度',quarterly:'季度',yearly:'年度'}[p] || p;
+  const plan = planConfigData?.plans?.find(item => item.id === p);
+  return plan?.name || {free:'免费',monthly:'月度',quarterly:'季度',yearly:'年度'}[p] || p;
 }
 
 // ═══════════════════════════════════════════════
@@ -699,6 +760,7 @@ const SECTION_TITLES = {
   overview:  ['数据总览',  '实时平台运营数据'],
   users:     ['用户管理',  '查看、搜索、管理用户会员状态'],
   orders:    ['订单列表',  '查看所有支付订单'],
+  usage:     ['用量统计',  '查看每日活跃、调用量和高用量用户'],
   config:    ['系统配置',  '套餐价格、模型开关、额度设置'],
 };
 
@@ -715,6 +777,7 @@ function switchSection(name) {
   if (name === 'overview') loadOverview();
   if (name === 'users')    loadUsers();
   if (name === 'orders')   loadOrders();
+  if (name === 'usage')    loadUsageStats();
   if (name === 'config')   initConfig();
 }
 
@@ -848,6 +911,133 @@ async function loadOrders(page = 1) {
 }
 
 // ═══════════════════════════════════════════════
+// Usage stats
+// ═══════════════════════════════════════════════
+function initUsageDates() {
+  const startEl = document.getElementById('usage-start');
+  const endEl = document.getElementById('usage-end');
+  if (!startEl.value || !endEl.value) {
+    const end = new Date();
+    const start = new Date();
+    start.setDate(end.getDate() - 6);
+    startEl.value = dateInputValue(start);
+    endEl.value = dateInputValue(end);
+  }
+}
+
+function setUsageLoading() {
+  document.getElementById('usage-period-active').textContent = '–';
+  document.getElementById('usage-period-count').textContent = '–';
+  document.getElementById('usage-period-messages').textContent = '–';
+  document.getElementById('usage-avg-active').textContent = '–';
+  document.getElementById('usage-days-body').innerHTML =
+    '<tr><td colspan="7" class="loading"><span class="spinner"></span>加载中...</td></tr>';
+  document.getElementById('usage-top-users-body').innerHTML =
+    '<tr><td colspan="5" class="loading"><span class="spinner"></span>加载中...</td></tr>';
+}
+
+async function loadUsageStats() {
+  initUsageDates();
+  const start = document.getElementById('usage-start').value;
+  const end = document.getElementById('usage-end').value;
+  setUsageLoading();
+  try {
+    const d = await api('GET', `/admin/usage-stats?start_date=${encodeURIComponent(start)}&end_date=${encodeURIComponent(end)}`);
+    usageStatsData = d;
+    renderUsageStats(d);
+  } catch(e) {
+    document.getElementById('usage-days-body').innerHTML =
+      `<tr><td colspan="7" class="empty">加载失败：${escapeHtml(e.message)}</td></tr>`;
+    document.getElementById('usage-top-users-body').innerHTML =
+      `<tr><td colspan="5" class="empty">加载失败：${escapeHtml(e.message)}</td></tr>`;
+    toast('加载用量统计失败：' + e.message, 'err');
+  }
+}
+
+function renderUsageStats(d) {
+  document.getElementById('usage-date-note').textContent = `按 ${d.timezone || 'UTC+08:00'} 自然日统计`;
+  document.getElementById('usage-range-badge').textContent = `${d.start_date} 至 ${d.end_date}`;
+  document.getElementById('usage-period-active').textContent = d.totals.active_users;
+  document.getElementById('usage-period-count').textContent = d.totals.usage_count;
+  document.getElementById('usage-period-messages').textContent = d.totals.message_count;
+  document.getElementById('usage-avg-active').textContent = d.totals.avg_daily_active_users;
+
+  const days = Array.isArray(d.days) ? d.days.slice().reverse() : [];
+  if (!days.length) {
+    document.getElementById('usage-days-body').innerHTML = '<tr><td colspan="7" class="empty">暂无数据</td></tr>';
+    document.getElementById('usage-day-select').innerHTML = '';
+    renderUsageTopUsers('');
+    return;
+  }
+
+  document.getElementById('usage-days-body').innerHTML = days.map(day => {
+    const top = (day.top_users || [])[0];
+    const model = (day.models || [])[0];
+    return `
+      <tr>
+        <td><strong>${escapeHtml(day.day)}</strong></td>
+        <td>${day.active_users}</td>
+        <td>${day.usage_count}</td>
+        <td>${day.message_count}</td>
+        <td>${model ? `${escapeHtml(model.model)} <span style="color:var(--muted);font-size:11px">(${model.usage_count})</span>` : '–'}</td>
+        <td>${top ? `
+          <div class="usage-user-cell">
+            <span class="usage-user-phone">${escapeHtml(top.phone)}</span>
+            <span class="usage-user-name">${escapeHtml(top.nickname || '未设置昵称')} · ${top.usage_count} 次</span>
+          </div>` : '–'}</td>
+        <td><button class="btn btn-ghost btn-sm" onclick="selectUsageDay('${escapeHtml(day.day)}')">查看 Top10</button></td>
+      </tr>`;
+  }).join('');
+
+  const select = document.getElementById('usage-day-select');
+  select.innerHTML = days.map(day => `<option value="${escapeHtml(day.day)}">${escapeHtml(day.day)}</option>`).join('');
+  select.value = days[0].day;
+  renderUsageTopUsers(days[0].day);
+}
+
+function selectUsageDay(day) {
+  const select = document.getElementById('usage-day-select');
+  select.value = day;
+  renderUsageTopUsers(day);
+}
+
+function renderUsageTopUsers(day) {
+  const tbody = document.getElementById('usage-top-users-body');
+  const target = usageStatsData && Array.isArray(usageStatsData.days)
+    ? usageStatsData.days.find(item => item.day === day)
+    : null;
+  const users = target ? (target.top_users || []) : [];
+  if (!users.length) {
+    tbody.innerHTML = '<tr><td colspan="5" class="empty">这一天暂无用量记录</td></tr>';
+    return;
+  }
+  tbody.innerHTML = users.map((u, idx) => `
+    <tr>
+      <td><span class="tag ${idx < 3 ? 'tag-blue' : 'tag-gray'}">#${idx + 1}</span></td>
+      <td>
+        <div class="usage-user-cell">
+          <span class="usage-user-phone">${escapeHtml(u.phone)}</span>
+          <span class="usage-user-name">ID ${u.user_id} · ${escapeHtml(u.nickname || '未设置昵称')}</span>
+        </div>
+      </td>
+      <td><strong>${u.usage_count}</strong></td>
+      <td>${u.message_count}</td>
+      <td style="font-size:12px;color:var(--muted)">${fmtDate(u.last_active_at)}</td>
+    </tr>`).join('');
+}
+
+document.getElementById('usage-load-btn').addEventListener('click', loadUsageStats);
+document.getElementById('usage-last7-btn').addEventListener('click', () => {
+  const end = new Date();
+  const start = new Date();
+  start.setDate(end.getDate() - 6);
+  document.getElementById('usage-start').value = dateInputValue(start);
+  document.getElementById('usage-end').value = dateInputValue(end);
+  loadUsageStats();
+});
+document.getElementById('usage-day-select').addEventListener('change', e => renderUsageTopUsers(e.target.value));
+
+// ═══════════════════════════════════════════════
 // Pagination
 // ═══════════════════════════════════════════════
 function renderPagination(containerId, total, pageSize, current, loadFn) {
@@ -866,15 +1056,21 @@ function renderPagination(containerId, total, pageSize, current, loadFn) {
 // ═══════════════════════════════════════════════
 // Grant Modal
 // ═══════════════════════════════════════════════
-function openGrantModal() {
+async function openGrantModal() {
+  if (!planConfigData?.plans) {
+    try {
+      planConfigData = await api('GET', '/admin/plan-config');
+    } catch (e) {}
+  }
+  if (planConfigData?.plans) refreshGrantPlans();
   document.getElementById('grant-phone').value = '';
   document.getElementById('grant-days').value = '';
   document.getElementById('grant-msg').textContent = '';
   document.getElementById('grant-msg').className = 'modal-msg';
   document.getElementById('grant-modal').classList.add('open');
 }
-function openGrantModalForPhone(phone) {
-  openGrantModal();
+async function openGrantModalForPhone(phone) {
+  await openGrantModal();
   document.getElementById('grant-phone').value = phone;
 }
 
@@ -941,21 +1137,11 @@ document.querySelectorAll('.modal-overlay').forEach(overlay => {
 // ═══════════════════════════════════════════════
 // Config
 // ═══════════════════════════════════════════════
-function initConfig() {
+async function initConfig() {
   document.getElementById('config-api-base').textContent = API;
   loadApiConfig();
-  loadModelConfig();
-  const cfg = JSON.parse(localStorage.getItem('admin_config') || '{}');
-  if (cfg.prices) {
-    document.getElementById('price-monthly').value  = cfg.prices.monthly  || 99;
-    document.getElementById('price-quarterly').value = cfg.prices.quarterly || 249;
-    document.getElementById('price-yearly').value   = cfg.prices.yearly   || 799;
-  }
-  if (cfg.quotas) {
-    document.getElementById('quota-free').value    = cfg.quotas.free    || 10;
-    document.getElementById('quota-monthly').value = cfg.quotas.monthly || 500;
-    document.getElementById('quota-yearly').value  = cfg.quotas.yearly  || 1000;
-  }
+  await loadModelConfig();
+  await loadPlanConfig();
 }
 
 function apiInputId(key) {
@@ -1049,6 +1235,248 @@ function esc(v) {
   }[ch]));
 }
 
+async function loadPlanConfig() {
+  const panel = document.getElementById('plan-config-panel');
+  panel.innerHTML = '<div class="loading">加载套餐配置...</div>';
+  try {
+    if (!modelConfigData) {
+      modelConfigData = await api('GET', '/admin/model-config');
+    }
+    planConfigData = await api('GET', '/admin/plan-config');
+    renderPlanConfig();
+    refreshGrantPlans();
+  } catch (e) {
+    panel.innerHTML = `<div class="empty">套餐配置加载失败：${esc(e.message)}</div>`;
+  }
+}
+
+function enabledChatModels() {
+  return (modelConfigData?.models || []).filter(m => m.enabled);
+}
+
+function renderModelCheckboxes(plan, className, selectedKey) {
+  const selected = new Set(plan[selectedKey] || []);
+  const models = enabledChatModels();
+  if (!models.length) return '<span class="empty">请先启用模型</span>';
+  return models.map(m => `
+    <label>
+      <input type="checkbox" class="${className}" data-model="${esc(m.id)}" ${selected.has(m.id) ? 'checked' : ''}>
+      ${esc(m.name || m.id)}
+    </label>
+  `).join('');
+}
+
+function planFeatureDefs() {
+  return planConfigData?.features || [
+    {key: 'image_generation', label: '图片生成'},
+    {key: 'video_generation', label: '视频生成'},
+    {key: 'ppt_generation', label: 'PPT 生成'},
+    {key: 'web_search', label: '联网搜索'},
+    {key: 'web_scrape', label: '网页抓取'},
+    {key: 'file_upload', label: '附件上传'},
+    {key: 'custom_workspace', label: '自建工作空间'},
+  ];
+}
+
+function renderFeatureCheckboxes(plan) {
+  const defs = planFeatureDefs();
+  const selected = new Set(plan.enabled_features || defs.map(f => f.key));
+  const quotas = plan.feature_quotas || {};
+  return defs.map(f => `
+    <div class="plan-feature-row">
+      <label>
+        <input type="checkbox" class="pc-feature" data-feature="${esc(f.key)}" ${selected.has(f.key) ? 'checked' : ''}>
+        ${esc(f.label)}
+      </label>
+      <input class="pc-feature-quota plan-feature-quota" data-feature="${esc(f.key)}" type="number" min="-1" value="${Number(quotas[f.key] ?? -1) >= 0 ? Number(quotas[f.key]) : ''}" placeholder="不限" title="本周期可用次数，留空或 -1 为不限">
+    </div>
+  `).join('');
+}
+
+function renderPlanConfig() {
+  const panel = document.getElementById('plan-config-panel');
+  const plans = planConfigData?.plans || [];
+  if (!plans.length) {
+    panel.innerHTML = '<div class="empty">暂无套餐配置</div>';
+    return;
+  }
+  panel.innerHTML = `
+    <div class="model-table-wrap plan-table-wrap">
+      <table class="model-table plan-table">
+        <colgroup>
+          <col style="width:140px">
+          <col style="width:160px">
+          <col style="width:260px">
+          <col style="width:110px">
+          <col style="width:100px">
+          <col style="width:110px">
+          <col style="width:100px">
+          <col style="width:240px">
+          <col style="width:240px">
+          <col style="width:340px">
+          <col style="width:150px">
+          <col style="width:140px">
+          <col style="width:100px">
+          <col style="width:100px">
+        </colgroup>
+        <thead>
+          <tr>
+            <th>套餐 ID</th>
+            <th>显示名</th>
+            <th>说明</th>
+            <th>价格</th>
+            <th>天数</th>
+            <th>额度</th>
+            <th>周期</th>
+            <th>可用模型</th>
+            <th>免费模型</th>
+            <th>功能权限 / 次数</th>
+            <th>状态</th>
+            <th>实战区</th>
+            <th>排序</th>
+            <th>操作</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${plans.map((p, idx) => `
+            <tr class="plan-config-row" data-idx="${idx}">
+              <td><input class="pc-id" value="${esc(p.id)}" ${p._isNew ? '' : 'disabled'}></td>
+              <td><input class="pc-name" value="${esc(p.name || '')}"></td>
+              <td><input class="pc-desc" value="${esc(p.description || '')}"></td>
+              <td><input class="pc-amount" type="number" min="0" step="0.01" value="${esc(p.amount || '0.00')}" ${p.id === 'free' ? 'disabled' : ''}></td>
+              <td><input class="pc-days" type="number" min="0" value="${Number(p.duration_days || 0)}" ${p.id === 'free' ? 'disabled' : ''}></td>
+              <td><input class="pc-quota" type="number" min="0" value="${Number(p.quota || 0)}"></td>
+              <td>
+                <select class="pc-period">
+                  <option value="day" ${p.period === 'day' ? 'selected' : ''}>每天</option>
+                  <option value="month" ${p.period !== 'day' ? 'selected' : ''}>每月</option>
+                </select>
+              </td>
+              <td><div class="plan-model-grid">${renderModelCheckboxes(p, 'pc-allowed-model', 'allowed_models')}</div></td>
+              <td><div class="plan-model-grid">${renderModelCheckboxes(p, 'pc-free-model', 'free_models')}</div></td>
+              <td><div class="plan-model-grid">${renderFeatureCheckboxes(p)}</div></td>
+              <td>
+                <div class="plan-flags">
+                  <label class="mini-check"><input type="checkbox" class="pc-enabled" ${p.enabled ? 'checked' : ''} ${p.id === 'free' ? 'disabled' : ''}>启用</label>
+                  <label class="mini-check"><input type="checkbox" class="pc-purchasable" ${p.purchasable ? 'checked' : ''} ${p.id === 'free' ? 'disabled' : ''}>可购买</label>
+                </div>
+              </td>
+              <td>
+                <div class="plan-flags">
+                  <label class="mini-check"><input type="checkbox" class="pc-practice-access" ${p.practice_access ? 'checked' : ''}>可访问</label>
+                  <label class="mini-check"><input type="checkbox" class="pc-practice-publish" ${p.practice_publish ? 'checked' : ''}>可发布</label>
+                </div>
+              </td>
+              <td><input class="pc-sort" type="number" value="${Number(p.sort_order || 0)}"></td>
+              <td>
+                ${p._isNew ? `<button class="btn btn-sm" onclick="removePlanRow(${idx})">删除</button>` : `<button class="btn btn-sm" onclick="togglePlanEnabled(${idx})">${p.enabled ? '停用' : '启用'}</button>`}
+              </td>
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>
+    </div>
+  `;
+}
+
+function collectPlanConfig() {
+  const rows = Array.from(document.querySelectorAll('.plan-config-row'));
+  const seen = new Set();
+  const plans = rows.map((row, idx) => {
+    const id = row.querySelector('.pc-id')?.value.trim().toLowerCase();
+    if (!/^[a-z0-9][a-z0-9_-]{0,31}$/.test(id || '')) throw new Error('套餐 ID 只能使用小写字母、数字、_、-，且最多 32 位');
+    if (seen.has(id)) throw new Error('套餐 ID 不能重复：' + id);
+    seen.add(id);
+    const allowed = Array.from(row.querySelectorAll('.pc-allowed-model:checked')).map(el => el.dataset.model);
+    const allowedSet = new Set(allowed);
+    const freeModels = Array.from(row.querySelectorAll('.pc-free-model:checked'))
+      .map(el => el.dataset.model)
+      .filter(id => allowedSet.has(id));
+    const enabledFeatures = Array.from(row.querySelectorAll('.pc-feature:checked')).map(el => el.dataset.feature);
+    const featureQuotas = {};
+    row.querySelectorAll('.pc-feature-quota').forEach(el => {
+      const key = el.dataset.feature;
+      const raw = String(el.value || '').trim();
+      const value = raw === '' ? -1 : parseInt(raw, 10);
+      featureQuotas[key] = Number.isFinite(value) ? Math.max(-1, value) : -1;
+    });
+    if (!allowed.length) throw new Error(`套餐 ${id} 至少需要选择一个可用模型`);
+    const practicePublish = !!row.querySelector('.pc-practice-publish')?.checked;
+    return {
+      id,
+      name: row.querySelector('.pc-name')?.value.trim() || id,
+      description: row.querySelector('.pc-desc')?.value.trim() || '',
+      enabled: id === 'free' ? true : !!row.querySelector('.pc-enabled')?.checked,
+      purchasable: id === 'free' ? false : !!row.querySelector('.pc-purchasable')?.checked,
+      amount: id === 'free' ? '0.00' : String(Number(row.querySelector('.pc-amount')?.value || 0).toFixed(2)),
+      duration_days: id === 'free' ? 0 : (parseInt(row.querySelector('.pc-days')?.value, 10) || 0),
+      quota: parseInt(row.querySelector('.pc-quota')?.value, 10) || 0,
+      period: row.querySelector('.pc-period')?.value === 'day' ? 'day' : 'month',
+      allowed_models: allowed,
+      free_models: freeModels,
+      enabled_features: enabledFeatures,
+      feature_quotas: featureQuotas,
+      practice_access: practicePublish || !!row.querySelector('.pc-practice-access')?.checked,
+      practice_publish: practicePublish,
+      sort_order: parseInt(row.querySelector('.pc-sort')?.value, 10) || idx * 10,
+    };
+  });
+  if (!plans.some(p => p.id === 'free')) throw new Error('必须保留 free 套餐');
+  return {plans};
+}
+
+function addPlanRow() {
+  const models = enabledChatModels();
+  const firstModel = models[0]?.id || '';
+  planConfigData = planConfigData || {plans: []};
+  planConfigData.plans = planConfigData.plans || [];
+  planConfigData.plans.push({
+    id: 'plan_' + Date.now(),
+    name: '新套餐',
+    description: '',
+    enabled: true,
+    purchasable: true,
+    amount: '99.00',
+    duration_days: 30,
+    period: 'month',
+    quota: 500,
+    allowed_models: firstModel ? [firstModel] : [],
+    free_models: [],
+    enabled_features: planFeatureDefs().map(f => f.key),
+    feature_quotas: Object.fromEntries(planFeatureDefs().map(f => [f.key, -1])),
+    practice_access: false,
+    practice_publish: false,
+    sort_order: planConfigData.plans.length * 10,
+    _isNew: true,
+  });
+  renderPlanConfig();
+}
+
+function removePlanRow(idx) {
+  if (!planConfigData?.plans?.[idx]?._isNew) return;
+  planConfigData.plans.splice(idx, 1);
+  renderPlanConfig();
+}
+
+function togglePlanEnabled(idx) {
+  if (!planConfigData?.plans?.[idx] || planConfigData.plans[idx].id === 'free') return;
+  planConfigData.plans[idx].enabled = !planConfigData.plans[idx].enabled;
+  if (!planConfigData.plans[idx].enabled) {
+    planConfigData.plans[idx].purchasable = false;
+  }
+  renderPlanConfig();
+}
+
+function refreshGrantPlans() {
+  const select = document.getElementById('grant-plan');
+  if (!select || !planConfigData?.plans) return;
+  const options = planConfigData.plans
+    .filter(p => p.id !== 'free' && p.enabled && Number(p.duration_days || 0) > 0)
+    .map(p => `<option value="${esc(p.id)}">${esc(p.name || p.id)}（${Number(p.duration_days || 0)}天）</option>`)
+    .join('');
+  select.innerHTML = options || '<option value="">暂无可开通套餐</option>';
+}
+
 async function loadModelConfig() {
   const panel = document.getElementById('model-config-panel');
   panel.innerHTML = '<div class="loading">加载模型配置...</div>';
@@ -1058,13 +1486,6 @@ async function loadModelConfig() {
   } catch (e) {
     panel.innerHTML = `<div class="empty">模型配置加载失败：${esc(e.message)}</div>`;
   }
-}
-
-function renderPlanChecks(model, idx) {
-  const allowed = new Set(model.allowed_plans || []);
-  return ['free', 'monthly', 'yearly'].map(plan => `
-    <label><input type="checkbox" class="mc-plan" data-plan="${plan}" ${allowed.has(plan) ? 'checked' : ''}>${planLabel(plan)}</label>
-  `).join('');
 }
 
 function renderModelConfig() {
@@ -1110,7 +1531,6 @@ function renderModelConfig() {
             <th>说明</th>
             <th style="width:70px">启用</th>
             <th style="width:80px">图片</th>
-            <th style="width:210px">允许套餐</th>
             <th style="width:70px">操作</th>
           </tr>
         </thead>
@@ -1122,7 +1542,6 @@ function renderModelConfig() {
               <td><input type="text" class="mc-desc" value="${esc(m.description || '')}"></td>
               <td><label class="mini-check"><input type="checkbox" class="mc-enabled" ${m.enabled ? 'checked' : ''}>启用</label></td>
               <td><label class="mini-check"><input type="checkbox" class="mc-vision" ${m.supports_vision ? 'checked' : ''}>支持</label></td>
-              <td><div class="plan-checks">${renderPlanChecks(m, idx)}</div></td>
               <td><button class="btn btn-sm" onclick="removeChatModel(${idx})">删除</button></td>
             </tr>
           `).join('')}
@@ -1147,7 +1566,7 @@ function collectModelConfig() {
       description: row.querySelector('.mc-desc')?.value.trim() || '',
       enabled: !!row.querySelector('.mc-enabled')?.checked,
       supports_vision: !!row.querySelector('.mc-vision')?.checked,
-      allowed_plans: Array.from(row.querySelectorAll('.mc-plan:checked')).map(el => el.dataset.plan),
+      allowed_plans: [],
     };
   });
   if (!models.length) throw new Error('至少需要保留一个模型');
@@ -1165,7 +1584,7 @@ function addChatModel() {
     description: '',
     enabled: false,
     supports_vision: false,
-    allowed_plans: ['monthly'],
+    allowed_plans: [],
   });
   modelConfigData = data;
   renderModelConfig();
@@ -1218,26 +1637,19 @@ document.getElementById('save-models-btn').addEventListener('click', async () =>
   }
 });
 
-document.getElementById('save-prices-btn').addEventListener('click', () => {
-  const cfg = JSON.parse(localStorage.getItem('admin_config') || '{}');
-  cfg.prices = {
-    monthly:   parseInt(document.getElementById('price-monthly').value),
-    quarterly: parseInt(document.getElementById('price-quarterly').value),
-    yearly:    parseInt(document.getElementById('price-yearly').value),
-  };
-  localStorage.setItem('admin_config', JSON.stringify(cfg));
-  toast('价格配置已保存到本地');
-});
+document.getElementById('add-plan-btn').addEventListener('click', addPlanRow);
 
-document.getElementById('save-quotas-btn').addEventListener('click', () => {
-  const cfg = JSON.parse(localStorage.getItem('admin_config') || '{}');
-  cfg.quotas = {
-    free:    parseInt(document.getElementById('quota-free').value),
-    monthly: parseInt(document.getElementById('quota-monthly').value),
-    yearly:  parseInt(document.getElementById('quota-yearly').value),
-  };
-  localStorage.setItem('admin_config', JSON.stringify(cfg));
-  toast('额度配置已保存到本地');
+document.getElementById('save-plans-btn').addEventListener('click', async () => {
+  try {
+    const payload = collectPlanConfig();
+    planConfigData = await api('PUT', '/admin/plan-config', payload);
+    toast('套餐配置已保存');
+    renderPlanConfig();
+    refreshGrantPlans();
+    await loadModelConfig();
+  } catch (e) {
+    toast('保存失败：' + e.message, 'err');
+  }
 });
 
 // ═══════════════════════════════════════════════
