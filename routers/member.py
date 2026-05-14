@@ -21,9 +21,9 @@ class MemberInfoResponse(BaseModel):
     plan_name: str
     expire_at: Optional[datetime]
     period: str                  # "day" or "month"
-    quota: int                   # total allowed calls per period
-    used: int                    # calls used in current period
-    remaining: int               # calls left in current period
+    quota: int                   # credits granted per configured plan period
+    used: int                    # legacy call count for the current period
+    remaining: int               # current credit balance rounded down for legacy clients
     allowed_models: List[str]
     free_models: List[str] = []
     enabled_features: List[str] = []

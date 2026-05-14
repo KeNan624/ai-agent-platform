@@ -30,18 +30,7 @@ def available_models(
     config = get_chat_model_config(db)
     plan_models = get_available_chat_models(plan_type, db)
     plan_model_ids = {m["id"] for m in plan_models}
-    models = []
-    seen = set()
-    for model in config["models"]:
-        if not model.get("enabled"):
-            continue
-        credit_price = get_model_credit_price(model["id"], db)
-        if model["id"] not in plan_model_ids and credit_price <= 0:
-            continue
-        if model["id"] in seen:
-            continue
-        seen.add(model["id"])
-        models.append(model)
+    models = plan_models
     return {
         "provider": config["provider"],
         "plan_type": plan_type,

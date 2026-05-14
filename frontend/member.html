@@ -732,7 +732,7 @@
     解锁全部 <span class="gold">AI 能力</span><span class="period">。</span>
   </h1>
   <p class="hero-sub">
-    选择合适的套餐，让 AI 顾问更深入地帮你工作。
+    选择合适的积分套餐，让 AI 顾问更深入地帮你工作。
   </p>
 </div>
 
@@ -753,7 +753,7 @@
 
 <div class="section-heading" id="plan-section">
   <h2 class="section-title">会员<span class="gold">套餐</span></h2>
-  <p class="section-note">适合长期使用，套餐额度优先扣减；额度不足时可继续使用积分。</p>
+  <p class="section-note">适合长期使用，按周期赠送积分；所有模型和功能统一按积分单价扣减。</p>
 </div>
 
 <div class="plans" id="plansContainer">
@@ -783,8 +783,8 @@
   <p class="faq-sub">Frequently Asked Questions</p>
 
   <div class="faq-item">
-    <div class="faq-q">会员次数怎么计算？</div>
-    <div class="faq-a">每次发送消息消耗 1 次。月度 / 年度套餐每月 1 日自动重置次数，不累计到下月。</div>
+    <div class="faq-q">会员积分怎么计算？</div>
+    <div class="faq-a">会员套餐按配置周期赠送积分；每次使用模型或功能时，按后台设置的积分单价扣减。</div>
   </div>
   <div class="faq-item">
     <div class="faq-q">为什么显示已售罄？</div>
@@ -836,7 +836,7 @@
     <div id="stepSuccess" style="display:none">
       <div class="success-icon">✓</div>
       <div class="success-title">支付成功！</div>
-      <div class="success-desc" id="successDesc">会员已开通，立即享受全部 AI 能力</div>
+      <div class="success-desc" id="successDesc">会员已开通，赠送积分已到账</div>
       <a href="choose.html" class="btn-back-home">返回工作台</a>
     </div>
 
@@ -894,10 +894,7 @@
   }
 
   function featureQuotaText(plan, feature) {
-    const quotas = plan.feature_quotas || {};
-    const quota = Number(quotas[feature]);
-    if (!Number.isFinite(quota) || quota < 0) return featureName(feature) + ' 不限次';
-    return `${featureName(feature)} ${periodText(plan)} ${quota} 次`;
+    return featureName(feature);
   }
 
   function allDisplayPlans() {
@@ -929,11 +926,11 @@
       return plan.benefits.map(item => `<li><span class="ck">✓</span><span class="label">${esc(item)}</span></li>`).join('');
     }
     const features = [
-      `${periodText(plan)} ${Number(plan.quota || 0)} 次对话`,
+      `${periodText(plan)}赠送 ${Number(plan.quota || 0)} 积分`,
       ...(plan.allowed_models || []).map(modelName),
     ];
     if ((plan.free_models || []).length) {
-      features.push(`${plan.free_models.map(modelName).join('、')} 不扣用量`);
+      features.push(`${plan.free_models.map(modelName).join('、')} 不扣积分`);
     }
     (plan.enabled_features || []).forEach(feature => features.push(featureQuotaText(plan, feature)));
     if (plan.practice_access) features.push('可访问实战区');
@@ -994,7 +991,7 @@
           <ul class="plan-features">
             <li><span class="ck">✓</span><span class="label">${Number(pkg.credits || 0)} 积分立即到账</span></li>
             <li><span class="ck">✓</span><span class="label">永久有效，不随会员周期清零</span></li>
-            <li><span class="ck">✓</span><span class="label">套餐额度用完后自动使用积分</span></li>
+            <li><span class="ck">✓</span><span class="label">模型和功能统一按积分单价扣减</span></li>
           </ul>
           <button class="btn-plan ${canBuy ? 'monthly-btn' : 'soldout'}" ${canBuy ? `onclick="openPayModal('credits','${esc(pkg.id)}')"` : 'disabled'}>${canBuy ? '购买积分 <span class="arr">→</span>' : '已售罄'}</button>
         </div>
@@ -1022,7 +1019,7 @@
       ${rows.map(([name, price]) => `
         <div class="faq-item">
           <div class="faq-q">${esc(name)}</div>
-          <div class="faq-a">每次消耗 ${Number(price)} 积分。套餐额度可用时优先扣套餐额度。</div>
+          <div class="faq-a">每次消耗 ${Number(price)} 积分。</div>
         </div>
       `).join('')}
     `;
@@ -1151,7 +1148,7 @@
     document.getElementById('successDesc').textContent =
       isCredits
         ? (((planCfg && planCfg.name) || '积分包') + ' 已到账，可继续使用 AI 能力')
-        : (((planCfg && planCfg.name) || '会员') + ' 已开通，立即享受全部 AI 能力');
+        : (((planCfg && planCfg.name) || '会员') + ' 已开通，赠送积分已到账');
     showStep('stepSuccess');
   }
 

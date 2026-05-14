@@ -40,6 +40,7 @@ from database import get_db
 from credit_config import get_credit_billing_config, get_purchasable_credit_packages
 from credit_service import grant_credits
 from models import Membership, Order, User
+from permissions import ensure_plan_period_credits_for_user_id
 from plan_config import get_plan_definition, get_purchasable_plans
 
 load_dotenv()
@@ -208,6 +209,11 @@ def _activate_membership(order: Order, db: Session) -> None:
             status="active",
         ))
     db.flush()
+    ensure_plan_period_credits_for_user_id(
+        int(order.user_id),
+        db,
+        membership_type,
+    )
 
 
 def _activate_credit_order(order: Order, db: Session) -> None:
@@ -230,6 +236,8 @@ def _mark_paid_and_fulfill(order: Order, db: Session) -> None:
         if getattr(order, "order_type", "membership") == "credits":
             _activate_credit_order(order, db)
             db.commit()
+        elif getattr(order, "order_type", "membership") == "membership":
+            ensure_plan_period_credits_for_user_id(int(order.user_id), db, str(order.plan))
         return
     order.pay_status = "paid"
     order.paid_at = datetime.utcnow()
@@ -366,7 +374,7 @@ def create_order(
         amount = product_cfg["amount"]
         label = product_cfg["name"]
         duration_days = int(product_cfg["duration_days"])
-        credit_amount = Decimal("0")
+        credit_amount = Decimal(str(product_cfg.get("quota") or "0"))
         subject = f"阿川工作台 - {label}"
 
     if not _alipay_configured():

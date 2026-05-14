@@ -2525,7 +2525,7 @@ body{display:flex;height:100vh;background:#f5f0e6;overflow:hidden}
   padding:5px 10px;
   background:transparent;
   border:0.5px solid transparent;
-  border-radius:6px;
+  border-radius:999px;
   font-family:'Inter','Noto Serif SC',sans-serif;
   font-size:12px; color:#6B6558;
   cursor:pointer;
@@ -2549,7 +2549,7 @@ body{display:flex;height:100vh;background:#f5f0e6;overflow:hidden}
   position:absolute; top:calc(100% + 6px); right:0;
   background:#FAF6EC;
   border:0.5px solid #E4DECF;
-  border-radius:10px;
+  border-radius:16px;
   box-shadow:0 8px 24px rgba(26,24,20,.08);
   padding:6px;
   min-width:210px;
@@ -2563,19 +2563,27 @@ body{display:flex;height:100vh;background:#f5f0e6;overflow:hidden}
   height:32px;
   padding:0 26px 0 10px;
   border:0.5px solid #E4DECF;
-  border-radius:16px;
+  border-radius:999px;
   background:#FAF6EC;
   color:#6B6558;
   font-size:12px;
   font-family:'Inter','Noto Serif SC',sans-serif;
   outline:none;
   cursor:pointer;
+  appearance:none;
+  -webkit-appearance:none;
+  -moz-appearance:none;
+  background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 8' width='12' height='8'><path d='M1 1l5 5 5-5' fill='none' stroke='%236B6558' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/></svg>");
+  background-repeat:no-repeat;
+  background-position:right 9px center;
+  background-size:10px 7px;
+  line-height:1;
 }
 .chat-model-select:hover,
 .chat-model-select:focus{
   border-color:#9A7A3D;
   color:#1A1814;
-  background:#F7F1E5;
+  background-color:#F7F1E5;
 }
 
 .ms-group-title{
@@ -2588,7 +2596,7 @@ body{display:flex;height:100vh;background:#f5f0e6;overflow:hidden}
 .ms-item{
   display:flex; align-items:center; gap:8px;
   padding:7px 10px;
-  border-radius:6px;
+  border-radius:10px;
   cursor:pointer;
   transition:background .1s;
 }
@@ -3149,10 +3157,13 @@ body[data-sidebar-mode="expanded"] .nav-rail-old { display: none !important; }
   font-size: 13px !important;
   cursor: pointer !important;
   padding: 4px 8px !important;
-  border-radius: 6px !important;
+  border-radius: 999px !important;
+  appearance: none !important;
+  -webkit-appearance: none !important;
+  -moz-appearance: none !important;
 }
 #v33-toolbar select:hover {
-  background: #F5F0E6 !important;
+  background-color: #F5F0E6 !important;
   color: #1A1814 !important;
 }
 #v33-toolbar #quick-model-sel {
@@ -3161,14 +3172,21 @@ body[data-sidebar-mode="expanded"] .nav-rail-old { display: none !important; }
   padding: 0 26px 0 10px !important;
   background: #FAF6EC !important;
   border: 0.5px solid #E4DECF !important;
-  border-radius: 16px !important;
+  border-radius: 999px !important;
   color: #6B6558 !important;
   font-size: 12px !important;
   font-family: 'Inter','Noto Serif SC',sans-serif !important;
+  appearance: none !important;
+  -webkit-appearance: none !important;
+  -moz-appearance: none !important;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 8' width='12' height='8'><path d='M1 1l5 5 5-5' fill='none' stroke='%236B6558' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/></svg>") !important;
+  background-repeat: no-repeat !important;
+  background-position: right 9px center !important;
+  background-size: 10px 7px !important;
 }
 #v33-toolbar #quick-model-sel:hover,
 #v33-toolbar #quick-model-sel:focus {
-  background: #F7F1E5 !important;
+  background-color: #F7F1E5 !important;
   border-color: #9A7A3D !important;
   color: #1A1814 !important;
 }
@@ -5208,7 +5226,7 @@ function requirePlanFeatureClient(key){
     } else {
       badge.textContent = '免费版';
       badge.className = 'plan-badge free';
-      if (planText) planText.textContent = '免费版 · 剩余 ' + (info.remaining ?? 0) + ' 次';
+      if (planText) planText.textContent = '免费版 · ' + Number(info.credit_balance || info.remaining || 0).toFixed(0) + ' 积分';
     }
     if (typeof v34UpdateCreditsMini === 'function') {
       v34UpdateCreditsMini(Number(info.credit_total_used || 0), Number(info.credit_total_bought || 0), Number(info.credit_balance || 0));
@@ -5703,16 +5721,12 @@ function save(){
   workspaces = allWorkspaces(); // 每次保存后同步
 }
 
-// ───────── 套餐限额 ─────────
+// ───────── 自定义功能权限 ─────────
 function getCustomQuota(){
-  if(_userPlan==='yearly') return Infinity;
-  if(_userPlan==='monthly' || _userPlan==='quarterly') return 5;
-  return 1; // 免费
+  return Infinity;
 }
 function getQuotaLabel(){
-  const q=getCustomQuota();
-  if(q===Infinity) return `${customWorkspaces.length} 个`;
-  return `${customWorkspaces.length} / ${q}`;
+  return `${customWorkspaces.length} 个`;
 }
 
 // ───────── 渲染左侧栏 ─────────
@@ -6353,7 +6367,7 @@ function fillModelSelect(sel, selected){
   const models = getAvailableChatModels();
   const chosen = models.some(m => m.id === selected) ? selected : getDefaultChatModel();
   sel.innerHTML = models.map(m => {
-    const suffix = m.quota_free ? '（不扣量）' : ((!m.available_by_plan && Number(m.credit_price || 0) > 0) ? `（${Number(m.credit_price)}积分/次）` : '');
+    const suffix = m.quota_free ? '（不扣积分）' : (Number(m.credit_price || 0) > 0 ? `（${Number(m.credit_price)}积分/次）` : '');
     return `<option value="${escapeHtml(m.id)}">${escapeHtml(m.name || m.id)}${suffix}</option>`;
   }).join('');
   sel.value = chosen;
@@ -6401,7 +6415,7 @@ function refreshAllModelControls(){
       ${models.map(m => `
         <div class="ms-item" data-model="${escapeHtml(m.id)}" onclick="selectModel('${escapeHtml(m.id)}')">
           <span class="ms-dot"></span>
-          <span class="ms-name">${escapeHtml(m.name || m.id)}${m.quota_free ? '（不扣量）' : ((!m.available_by_plan && Number(m.credit_price || 0) > 0) ? `（${Number(m.credit_price)}积分/次）` : '')}</span>
+          <span class="ms-name">${escapeHtml(m.name || m.id)}${m.quota_free ? '（不扣积分）' : (Number(m.credit_price || 0) > 0 ? `（${Number(m.credit_price)}积分/次）` : '')}</span>
           <span class="ms-desc">${escapeHtml(m.description || '')}</span>
         </div>
       `).join('')}
@@ -11210,18 +11224,9 @@ function initEmojiPicker(cur){const p=document.getElementById('emoji-picker');p.
 function openModal(id){
   editId=typeof id==='string'?id:null;
 
-  // 新建时检查配额
+  // 新建时检查权限
   if(!editId){
     if(!requirePlanFeatureClient('custom_workspace')) return;
-    const quota=getCustomQuota();
-    if(customWorkspaces.length >= quota){
-      const planName = _userPlan==='free' ? '免费版' : '当前套餐';
-      const nextTip = _userPlan==='free' ? '升级月卡可建 5 个，年卡无限' : '升级年卡可无限创建';
-      if(confirm(`${planName}最多只能创建 ${quota} 个自定义功能\n\n${nextTip}\n\n是否前往升级？`)){
-        location.href='member.html';
-      }
-      return;
-    }
   }
 
   if(editId){
@@ -14808,15 +14813,15 @@ function v34PlanPeriod(plan) {
 }
 function v34RenderProfileCredits(info) {
   var balance = Number(info.credit_balance || 0);
-  var bought = Number(info.credit_total_bought || 0);
+  var totalGranted = Number(info.credit_total_bought || 0);
   var used = Number(info.credit_total_used || 0);
   var text = document.getElementById('v34-credits-text');
   var bar = document.getElementById('v34-credits-bar');
   var hint = document.getElementById('v34-credits-hint');
   if (text) text.textContent = balance.toFixed(0) + ' 积分可用';
-  if (bar) bar.style.width = bought > 0 ? Math.min(100, Math.round(used / bought * 100)) + '%' : '0%';
-  if (hint) hint.textContent = '已购买 ' + bought.toFixed(0) + ' · 已使用 ' + used.toFixed(0) + ' · 购买积分永久有效';
-  if (typeof v34UpdateCreditsMini === 'function') v34UpdateCreditsMini(used, bought, balance);
+  if (bar) bar.style.width = totalGranted > 0 ? Math.min(100, Math.round(used / totalGranted * 100)) + '%' : '0%';
+  if (hint) hint.textContent = '累计获得 ' + totalGranted.toFixed(0) + ' · 已使用 ' + used.toFixed(0) + ' · 购买积分永久有效';
+  if (typeof v34UpdateCreditsMini === 'function') v34UpdateCreditsMini(used, totalGranted, balance);
 }
 function v34FeatureName(id) {
   return {
@@ -14833,7 +14838,7 @@ function v34RenderPlanBenefits(plan) {
   var benefits = Array.isArray(plan.benefits) && plan.benefits.length
     ? plan.benefits
     : [
-      (plan.period === 'day' ? '每天' : '每月') + ' ' + Number(plan.quota || 0) + ' 次对话',
+      (plan.period === 'day' ? '每天赠送 ' : '每月赠送 ') + Number(plan.quota || 0) + ' 积分',
       '可用模型：' + (plan.allowed_models || []).join('、'),
     ];
   return benefits.map(function(item) { return '<div style="line-height:1.9;">✅ ' + v34Esc(item) + '</div>'; }).join('');
@@ -14865,7 +14870,7 @@ function v34RenderMembershipProducts(info, data) {
       <div style="border:1px solid #E4DECF;border-radius:12px;padding:18px;text-align:left;background:#fff;">
         <div style="font-size:15px;font-weight:700;color:#1A1814;">${v34Esc(pkg.name)}</div>
         <div style="font-size:26px;font-weight:700;color:#C26B3F;margin:10px 0;">¥${v34Money(pkg.amount)}<span style="font-size:12px;font-weight:400;color:#9A9485;"> / ${Number(pkg.credits || 0)} 积分</span></div>
-        <div style="font-size:12px;color:#5C5647;line-height:1.9;min-height:72px;">✅ 永久有效<br>✅ 套餐额度用完后自动使用<br>✅ 支付成功立即到账</div>
+        <div style="font-size:12px;color:#5C5647;line-height:1.9;min-height:72px;">✅ 永久有效<br>✅ 按积分单价扣减<br>✅ 支付成功立即到账</div>
         <button class="v34-pf-btn ${canBuy ? '' : 'outline'}" style="width:100%;margin-top:14px;" ${canBuy ? `onclick="v34StartPurchase('credits','${v34Esc(pkg.id)}')"` : 'disabled'}>${canBuy ? '购买积分' : '已售罄'}</button>
       </div>
     `;
@@ -14876,7 +14881,7 @@ function v34RenderMembershipProducts(info, data) {
   wrap.innerHTML = `
     <div class="v34-pf-section" style="text-align:center;padding:24px;max-width:900px;">
       <div style="font-size:22px;font-weight:700;margin-bottom:4px;">选择你的套餐</div>
-      <div style="font-size:13px;color:#9A9485;margin-bottom:20px;">套餐额度优先 · 积分余额兜底</div>
+      <div style="font-size:13px;color:#9A9485;margin-bottom:20px;">按周期赠送积分 · 使用时统一扣积分</div>
       <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:12px;">${planCards}</div>
     </div>
     <div class="v34-pf-section" style="max-width:900px;">
@@ -14943,7 +14948,7 @@ async function v34StartPurchase(productType, productId) {
         var sd = await sr.json();
         if (sd.pay_status === 'paid') {
           clearInterval(v34PayPollTimer);
-          document.getElementById('v34-pay-status').textContent = productType === 'credits' ? '支付成功，积分已到账' : '支付成功，会员已开通';
+          document.getElementById('v34-pay-status').textContent = productType === 'credits' ? '支付成功，积分已到账' : '支付成功，会员已开通，赠送积分已到账';
           showToast && showToast('支付成功', 2000);
           setTimeout(function(){ v34ClosePayOverlay(); v34LoadProfileData(); }, 1200);
         }
@@ -15140,7 +15145,7 @@ document.addEventListener('keydown', function(e) {
           <div style="background:#F0ECE0;border-radius:6px;height:8px;overflow:hidden;">
             <div id="v34-credits-bar" style="background:linear-gradient(90deg,#C26B3F,#E8945A);height:100%;border-radius:6px;width:0%;transition:width 0.5s ease;"></div>
           </div>
-          <div style="font-size:11px;color:#9A9485;margin-top:4px;" id="v34-credits-hint">积分每月重置（月卡）或年度一次到账（年卡）</div>
+          <div style="font-size:11px;color:#9A9485;margin-top:4px;" id="v34-credits-hint">套餐按周期赠送积分，购买积分永久有效</div>
         </div>
         <!-- 各模型用量明细 -->
         <div style="border-top:0.5px solid #F0ECE0;padding-top:10px;margin-top:4px;">
@@ -15187,7 +15192,7 @@ document.addEventListener('keydown', function(e) {
     <div class="v34-pf-tab-content" id="v34-pf-tab-membership">
       <div class="v34-pf-section" style="text-align:center;padding:24px;max-width:820px;">
         <div style="font-size:22px;font-weight:700;margin-bottom:4px;">选择你的套餐</div>
-        <div style="font-size:13px;color:#9A9485;margin-bottom:16px;">套餐额度优先扣减 · 积分可单独购买</div>
+        <div style="font-size:13px;color:#9A9485;margin-bottom:16px;">按周期赠送积分 · 积分可单独购买</div>
         <div style="display:flex;justify-content:center;gap:10px;flex-wrap:wrap;margin-bottom:24px;">
           <button class="v34-pf-btn outline" onclick="location.href='member.html#plan-section'">查看完整套餐</button>
           <button class="v34-pf-btn" onclick="location.href='member.html#credit-section'">购买积分</button>
@@ -15198,7 +15203,7 @@ document.addEventListener('keydown', function(e) {
             <div style="font-size:14px;font-weight:600;color:#9A9485;">免费版</div>
             <div style="font-size:28px;font-weight:700;color:#9A9485;margin:12px 0;">¥0</div>
             <div style="font-size:12px;color:#9A9485;line-height:2;text-align:left;padding:0 8px;">
-              ✅ 每天 5 次对话<br>
+              ✅ 每天赠送体验积分<br>
               ✅ Claude Sonnet + DeepSeek<br>
               ❌ 图片/视频生成<br>
               ❌ 自定义 Skill<br>
@@ -15254,7 +15259,7 @@ document.addEventListener('keydown', function(e) {
       <!-- 积分购买入口 -->
       <div class="v34-pf-section" style="max-width:820px;">
         <div class="v34-pf-section-title">💰 购买积分</div>
-        <div style="font-size:13px;color:#5C5647;margin-bottom:14px;">适合临时补量或不订阅套餐时按量使用。购买后永久有效，套餐额度用完后自动使用积分。</div>
+        <div style="font-size:13px;color:#5C5647;margin-bottom:14px;">适合临时补量或不订阅套餐时按量使用。购买后永久有效，所有模型和功能按积分单价扣减。</div>
         <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;">
           <div style="border:1px solid #E4DECF;border-radius:12px;padding:16px;background:#fff;">
             <div style="font-size:13px;font-weight:700;color:#1A1814;">体验积分包</div>

@@ -234,9 +234,8 @@ select.form-input{cursor:pointer}
 .plan-table input[type="number"]{font-variant-numeric:tabular-nums}
 .plan-model-grid{display:flex;flex-direction:column;gap:5px;min-width:0}
 .plan-model-grid label{display:flex;align-items:center;gap:5px;font-size:11px;color:var(--muted);white-space:nowrap}
-.plan-feature-row{display:grid;grid-template-columns:minmax(130px,1fr) 76px;gap:6px;align-items:center}
+.plan-feature-row{display:flex;align-items:center;gap:6px}
 .plan-feature-row label{min-width:0;overflow:hidden;text-overflow:ellipsis}
-.plan-feature-quota{width:76px!important;min-width:76px;text-align:right}
 .plan-flags{display:flex;flex-direction:column;gap:5px;min-width:110px}
 .credit-config-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:16px}
 .credit-config-card{border:1px solid var(--border);border-radius:10px;background:#fff;padding:14px}
@@ -623,7 +622,7 @@ body.drawer-open .m-overlay{display:block}
         <div class="config-section plan-config-section">
           <h3>💳 套餐权限配置</h3>
           <div class="note" style="margin-bottom:14px">
-            套餐价格、有效期、对话额度、功能权限次数、可用模型、免费不扣量模型和实战区权限都会立即同步到前台与后端校验。功能次数留空或 -1 表示不限次，0 表示本周期不可用。
+            套餐价格、有效期、赠送积分、积分发放周期、可用模型、不扣积分模型、功能权限和实战区权限都会立即同步到前台与后端校验。模型和功能实际消耗由下方「积分单价」统一控制。
           </div>
           <div id="plan-config-panel">
             <div class="loading">加载套餐配置...</div>
@@ -849,7 +848,7 @@ const SECTION_TITLES = {
   users:     ['用户管理',  '查看、搜索、管理用户会员状态'],
   orders:    ['订单列表',  '查看所有支付订单'],
   usage:     ['用量统计',  '查看每日活跃、调用量和高用量用户'],
-  config:    ['系统配置',  '套餐价格、模型开关、额度设置'],
+  config:    ['系统配置',  '套餐价格、模型开关、积分设置'],
 };
 
 document.querySelectorAll('.nav-item').forEach(item => {
@@ -992,7 +991,7 @@ async function loadOrders(page = 1) {
         <td style="color:var(--muted);font-size:12px">${o.id}</td>
         <td>${o.phone}</td>
         <td>${orderTypeTag(o.order_type)}</td>
-        <td>${escapeHtml(o.plan_label || planLabel(o.plan))}${o.order_type === 'credits' ? `<span style="color:var(--muted);font-size:11px"> · ${escapeHtml(o.credit_amount || '0')} 积分</span>` : ''}</td>
+        <td>${escapeHtml(o.plan_label || planLabel(o.plan))}${Number(o.credit_amount || 0) > 0 ? `<span style="color:var(--muted);font-size:11px"> · ${o.order_type === 'credits' ? '' : '赠送 '}${escapeHtml(o.credit_amount || '0')} 积分</span>` : ''}</td>
         <td>¥${o.amount}</td>
         <td>${payStatusTag(o.pay_status)}</td>
         <td style="font-family:monospace;font-size:11px;color:var(--muted);max-width:160px;overflow:hidden;text-overflow:ellipsis">${o.trade_no || '–'}</td>
@@ -1376,14 +1375,12 @@ function planFeatureDefs() {
 function renderFeatureCheckboxes(plan) {
   const defs = planFeatureDefs();
   const selected = new Set(plan.enabled_features || defs.map(f => f.key));
-  const quotas = plan.feature_quotas || {};
   return defs.map(f => `
     <div class="plan-feature-row">
       <label>
         <input type="checkbox" class="pc-feature" data-feature="${esc(f.key)}" ${selected.has(f.key) ? 'checked' : ''}>
         ${esc(f.label)}
       </label>
-      <input class="pc-feature-quota plan-feature-quota" data-feature="${esc(f.key)}" type="number" min="-1" value="${Number(quotas[f.key] ?? -1) >= 0 ? Number(quotas[f.key]) : ''}" placeholder="不限" title="本周期可用次数，留空或 -1 为不限">
     </div>
   `).join('');
 }
@@ -1396,7 +1393,7 @@ function renderCreditBillingConfig() {
   return `
     <div class="credit-config-card">
       <h4>积分单价</h4>
-      <div class="note" style="margin-bottom:10px">0 表示不能用积分购买使用；套餐额度仍优先扣减。</div>
+      <div class="note" style="margin-bottom:10px">0 表示不扣积分；大于 0 时每次使用按这里配置扣减积分。</div>
       <div class="credit-price-grid">
         ${models.map(m => `
           <label class="credit-price-row">
@@ -1486,11 +1483,11 @@ function renderPlanConfig() {
             <th>权益文案</th>
             <th>价格</th>
             <th>天数</th>
-            <th>额度</th>
-            <th>周期</th>
+            <th>赠送积分</th>
+            <th>发放周期</th>
             <th>可用模型</th>
-            <th>免费模型</th>
-            <th>功能权限 / 次数</th>
+            <th>不扣积分模型</th>
+            <th>功能权限</th>
             <th>状态</th>
             <th>实战区</th>
             <th>排序</th>
@@ -1509,8 +1506,8 @@ function renderPlanConfig() {
               <td><input class="pc-quota" type="number" min="0" value="${Number(p.quota || 0)}"></td>
               <td>
                 <select class="pc-period">
-                  <option value="day" ${p.period === 'day' ? 'selected' : ''}>每天</option>
-                  <option value="month" ${p.period !== 'day' ? 'selected' : ''}>每月</option>
+                  <option value="day" ${p.period === 'day' ? 'selected' : ''}>每日发放</option>
+                  <option value="month" ${p.period !== 'day' ? 'selected' : ''}>每月发放</option>
                 </select>
               </td>
               <td><div class="plan-model-grid">${renderModelCheckboxes(p, 'pc-allowed-model', 'allowed_models')}</div></td>
@@ -1558,13 +1555,6 @@ function collectPlanConfig() {
       .map(el => el.dataset.model)
       .filter(id => allowedSet.has(id));
     const enabledFeatures = Array.from(row.querySelectorAll('.pc-feature:checked')).map(el => el.dataset.feature);
-    const featureQuotas = {};
-    row.querySelectorAll('.pc-feature-quota').forEach(el => {
-      const key = el.dataset.feature;
-      const raw = String(el.value || '').trim();
-      const value = raw === '' ? -1 : parseInt(raw, 10);
-      featureQuotas[key] = Number.isFinite(value) ? Math.max(-1, value) : -1;
-    });
     if (!allowed.length) throw new Error(`套餐 ${id} 至少需要选择一个可用模型`);
     const practicePublish = !!row.querySelector('.pc-practice-publish')?.checked;
     return {
@@ -1585,7 +1575,7 @@ function collectPlanConfig() {
       allowed_models: allowed,
       free_models: freeModels,
       enabled_features: enabledFeatures,
-      feature_quotas: featureQuotas,
+      feature_quotas: Object.fromEntries(planFeatureDefs().map(f => [f.key, -1])),
       practice_access: practicePublish || !!row.querySelector('.pc-practice-access')?.checked,
       practice_publish: practicePublish,
       sort_order: parseInt(row.querySelector('.pc-sort')?.value, 10) || idx * 10,

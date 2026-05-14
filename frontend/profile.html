@@ -453,24 +453,24 @@
     <span class="plan-pill free" id="planPill">Free</span>
   </div>
 
-  <!-- Usage stats -->
+  <!-- Credit stats -->
   <div class="section-card">
-    <div class="section-title">本期用量</div>
+    <div class="section-title">积分账户</div>
     <div class="stat-grid">
       <div class="stat-cell">
-        <div class="stat-label">已使用</div>
+        <div class="stat-label">可用积分</div>
         <div class="stat-value" id="statUsed">—</div>
-        <div class="stat-sub">次对话</div>
+        <div class="stat-sub">当前余额</div>
       </div>
       <div class="stat-cell">
-        <div class="stat-label">剩余可用</div>
+        <div class="stat-label">累计消耗</div>
         <div class="stat-value" id="statRemain">—</div>
-        <div class="stat-sub" id="statPeriod">次</div>
+        <div class="stat-sub" id="statPeriod">积分</div>
       </div>
     </div>
     <div class="progress-wrap">
       <div class="progress-header">
-        <span>使用进度</span>
+        <span>积分消耗</span>
         <span id="progressText">—</span>
       </div>
       <div class="progress-bar">
@@ -570,6 +570,17 @@
     setTimeout(() => t.classList.remove('show'), 2200);
   }
 
+  function parseCredit(value) {
+    const n = Number(value);
+    return Number.isFinite(n) ? n : 0;
+  }
+
+  function formatCredit(value) {
+    const n = parseCredit(value);
+    if (Math.abs(n - Math.round(n)) < 0.001) return String(Math.round(n));
+    return n.toFixed(2).replace(/\.?0+$/, '');
+  }
+
   async function loadProfile() {
     try {
       // Load user info
@@ -599,18 +610,18 @@
       const m = await r2.json();
 
       const plan = m.plan_type || 'free';
-      const used = m.used || 0;
-      const quota = m.quota || 10;
-      const remaining = m.remaining !== undefined ? m.remaining : (quota - used);
-      const period = m.period || 'day';
+      const creditBalance = parseCredit(m.credit_balance);
+      const creditUsed = parseCredit(m.credit_total_used);
+      const creditTotal = creditBalance + creditUsed;
 
-      document.getElementById('statUsed').textContent = used;
-      document.getElementById('statRemain').textContent = remaining;
-      document.getElementById('statPeriod').textContent = period === 'day' ? '次 · 今日' : '次 · 本月';
+      document.getElementById('statUsed').textContent = formatCredit(creditBalance);
+      document.getElementById('statRemain').textContent = formatCredit(creditUsed);
+      document.getElementById('statPeriod').textContent = '积分';
 
-      const pct = quota > 0 ? Math.min(100, Math.round(used / quota * 100)) : 0;
+      const pct = creditTotal > 0 ? Math.min(100, Math.round(creditUsed / creditTotal * 100)) : 0;
       document.getElementById('progressFill').style.width = pct + '%';
-      document.getElementById('progressText').textContent = used + ' / ' + quota;
+      document.getElementById('progressText').textContent =
+        '已用 ' + formatCredit(creditUsed) + ' / 累计 ' + formatCredit(creditTotal);
 
       const pill = document.getElementById('planPill');
       if (plan === 'free') {
@@ -642,7 +653,7 @@
         'deepseek-chat': 'DeepSeek',
         'claude-sonnet-4-6': 'Claude Sonnet',
         'claude-opus-4-6': 'Claude Opus'
-      }[x] || x) + (freeModels.has(x) ? '（不扣量）' : ''));
+      }[x] || x) + (freeModels.has(x) ? '（不扣积分）' : ''));
       const featureNames = (m.enabled_features || []).map(x => ({
         image_generation: '图片生成',
         video_generation: '视频生成',
