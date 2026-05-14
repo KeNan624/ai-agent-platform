@@ -971,11 +971,11 @@
       const isFree = plan.id === 'free';
       const isCurrent = currentPlan === plan.id || (isFree && currentPlan === 'free');
       const soldOut = !isFree && isSoldOut(plan);
-      const canBuy = !isFree && !soldOut && paymentPlans.payments_enabled;
+      const canBuy = !isFree && !soldOut;
       const cardClass = `plan-card ${plan.id === 'yearly' ? 'featured' : ''} ${soldOut ? 'sold-out' : ''}`;
       const btn = isFree
         ? `<button class="btn-plan current" disabled>${isCurrent ? '当前套餐' : '免费版'}</button>`
-        : `<button class="btn-plan ${canBuy ? (plan.id === 'yearly' ? 'yearly-btn' : 'monthly-btn') : 'soldout'}" ${canBuy ? `onclick="openPayModal('membership','${esc(plan.id)}')"` : 'disabled'}>${canBuy ? (isCurrent ? '续费' : '立即开通') + ' <span class="arr">→</span>' : (soldOut ? '已售罄' : '暂未开放')}</button>`;
+        : `<button class="btn-plan ${canBuy ? (plan.id === 'yearly' ? 'yearly-btn' : 'monthly-btn') : 'soldout'}" ${canBuy ? `onclick="openPayModal('membership','${esc(plan.id)}')"` : 'disabled'}>${canBuy ? (isCurrent ? '续费' : '立即开通') + ' <span class="arr">→</span>' : '已售罄'}</button>`;
       return `
         <div class="${cardClass}">
           <div class="plan-name">${esc(plan.name)}</div>
@@ -1002,7 +1002,7 @@
     }
     wrap.innerHTML = packages.map(pkg => {
       const soldOut = isSoldOut(pkg);
-      const canBuy = !soldOut && paymentPlans.payments_enabled;
+      const canBuy = !soldOut;
       return `
         <div class="plan-card ${soldOut ? 'sold-out' : ''}">
           <div class="plan-name">${esc(pkg.name)}</div>
@@ -1018,7 +1018,7 @@
             <li><span class="ck">✓</span><span class="label">永久有效，不随会员周期清零</span></li>
             <li><span class="ck">✓</span><span class="label">模型和功能统一按积分单价扣减</span></li>
           </ul>
-          <button class="btn-plan ${canBuy ? 'monthly-btn' : 'soldout'}" ${canBuy ? `onclick="openPayModal('credits','${esc(pkg.id)}')"` : 'disabled'}>${canBuy ? '购买积分 <span class="arr">→</span>' : (soldOut ? '已售罄' : '暂未开放')}</button>
+          <button class="btn-plan ${canBuy ? 'monthly-btn' : 'soldout'}" ${canBuy ? `onclick="openPayModal('credits','${esc(pkg.id)}')"` : 'disabled'}>${canBuy ? '购买积分 <span class="arr">→</span>' : '已售罄'}</button>
         </div>
       `;
     }).join('');
@@ -1095,13 +1095,13 @@
     }
     const isCredits = productType === 'credits';
     const productCfg = isCredits ? findCreditPackage(productId) : findPaymentPlan(productId);
-    if (!productCfg || isSoldOut(productCfg) || !paymentPlans.payments_enabled) {
+    if (!productCfg || isSoldOut(productCfg)) {
       document.getElementById('payModal').classList.add('active');
       showStep('stepLoading');
       document.querySelector('#stepLoading .modal-title').textContent =
-        !productCfg ? '产品不可用' : (isSoldOut(productCfg) ? '当前已售罄' : '支付暂未开放');
+        !productCfg ? '产品不可用' : '当前已售罄';
       document.querySelector('#stepLoading .modal-subtitle').textContent =
-        isSoldOut(productCfg) ? '库存为 0，请稍后关注。' : '暂时无法创建订单，请稍后再试。';
+        isSoldOut(productCfg) ? '库存为 0，请稍后关注。' : '请稍后再试。';
       return;
     }
 
