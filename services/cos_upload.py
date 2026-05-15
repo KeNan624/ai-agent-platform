@@ -32,6 +32,10 @@ VIDEO_TYPES = {
     ".webm": "video/webm",
 }
 
+DOCUMENT_TYPES = {
+    ".pdf": "application/pdf",
+}
+
 
 def _env_required(name: str) -> str:
     value = (get_app_setting(name, "") or "").strip()
@@ -67,12 +71,26 @@ def _allowed_map(kind: str) -> dict[str, str]:
         return IMAGE_TYPES
     if kind == "video":
         return VIDEO_TYPES
-    raise CosUploadError("kind 只能是 image 或 video")
+    if kind == "document":
+        return DOCUMENT_TYPES
+    raise CosUploadError("kind 只能是 image、video 或 document")
+
+
+def _kind_label(kind: str) -> str:
+    if kind == "image":
+        return "图片"
+    if kind == "video":
+        return "视频"
+    if kind == "document":
+        return "文档"
+    return "文件"
 
 
 def _max_bytes(kind: str) -> int:
     if kind == "image":
         return _get_int_env("PRACTICE_IMAGE_MAX_MB", 10) * 1024 * 1024
+    if kind == "document":
+        return _get_int_env("PRACTICE_DOCUMENT_MAX_MB", 200) * 1024 * 1024
     return _get_int_env("PRACTICE_VIDEO_MAX_MB", 20480) * 1024 * 1024
 
 
@@ -90,7 +108,7 @@ def _clean_ext(filename: str, content_type: str | None, kind: str) -> tuple[str,
 
     if ext not in allowed:
         allowed_exts = "、".join(sorted(allowed))
-        raise CosUploadError(f"不支持的{('图片' if kind == 'image' else '视频')}格式，仅支持 {allowed_exts}")
+        raise CosUploadError(f"不支持的{_kind_label(kind)}格式，仅支持 {allowed_exts}")
 
     canonical_type = allowed[ext]
     if content_type and content_type not in {canonical_type, "application/octet-stream"}:
@@ -147,6 +165,9 @@ def _upload_local_path(
     region = _env_required("COS_REGION")
     key = _object_key(user_id=user_id, kind=kind, ext=ext)
     client = _cos_client()
+    upload_headers = {"ContentType": content_type}
+    if kind == "document":
+        upload_headers["ContentDisposition"] = "inline"
     client.upload_file(
         Bucket=bucket,
         Key=key,
@@ -154,7 +175,7 @@ def _upload_local_path(
         PartSize=10,
         MAXThread=5,
         EnableMD5=False,
-        ContentType=content_type,
+        **upload_headers,
     )
     return {
         "ok": True,

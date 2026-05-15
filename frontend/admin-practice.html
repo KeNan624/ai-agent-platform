@@ -135,7 +135,7 @@ tr:hover td{background:rgba(26,24,20,.015)}
       <div class="nav-item active" onclick="showPage('dashboard',this)"><span class="icon">📊</span><span>数据看板</span></div>
     </div>
     <div class="nav-group"><div class="nav-group-label">内容</div>
-      <div class="nav-item" onclick="showPage('projects',this)"><span class="icon">📝</span><span>实战经验</span></div>
+      <div class="nav-item" onclick="showPage('projects',this)"><span class="icon">📝</span><span>项目风向标</span></div>
       <div class="nav-item" onclick="showPage('camps',this)"><span class="icon">📚</span><span>专栏</span></div>
       <div class="nav-item" onclick="showPage('courses',this)"><span class="icon">🎬</span><span>视频课程</span></div>
       <div class="nav-item" onclick="showPage('tags',this)"><span class="icon">🏷</span><span>标签管理</span></div>
@@ -173,7 +173,7 @@ tr:hover td{background:rgba(26,24,20,.015)}
   </div>
 
   <div id="pg-projects" class="page">
-    <div class="page-header"><div class="page-title">实战经验管理</div></div>
+    <div class="page-header"><div class="page-title">项目风向标管理</div></div>
     <div class="page-body"><div class="section-card">
       <div class="toolbar-row">
         <select id="pj-pub" onchange="pjPage=1;loadProjects()"><option value="">全部状态</option><option value="true">已发布</option><option value="false">未发布</option></select>
@@ -296,7 +296,7 @@ tr:hover td{background:rgba(26,24,20,.015)}
 <div id="feishuImportModal" class="modal-mask" onclick="if(event.target===this)closeFeishuImport()">
   <div class="modal-box">
     <div class="modal-head">
-      <div class="modal-title">从飞书导入实战经验</div>
+      <div class="modal-title">从飞书导入项目风向标</div>
       <button class="modal-close" onclick="closeFeishuImport()">×</button>
     </div>
     <div class="modal-body">
@@ -325,7 +325,7 @@ tr:hover td{background:rgba(26,24,20,.015)}
 <div id="projectCoverModal" class="modal-mask" onclick="if(event.target===this)closeProjectCover()">
   <div class="modal-box">
     <div class="modal-head">
-      <div class="modal-title">设置实战经验封面</div>
+      <div class="modal-title">设置项目风向标封面</div>
       <button class="modal-close" onclick="closeProjectCover()">×</button>
     </div>
     <div class="modal-body">
@@ -335,7 +335,7 @@ tr:hover td{background:rgba(26,24,20,.015)}
       </div>
       <div class="s-field">
         <label>卡片简介</label>
-        <textarea id="coverProjectDesc" class="s-textarea" rows="3" maxlength="500" placeholder="展示在实战经验卡片标题下方"></textarea>
+        <textarea id="coverProjectDesc" class="s-textarea" rows="3" maxlength="500" placeholder="展示在项目风向标卡片标题下方"></textarea>
       </div>
       <div class="s-field">
         <label>封面图链接</label>
@@ -594,7 +594,7 @@ function updateProjectCoverPreview(){
   preview.classList.toggle('is-default',!url);
   preview.innerHTML=url
     ? `<img src="${esc(url)}" alt="" onerror="this.parentNode.textContent='封面预览失败'">`
-    : `<img src="${DEFAULT_EXPERIENCE_COVER_URL}" alt="默认实战经验封面"><div class="cover-preview-note">未上传封面时，前台会使用这张实战经验默认图</div>`;
+    : `<img src="${DEFAULT_EXPERIENCE_COVER_URL}" alt="默认项目风向标封面"><div class="cover-preview-note">未上传封面时，前台会使用这张项目风向标默认图</div>`;
 }
 function triggerProjectCoverUpload(){
   document.getElementById('projectCoverFile').click();
@@ -665,7 +665,7 @@ async function runFeishuImport(){
   const btn=document.getElementById('feishuImportBtn');
   if(!url){setFeishuImportStatus('请粘贴飞书文档链接','error');return}
   btn.disabled=true;btn.textContent='导入中...';
-  setFeishuImportStatus('正在读取飞书文档并转存图片，请稍等...');
+  setFeishuImportStatus('正在读取飞书文档并转存图片/PDF，请稍等...');
   try{
     const data=await adminJson(`${API}/admin/import-feishu`,{
       method:'POST',
@@ -674,7 +674,7 @@ async function runFeishuImport(){
     });
     const warn=data.warning_count?`，${data.warning_count} 个提示`:'';
     const rich=`样式 ${data.style_count||0} 处，高亮块 ${data.callout_count||0} 个`;
-    setFeishuImportStatus(`导入成功：${data.title}（图片 ${data.image_count||0} 张，${rich}${warn}）`,'success');
+    setFeishuImportStatus(`导入成功：${data.title}（图片 ${data.image_count||0} 张，PDF ${data.pdf_count||0} 个，${rich}${warn}）`,'success');
     toast(is_published?'已导入并发布':'已导入为草稿');
     document.getElementById('feishuImportUrl').value='';
     if(data.warnings?.length)console.warn('[Feishu import warnings]',data.warnings);
@@ -879,10 +879,10 @@ async function runColumnFeishuImport(){
   };
   const btn=document.getElementById('columnFeishuBtn');
   btn.disabled=true;btn.textContent='导入中...';
-  setColumnFeishuStatus('正在读取飞书文档、转存图片和保留样式...');
+  setColumnFeishuStatus('正在读取飞书文档、转存图片/PDF 和保留样式...');
   try{
     const data=await adminJson(`${API}/admin/columns/${CURRENT_COLUMN_ID}/import-feishu`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
-    setColumnFeishuStatus(`导入成功：图片 ${data.image_count||0} 张，样式 ${data.style_count||0} 处，高亮块 ${data.callout_count||0} 个`,'success');
+    setColumnFeishuStatus(`导入成功：图片 ${data.image_count||0} 张，PDF ${data.pdf_count||0} 个，样式 ${data.style_count||0} 处，高亮块 ${data.callout_count||0} 个`,'success');
     toast('飞书章节已导入');
     if(data.warnings?.length)console.warn('[Column Feishu warnings]',data.warnings);
     closeColumnFeishuModal();
@@ -970,7 +970,7 @@ async function syncColumnLesson(id){
   try{
     toast('正在同步飞书章节...');
     const data=await adminJson(`${API}/admin/columns/lessons/${id}/sync-feishu`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({})});
-    toast(`同步完成：样式 ${data.style_count||0} 处，高亮块 ${data.callout_count||0} 个`);
+    toast(`同步完成：PDF ${data.pdf_count||0} 个，样式 ${data.style_count||0} 处，高亮块 ${data.callout_count||0} 个`);
     openColumnLessons(CURRENT_COLUMN_ID);
   }catch(e){toast(e.message||'同步失败')}
 }
@@ -1039,7 +1039,7 @@ async function doSyncFeishu(s){
       body:JSON.stringify({url})
     });
     const rich=`样式 ${data.style_count||0} 处，高亮块 ${data.callout_count||0} 个`;
-    toast(`同步完成：${rich}`);
+    toast(`同步完成：PDF ${data.pdf_count||0} 个，${rich}`);
     loadProjects();
   }catch(e){toast(e.message||'同步失败')}
 }

@@ -507,6 +507,10 @@ body.embedded .login-overlay{position:absolute}
         <label>视频上限 MB</label>
         <input type="number" id="cos_video_max_mb" min="1" placeholder="20480">
       </div>
+      <div class="form-group">
+        <label>文档上限 MB</label>
+        <input type="number" id="cos_document_max_mb" min="1" placeholder="200">
+      </div>
     </div>
     <div class="cos-actions">
       <span class="form-hint">SecretId / SecretKey 留空表示保持原值；不会在页面回显明文。</span>
@@ -711,6 +715,7 @@ const COS_CONFIG_FIELDS = [
   { key: 'COS_PUBLIC_BASE_URL', id: 'cos_public_base_url' },
   { key: 'PRACTICE_IMAGE_MAX_MB', id: 'cos_image_max_mb' },
   { key: 'PRACTICE_VIDEO_MAX_MB', id: 'cos_video_max_mb' },
+  { key: 'PRACTICE_DOCUMENT_MAX_MB', id: 'cos_document_max_mb' },
 ];
 
 /* ═══════════════════════════════════════════

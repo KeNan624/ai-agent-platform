@@ -287,6 +287,15 @@ API_CONFIG_FIELDS = [
         "placeholder": "20480",
     },
     {
+        "key": "PRACTICE_DOCUMENT_MAX_MB",
+        "group": "腾讯云 COS",
+        "label": "文档大小上限 MB",
+        "description": "飞书导入 PDF 附件转存到 COS 的大小限制。",
+        "secret": False,
+        "default": "200",
+        "placeholder": "200",
+    },
+    {
         "key": "FEISHU_APP_ID",
         "group": "飞书文档",
         "label": "App ID",

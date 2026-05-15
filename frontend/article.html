@@ -188,6 +188,12 @@ body {
 .article-body li { margin-bottom: 6px; }
 .article-body strong { color: var(--ink); }
 .article-body a { color: var(--blue); text-decoration: underline; }
+.article-body a.fs-doc-link {
+  color: #315F9A; text-decoration: none;
+  background: #EAF3FF; border: 1px solid #C9DDF4;
+  border-radius: 5px; padding: 1px 5px;
+  -webkit-box-decoration-break: clone; box-decoration-break: clone;
+}
 .article-body blockquote {
   border-left: 3px solid var(--gold-light);
   padding: 12px 20px; margin: 20px 0;
@@ -256,6 +262,16 @@ span[class*="fs-bg-"]{padding:1px 4px;border-radius:4px}
 .fs-callout-bg-1,.fs-callout-bg-8{background:#FCEEE8}.fs-callout-bg-2,.fs-callout-bg-9{background:#FFF2DF}.fs-callout-bg-3,.fs-callout-bg-10{background:#FFF8D9}.fs-callout-bg-4,.fs-callout-bg-11{background:#E8F2EC}.fs-callout-bg-5,.fs-callout-bg-12{background:#EAF3FF}.fs-callout-bg-6,.fs-callout-bg-13{background:#F1EAFE}.fs-callout-bg-7,.fs-callout-bg-14{background:#F0EDE6}.fs-callout-bg-15{background:#F5EFDE}.fs-callout-bg-16{background:#E7F4F4}.fs-callout-bg-17{background:#E9EDF2}
 .fs-callout-border-1,.fs-callout-border-8{border-color:#E59A87}.fs-callout-border-2,.fs-callout-border-9{border-color:#E7B46F}.fs-callout-border-3,.fs-callout-border-10{border-color:#E2C75A}.fs-callout-border-4,.fs-callout-border-11{border-color:#8DC3A9}.fs-callout-border-5,.fs-callout-border-12{border-color:#8EB9E6}.fs-callout-border-6,.fs-callout-border-13{border-color:#B9A3E5}.fs-callout-border-7,.fs-callout-border-14{border-color:#C7BFAF}.fs-callout-border-15{border-color:#D9C99E}.fs-callout-border-16{border-color:#9ACED0}.fs-callout-border-17{border-color:#B8C1CD}
 .fs-quote-container{font-style:normal}
+.fs-file-card{margin:18px 0;border:1px solid var(--line);border-radius:8px;background:#FFFCF5}
+.fs-file-card a,.fs-file-card-body{display:flex;align-items:center;gap:10px;padding:12px 14px;color:var(--ink);text-decoration:none}
+.fs-pdf-card a{pointer-events:none;cursor:default}
+.fs-file-badge{font-size:12px;font-weight:700;line-height:1;color:#A2432B;background:#FCEEE8;border:1px solid #E7B9AA;border-radius:4px;padding:3px 6px}
+.fs-file-name{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:600}
+.fs-file-action{font-size:12px;color:var(--ink-mute);white-space:nowrap}
+.fs-pdf-card{margin-bottom:8px}
+.fs-pdf-preview{margin:0 0 18px;border:1px solid var(--line);border-radius:8px;overflow:hidden;background:#F6F2E9}
+.article-body .fs-pdf-viewer{display:block;width:100%;max-width:100%;height:min(78vh,760px);min-height:520px;margin:0;border:0;border-radius:0;background:#fff;aspect-ratio:auto}
+@media (max-width:700px){.article-body .fs-pdf-viewer{height:70vh;min-height:420px}}
 
 /* ─── 互动条 ─── */
 .interact-section {
@@ -414,7 +430,7 @@ span[class*="fs-bg-"]{padding:1px 4px;border-radius:4px}
       <span class="nav-logo-text">阿川 AI</span>
     </a>
     <div class="nav-tabs">
-      <div class="nav-tab" onclick="location.href='practice.html'">实战经验</div>
+      <div class="nav-tab" onclick="location.href='practice.html'">项目风向标</div>
       <div class="nav-tab" onclick="location.href='practice.html#camp'">专栏</div>
       <div class="nav-tab" onclick="location.href='practice.html#video'">视频课程</div>
     </div>
@@ -526,6 +542,74 @@ function enhanceCodeBlocks(root) {
   });
 }
 
+function nestedSafeUrl(value) {
+  let candidate = String(value || '').trim();
+  for (let i = 0; i < 3; i++) {
+    if (/^(https?:|mailto:)/i.test(candidate)) return candidate;
+    try {
+      const decoded = decodeURIComponent(candidate);
+      if (decoded === candidate) break;
+      candidate = decoded.trim();
+    } catch(e) {
+      break;
+    }
+  }
+  return '';
+}
+
+function normalizeContentLinkUrl(value) {
+  const raw = String(value || '').trim();
+  if (!raw || /^(javascript|data|vbscript):/i.test(raw)) return '';
+  let current = raw;
+  for (let i = 0; i < 3; i++) {
+    let parsed;
+    try { parsed = new URL(current, location.href); } catch(e) { break; }
+    if (/^(javascript|data|vbscript):/i.test(parsed.protocol)) return '';
+    let nested = '';
+    for (const key of ['url', 'target', 'redirect', 'redirect_url', 'link', 'to']) {
+      nested = nestedSafeUrl(parsed.searchParams.get(key) || '');
+      if (nested) break;
+    }
+    if (!nested) nested = nestedSafeUrl(parsed.pathname.replace(/^\/+/, ''));
+    if (!nested || nested === current) break;
+    current = nested;
+  }
+  return current;
+}
+
+function isFeishuContentUrl(value) {
+  try {
+    const host = new URL(value, location.href).hostname.toLowerCase();
+    return host === 'feishu.cn' || host.endsWith('.feishu.cn') || host === 'larksuite.com' || host.endsWith('.larksuite.com');
+  } catch(e) {
+    return false;
+  }
+}
+
+function enhanceContentLinks(root) {
+  if (!root) return;
+  root.querySelectorAll('a[href]').forEach(link => {
+    if (link.closest('.fs-pdf-card')) return;
+    const href = normalizeContentLinkUrl(link.getAttribute('href') || '');
+    if (!href) {
+      link.removeAttribute('href');
+      return;
+    }
+    link.setAttribute('href', href);
+    try {
+      const protocol = new URL(href, location.href).protocol;
+      if (protocol === 'http:' || protocol === 'https:') {
+        link.setAttribute('target', '_blank');
+        link.setAttribute('rel', 'noopener noreferrer');
+      }
+    } catch(e) {}
+    if (isFeishuContentUrl(href)) {
+      link.classList.add('fs-doc-link');
+      link.setAttribute('title', '飞书资料');
+    }
+  });
+}
+
 function protectExperienceContent(root) {
   if (!root || root.dataset.copyProtected === '1') return;
   root.dataset.copyProtected = '1';
@@ -534,7 +618,7 @@ function protectExperienceContent(root) {
     root.addEventListener(type, e => {
       if (eventInsideCodeBlock(e)) return;
       e.preventDefault();
-      if (type === 'contextmenu') showToast('实战内容已开启复制保护');
+      if (type === 'contextmenu') showToast('项目风向标内容已开启复制保护');
     });
   });
   const copyGuard = e => {
@@ -545,7 +629,7 @@ function protectExperienceContent(root) {
     }
     if (!eventTouchesProtectedRoot(e, root) || eventInsideCodeBlock(e)) return;
     e.preventDefault();
-    showToast('实战内容已开启复制保护');
+    showToast('项目风向标内容已开启复制保护');
   };
   document.addEventListener('copy', copyGuard, true);
   document.addEventListener('cut', copyGuard, true);
@@ -637,7 +721,7 @@ async function loadArticle() {
       <div class="author-bar">
         <div class="author-avatar">川</div>
         <div class="author-info">
-          <div class="author-name">阿川 <span class="author-tag">${esc(data.project_type === 'camp' ? '专栏' : '实战')}</span></div>
+          <div class="author-name">阿川 <span class="author-tag">${esc(data.project_type === 'camp' ? '专栏' : '项目风向标')}</span></div>
           <div class="author-meta">${dateStr}</div>
         </div>
       </div>
@@ -689,6 +773,7 @@ async function loadArticle() {
 
   const articleBody = document.getElementById('articleBody');
   hardenVideoElements(articleBody);
+  enhanceContentLinks(articleBody);
 
   // 代码高亮
   document.querySelectorAll('#articleBody pre code').forEach(block => {

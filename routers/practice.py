@@ -19,9 +19,11 @@ from services.cos_upload import CosUploadError, upload_bytes, upload_fastapi_fil
 from services.feishu_import import FeishuImportError, import_feishu_docx, parse_feishu_docx_id
 from sms_service import SmsVerificationError, verify_sms_code
 import json
+import logging
 import os
 
 router = APIRouter(prefix="/practice", tags=["practice"])
+logger = logging.getLogger(__name__)
 
 
 class SubscribeRequest(BaseModel):
@@ -1114,6 +1116,7 @@ async def admin_import_feishu(
     try:
         imported = await import_feishu_docx(req.url, user_id=int(current_user.id))
     except FeishuImportError as exc:
+        logger.warning("Feishu project import failed: %s", exc)
         raise HTTPException(400, str(exc))
 
     import hashlib
@@ -1162,6 +1165,7 @@ async def admin_import_feishu(
         "slug": slug,
         "title": imported.title,
         "image_count": imported.image_count,
+        "pdf_count": imported.pdf_count,
         "style_count": imported.style_count,
         "callout_count": imported.callout_count,
         "warning_count": len(imported.warnings),
@@ -1447,6 +1451,7 @@ async def admin_import_column_feishu(
         doc_id = parse_feishu_docx_id(req.url)
         imported = await import_feishu_docx(req.url, user_id=int(current_user.id))
     except FeishuImportError as exc:
+        logger.warning("Feishu column import failed: %s", exc)
         raise HTTPException(400, str(exc))
     lesson = PracticeLesson(
         course_id=column_id,
@@ -1472,6 +1477,7 @@ async def admin_import_column_feishu(
         "item": _lesson_to_dict(lesson),
         "title": imported.title,
         "image_count": imported.image_count,
+        "pdf_count": imported.pdf_count,
         "style_count": imported.style_count,
         "callout_count": imported.callout_count,
         "warning_count": len(imported.warnings),
@@ -1500,6 +1506,7 @@ async def admin_sync_column_feishu_lesson(
         doc_id = parse_feishu_docx_id(source_url)
         imported = await import_feishu_docx(source_url, user_id=int(current_user.id))
     except FeishuImportError as exc:
+        logger.warning("Feishu column lesson sync failed: %s", exc)
         raise HTTPException(400, str(exc))
     lesson.title = imported.title
     lesson.description = _content_excerpt(imported.markdown)
@@ -1521,6 +1528,7 @@ async def admin_sync_column_feishu_lesson(
         "item": _lesson_to_dict(lesson),
         "title": imported.title,
         "image_count": imported.image_count,
+        "pdf_count": imported.pdf_count,
         "style_count": imported.style_count,
         "callout_count": imported.callout_count,
         "warning_count": len(imported.warnings),
@@ -1705,6 +1713,7 @@ async def sync_feishu_project(
     try:
         imported = await import_feishu_docx(source_url, user_id=int(current_user.id))
     except FeishuImportError as exc:
+        logger.warning("Feishu project sync failed: %s", exc)
         raise HTTPException(400, str(exc))
 
     md_filename = os.path.basename(row[1] or f"{slug}.md")
@@ -1734,6 +1743,7 @@ async def sync_feishu_project(
         "slug": slug,
         "title": imported.title,
         "image_count": imported.image_count,
+        "pdf_count": imported.pdf_count,
         "style_count": imported.style_count,
         "callout_count": imported.callout_count,
         "warning_count": len(imported.warnings),

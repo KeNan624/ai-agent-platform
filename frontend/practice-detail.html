@@ -218,6 +218,16 @@
             margin: 24px 0;
         }
         .markdown-body strong { color: #3d3426; }
+        .markdown-body a.fs-doc-link {
+            color: #315F9A;
+            text-decoration: none;
+            background: #EAF3FF;
+            border: 1px solid #C9DDF4;
+            border-radius: 5px;
+            padding: 1px 5px;
+            -webkit-box-decoration-break: clone;
+            box-decoration-break: clone;
+        }
         /* 飞书导入样式 */
         .fs-fg-1,.fs-fg-8{color:#C75B3A}.fs-fg-2,.fs-fg-9{color:#B66A21}.fs-fg-3,.fs-fg-10{color:#9A7A3D}.fs-fg-4,.fs-fg-11{color:#3D7C62}.fs-fg-5,.fs-fg-12{color:#3F75B5}.fs-fg-6,.fs-fg-13{color:#7B5BB8}.fs-fg-7,.fs-fg-14{color:#6B6558}.fs-fg-15{color:#8A5A24}.fs-fg-16{color:#2F7F87}.fs-fg-17{color:#3B4758}
         .fs-fg-1 strong,.fs-fg-2 strong,.fs-fg-3 strong,.fs-fg-4 strong,.fs-fg-5 strong,.fs-fg-6 strong,.fs-fg-7 strong,.fs-fg-8 strong,.fs-fg-9 strong,.fs-fg-10 strong,.fs-fg-11 strong,.fs-fg-12 strong,.fs-fg-13 strong,.fs-fg-14 strong,.fs-fg-15 strong,.fs-fg-16 strong,.fs-fg-17 strong{color:inherit}
@@ -227,6 +237,9 @@
         .fs-callout-icon{width:24px;line-height:1.7;flex:0 0 auto}.fs-callout-content{flex:1;min-width:0}.fs-callout-content>:last-child{margin-bottom:0}
         .fs-callout-bg-1,.fs-callout-bg-8{background:#FCEEE8}.fs-callout-bg-2,.fs-callout-bg-9{background:#FFF2DF}.fs-callout-bg-3,.fs-callout-bg-10{background:#FFF8D9}.fs-callout-bg-4,.fs-callout-bg-11{background:#E8F2EC}.fs-callout-bg-5,.fs-callout-bg-12{background:#EAF3FF}.fs-callout-bg-6,.fs-callout-bg-13{background:#F1EAFE}.fs-callout-bg-7,.fs-callout-bg-14{background:#F0EDE6}.fs-callout-bg-15{background:#F5EFDE}.fs-callout-bg-16{background:#E7F4F4}.fs-callout-bg-17{background:#E9EDF2}
         .fs-callout-border-1,.fs-callout-border-8{border-color:#E59A87}.fs-callout-border-2,.fs-callout-border-9{border-color:#E7B46F}.fs-callout-border-3,.fs-callout-border-10{border-color:#E2C75A}.fs-callout-border-4,.fs-callout-border-11{border-color:#8DC3A9}.fs-callout-border-5,.fs-callout-border-12{border-color:#8EB9E6}.fs-callout-border-6,.fs-callout-border-13{border-color:#B9A3E5}.fs-callout-border-7,.fs-callout-border-14{border-color:#C7BFAF}.fs-callout-border-15{border-color:#D9C99E}.fs-callout-border-16{border-color:#9ACED0}.fs-callout-border-17{border-color:#B8C1CD}.fs-quote-container{font-style:normal}
+        .fs-file-card{margin:16px 0;border:1px solid #E8DCC2;border-radius:8px;background:#FFFCF5}.fs-file-card a,.fs-file-card-body{display:flex;align-items:center;gap:10px;padding:12px 14px;color:#2F2922;text-decoration:none}.fs-pdf-card a{pointer-events:none;cursor:default}.fs-file-badge{font-size:12px;font-weight:700;line-height:1;color:#A2432B;background:#FCEEE8;border:1px solid #E7B9AA;border-radius:4px;padding:3px 6px}.fs-file-name{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:600}.fs-file-action{font-size:12px;color:#9A8F7C;white-space:nowrap}
+        .fs-pdf-card{margin-bottom:8px}.fs-pdf-preview{margin:0 0 18px;border:1px solid #E8DCC2;border-radius:8px;overflow:hidden;background:#F6F2E9}.markdown-body .fs-pdf-viewer{display:block;width:100%;max-width:100%;height:min(78vh,760px);min-height:520px;margin:0;border:0;border-radius:0;background:#fff;aspect-ratio:auto}
+        @media (max-width:700px){.markdown-body .fs-pdf-viewer{height:70vh;min-height:420px}}
 
         /* ====== 底部预约区 · 跟 practice.html 视觉对齐 ====== */
         .subscribe {
@@ -504,6 +517,7 @@
                 const mdBody = document.getElementById('mdBody');
                 mdBody.innerHTML = marked.parse(p.md_content);
                 hardenVideoElements(mdBody);
+                enhanceContentLinks(mdBody);
             } else {
                 document.getElementById('mdBody').innerHTML = '<p style="color:#9A8F7C;">详细介绍内容尚未填写。</p>';
             }
@@ -541,6 +555,74 @@
                 video.addEventListener('touchend', e => {
                     if (Date.now() - (video._touchStart || 0) > 400) e.preventDefault();
                 });
+            });
+        }
+
+        function nestedSafeUrl(value) {
+            let candidate = String(value || '').trim();
+            for (let i = 0; i < 3; i++) {
+                if (/^(https?:|mailto:)/i.test(candidate)) return candidate;
+                try {
+                    const decoded = decodeURIComponent(candidate);
+                    if (decoded === candidate) break;
+                    candidate = decoded.trim();
+                } catch (e) {
+                    break;
+                }
+            }
+            return '';
+        }
+
+        function normalizeContentLinkUrl(value) {
+            const raw = String(value || '').trim();
+            if (!raw || /^(javascript|data|vbscript):/i.test(raw)) return '';
+            let current = raw;
+            for (let i = 0; i < 3; i++) {
+                let parsed;
+                try { parsed = new URL(current, location.href); } catch (e) { break; }
+                if (/^(javascript|data|vbscript):/i.test(parsed.protocol)) return '';
+                let nested = '';
+                for (const key of ['url', 'target', 'redirect', 'redirect_url', 'link', 'to']) {
+                    nested = nestedSafeUrl(parsed.searchParams.get(key) || '');
+                    if (nested) break;
+                }
+                if (!nested) nested = nestedSafeUrl(parsed.pathname.replace(/^\/+/, ''));
+                if (!nested || nested === current) break;
+                current = nested;
+            }
+            return current;
+        }
+
+        function isFeishuContentUrl(value) {
+            try {
+                const host = new URL(value, location.href).hostname.toLowerCase();
+                return host === 'feishu.cn' || host.endsWith('.feishu.cn') || host === 'larksuite.com' || host.endsWith('.larksuite.com');
+            } catch (e) {
+                return false;
+            }
+        }
+
+        function enhanceContentLinks(root) {
+            if (!root) return;
+            root.querySelectorAll('a[href]').forEach(link => {
+                if (link.closest('.fs-pdf-card')) return;
+                const href = normalizeContentLinkUrl(link.getAttribute('href') || '');
+                if (!href) {
+                    link.removeAttribute('href');
+                    return;
+                }
+                link.setAttribute('href', href);
+                try {
+                    const protocol = new URL(href, location.href).protocol;
+                    if (protocol === 'http:' || protocol === 'https:') {
+                        link.setAttribute('target', '_blank');
+                        link.setAttribute('rel', 'noopener noreferrer');
+                    }
+                } catch (e) {}
+                if (isFeishuContentUrl(href)) {
+                    link.classList.add('fs-doc-link');
+                    link.setAttribute('title', '飞书资料');
+                }
             });
         }
 

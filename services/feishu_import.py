@@ -4,7 +4,7 @@ import html
 import re
 from dataclasses import dataclass, field
 from typing import Any
-from urllib.parse import quote, unquote, urlparse
+from urllib.parse import parse_qs, quote, unquote, urlparse
 
 import httpx
 
@@ -21,6 +21,7 @@ class FeishuImportedDocument:
     title: str
     markdown: str
     image_count: int = 0
+    pdf_count: int = 0
     style_count: int = 0
     callout_count: int = 0
     warnings: list[str] = field(default_factory=list)
@@ -58,6 +59,7 @@ IMAGE_CONTENT_TYPES = {
     "image/gif": ".gif",
     "image/webp": ".webp",
 }
+PDF_CONTENT_TYPES = {"application/pdf", "application/x-pdf"}
 
 
 def parse_feishu_source(url_or_token: str) -> FeishuSource:
@@ -70,10 +72,13 @@ def parse_feishu_source(url_or_token: str) -> FeishuSource:
         docx_match = re.search(r"/docx/([^/?#]+)", parsed.path)
         if docx_match:
             return FeishuSource(token=docx_match.group(1), source_type="docx")
+        file_match = re.search(r"/file/([^/?#]+)", parsed.path)
+        if file_match:
+            return FeishuSource(token=file_match.group(1), source_type="file")
         wiki_match = re.search(r"/wiki/([^/?#]+)", parsed.path)
         if wiki_match:
             return FeishuSource(token=wiki_match.group(1), source_type="wiki")
-        raise FeishuImportError("仅支持飞书新版文档 docx 链接或知识库 wiki 链接")
+        raise FeishuImportError("仅支持飞书新版文档 docx、PDF 文件 file 或知识库 wiki 链接")
 
     if re.fullmatch(r"[A-Za-z0-9_-]{8,}", raw):
         return FeishuSource(token=raw, source_type="docx")
@@ -168,11 +173,11 @@ async def _get_document_info(client: httpx.AsyncClient, token: str, document_id:
     return await _api_json(client, "GET", f"/docx/v1/documents/{quote(document_id, safe='')}", token=token)
 
 
-async def _resolve_wiki_docx(
+async def _resolve_wiki_source(
     client: httpx.AsyncClient,
     token: str,
     wiki_token: str,
-) -> tuple[str, str]:
+) -> tuple[str, str, str]:
     data = await _api_json(
         client,
         "GET",
@@ -184,23 +189,23 @@ async def _resolve_wiki_docx(
     obj_type = str(node.get("obj_type") or "").strip().lower()
     obj_token = str(node.get("obj_token") or "").strip()
     title = str(node.get("title") or "").strip()
-    if obj_type != "docx":
+    if obj_type not in {"docx", "file"}:
         label = obj_type or "未知类型"
-        raise FeishuImportError(f"这个 Wiki 链接指向 {label}，目前仅支持 Wiki 中的新版文档 docx")
+        raise FeishuImportError(f"这个 Wiki 链接指向 {label}，目前仅支持 Wiki 中的新版文档 docx 或 PDF 文件")
     if not obj_token:
-        raise FeishuImportError("飞书 Wiki 节点未返回真实文档 token")
-    return obj_token, title
+        raise FeishuImportError("飞书 Wiki 节点未返回真实资源 token")
+    return obj_type, obj_token, title
 
 
-async def _resolve_document_id(
+async def _resolve_source(
     client: httpx.AsyncClient,
     token: str,
     url_or_token: str,
-) -> tuple[str, str]:
+) -> tuple[str, str, str]:
     source = parse_feishu_source(url_or_token)
     if source.source_type == "wiki":
-        return await _resolve_wiki_docx(client, token, source.token)
-    return source.token, ""
+        return await _resolve_wiki_source(client, token, source.token)
+    return source.source_type, source.token, ""
 
 
 async def _list_document_blocks(client: httpx.AsyncClient, token: str, document_id: str) -> list[dict[str, Any]]:
@@ -258,16 +263,67 @@ def _html_attr(value: str) -> str:
     return html.escape(value or "", quote=True)
 
 
+def _decoded_safe_url_candidate(value: str) -> str:
+    candidate = (value or "").strip()
+    for _ in range(3):
+        parsed = urlparse(candidate)
+        if parsed.scheme in {"http", "https", "mailto"}:
+            return candidate
+        decoded = unquote(candidate).strip()
+        if decoded == candidate:
+            break
+        candidate = decoded
+    return ""
+
+
+def _pdf_card_html(name: str, url: str) -> str:
+    safe_name = _html_text(name)
+    viewer_url = _html_attr(f"{url}#toolbar=0&navpanes=0&view=FitH" if "#" not in url else url)
+    title = _html_attr(name)
+    return (
+        '<div class="fs-file-card fs-pdf-card">'
+        '<div class="fs-file-card-body">'
+        '<span class="fs-file-badge">PDF</span>'
+        f'<span class="fs-file-name">{safe_name}</span>'
+        '<span class="fs-file-action">页面内预览</span>'
+        '</div>'
+        '</div>'
+        '<div class="fs-pdf-preview">'
+        f'<iframe class="fs-pdf-viewer" src="{viewer_url}" title="{title}" loading="lazy"></iframe>'
+        '</div>'
+    )
+
+
+def _filename_from_content_disposition(value: str) -> str:
+    raw = value or ""
+    match = re.search(r"filename\*=UTF-8''([^;]+)", raw, flags=re.I)
+    if match:
+        return unquote(match.group(1).strip().strip('"'))
+    match = re.search(r'filename="([^"]+)"', raw, flags=re.I)
+    if match:
+        return match.group(1).strip()
+    match = re.search(r"filename=([^;]+)", raw, flags=re.I)
+    if match:
+        return match.group(1).strip().strip('"')
+    return ""
+
+
 def _safe_url(value: str) -> str:
     raw = (value or "").strip()
     if not raw:
         return ""
     parsed = urlparse(raw)
     if parsed.scheme in {"http", "https"}:
+        for key in ("url", "target", "redirect", "redirect_url", "link", "to"):
+            values = [v.strip() for v in parse_qs(parsed.query).get(key, []) if v.strip()]
+            for nested in values:
+                safe_nested = _decoded_safe_url_candidate(nested)
+                if safe_nested:
+                    return safe_nested
         nested = unquote(parsed.path.lstrip("/")).strip()
-        nested_parsed = urlparse(nested)
-        if nested_parsed.scheme in {"http", "https"}:
-            return nested
+        safe_nested = _decoded_safe_url_candidate(nested)
+        if safe_nested and urlparse(safe_nested).scheme in {"http", "https"}:
+            return safe_nested
     if parsed.scheme and parsed.scheme.lower() not in {"http", "https", "mailto"}:
         return ""
     if not parsed.scheme:
@@ -312,6 +368,46 @@ def _extract_image_token(block: dict[str, Any]) -> str:
     return ""
 
 
+def _extract_file_info(block: dict[str, Any]) -> tuple[str, str]:
+    file_obj = block.get("file") or {}
+    if not isinstance(file_obj, dict):
+        return "", ""
+    token = ""
+    name = ""
+    for key in ("token", "file_token", "fileToken", "media_id", "file_id"):
+        value = file_obj.get(key)
+        if isinstance(value, str) and value.strip():
+            token = value.strip()
+            break
+    for key in ("name", "file_name", "filename", "title"):
+        value = file_obj.get(key)
+        if isinstance(value, str) and value.strip():
+            name = value.strip()
+            break
+    if token and name:
+        return token, name
+    for value in file_obj.values():
+        if not isinstance(value, dict):
+            continue
+        if not token:
+            for key in ("token", "file_token", "fileToken", "media_id", "file_id"):
+                nested = value.get(key)
+                if isinstance(nested, str) and nested.strip():
+                    token = nested.strip()
+                    break
+        if not name:
+            for key in ("name", "file_name", "filename", "title"):
+                nested = value.get(key)
+                if isinstance(nested, str) and nested.strip():
+                    name = nested.strip()
+                    break
+    return token, name
+
+
+def _looks_like_pdf(data: bytes) -> bool:
+    return data.lstrip()[:5] == b"%PDF-"
+
+
 class FeishuMarkdownRenderer:
     def __init__(
         self,
@@ -331,6 +427,7 @@ class FeishuMarkdownRenderer:
         self.warnings: list[str] = []
         self._warning_set: set[str] = set()
         self.image_count = 0
+        self.pdf_count = 0
         self.style_count = 0
         self.callout_count = 0
         self.first_heading = ""
@@ -378,9 +475,11 @@ class FeishuMarkdownRenderer:
             return await self.render_quote_container(block)
         if block_type == 27 or "image" in block:
             return await self.render_image(block)
+        if block_type == 23 or "file" in block:
+            return await self.render_file(block)
         if block_type == 31 or "table" in block:
             return await self.render_table(block)
-        if any(key in block for key in ("video", "file", "bitable", "mindnote", "board")):
+        if any(key in block for key in ("video", "bitable", "mindnote", "board")):
             self.warn("已跳过视频、附件、流程图、画板等暂不支持的飞书块")
             return ""
 
@@ -593,6 +692,13 @@ class FeishuMarkdownRenderer:
         url = await self.upload_image(block)
         return f"![图片]({url})" if url else ""
 
+    async def render_file(self, block: dict[str, Any]) -> str:
+        uploaded = await self.upload_pdf(block)
+        if not uploaded:
+            return ""
+        name, url = uploaded
+        return _pdf_card_html(name, url)
+
     async def upload_image(self, block: dict[str, Any]) -> str:
         token = _extract_image_token(block)
         if not token:
@@ -629,6 +735,55 @@ class FeishuMarkdownRenderer:
             raise FeishuImportError(str(exc)) from exc
         self.image_count += 1
         return str(uploaded["url"])
+
+    async def upload_pdf(self, block: dict[str, Any]) -> tuple[str, str] | None:
+        token, name = _extract_file_info(block)
+        if not token:
+            self.warn("发现附件块但没有拿到素材 token，已跳过")
+            return None
+        raw_name = name.strip()
+        name_is_pdf = raw_name.lower().endswith(".pdf")
+        try:
+            response = await self.client.get(
+                f"{FEISHU_API_BASE}/drive/v1/medias/{quote(token, safe='')}/download",
+                headers={"Authorization": f"Bearer {self.token}"},
+            )
+        except httpx.HTTPError as exc:
+            raise FeishuImportError(f"飞书 PDF 下载失败：{str(exc)[:160]}") from exc
+        if response.status_code >= 400:
+            raise FeishuImportError(f"飞书 PDF 下载失败：HTTP {response.status_code}")
+        content_type = (response.headers.get("Content-Type") or "application/octet-stream").split(";")[0].lower()
+        if content_type == "application/json":
+            try:
+                payload = response.json()
+            except ValueError:
+                payload = {}
+            raise FeishuImportError(f"飞书 PDF 下载失败：{payload.get('msg') or '接口返回错误'}")
+
+        content_is_pdf = content_type in PDF_CONTENT_TYPES or _looks_like_pdf(response.content)
+        if not name_is_pdf and not content_is_pdf:
+            self.warn(f"已跳过非 PDF 飞书附件：{raw_name or token[:12]}")
+            return None
+        if not raw_name:
+            name = f"feishu-{token[:12]}.pdf"
+        elif name_is_pdf:
+            name = raw_name
+        else:
+            name = f"{raw_name}.pdf"
+
+        upload_content_type = "application/pdf" if content_is_pdf else "application/octet-stream"
+        try:
+            uploaded = await upload_bytes(
+                response.content,
+                filename=name,
+                kind="document",
+                user_id=self.user_id,
+                content_type=upload_content_type,
+            )
+        except CosUploadError as exc:
+            raise FeishuImportError(str(exc)) from exc
+        self.pdf_count += 1
+        return name, str(uploaded["url"])
 
     async def render_callout(self, block: dict[str, Any]) -> str:
         callout = block.get("callout") if isinstance(block.get("callout"), dict) else {}
@@ -682,6 +837,8 @@ class FeishuMarkdownRenderer:
         if block_type == 27 or "image" in block:
             url = await self.upload_image(block)
             return f'<p><img src="{_html_attr(url)}" alt="图片"></p>' if url else ""
+        if block_type == 23 or "file" in block:
+            return await self.render_file(block)
         if block_type == 31 or "table" in block:
             table_md = await self.render_table(block)
             return f"<pre>{_html_text(table_md)}</pre>" if table_md else ""
@@ -755,11 +912,70 @@ class FeishuMarkdownRenderer:
         return "\n".join(parts)
 
 
+async def _import_feishu_pdf_file(
+    client: httpx.AsyncClient,
+    token: str,
+    file_token: str,
+    *,
+    user_id: int,
+    source_title: str = "",
+) -> FeishuImportedDocument:
+    try:
+        response = await client.get(
+            f"{FEISHU_API_BASE}/drive/v1/files/{quote(file_token, safe='')}/download",
+            headers={"Authorization": f"Bearer {token}"},
+        )
+    except httpx.HTTPError as exc:
+        raise FeishuImportError(f"飞书 PDF 文件下载失败：{str(exc)[:160]}") from exc
+    if response.status_code >= 400:
+        raise FeishuImportError(f"飞书 PDF 文件下载失败：HTTP {response.status_code}")
+    content_type = (response.headers.get("Content-Type") or "application/octet-stream").split(";")[0].lower()
+    if content_type == "application/json":
+        try:
+            payload = response.json()
+        except ValueError:
+            payload = {}
+        raise FeishuImportError(f"飞书 PDF 文件下载失败：{payload.get('msg') or '接口返回错误'}")
+    if content_type not in PDF_CONTENT_TYPES and not _looks_like_pdf(response.content):
+        raise FeishuImportError("这个飞书文件不是 PDF，暂只支持导入 PDF 文件链接")
+
+    header_name = _filename_from_content_disposition(response.headers.get("Content-Disposition", ""))
+    name = (source_title or header_name or f"feishu-{file_token[:12]}").strip()
+    if not name.lower().endswith(".pdf"):
+        name = f"{name}.pdf"
+    try:
+        uploaded = await upload_bytes(
+            response.content,
+            filename=name,
+            kind="document",
+            user_id=user_id,
+            content_type="application/pdf",
+        )
+    except CosUploadError as exc:
+        raise FeishuImportError(str(exc)) from exc
+    url = str(uploaded["url"])
+    title = name[:-4].strip() if name.lower().endswith(".pdf") else name
+    return FeishuImportedDocument(
+        title=(title or "飞书 PDF 文件")[:100],
+        markdown=_pdf_card_html(name, url),
+        pdf_count=1,
+    )
+
+
 async def import_feishu_docx(url: str, *, user_id: int) -> FeishuImportedDocument:
     timeout = httpx.Timeout(connect=10.0, read=60.0, write=20.0, pool=10.0)
     async with httpx.AsyncClient(timeout=timeout, follow_redirects=True) as client:
         token = await _tenant_access_token(client)
-        document_id, source_title = await _resolve_document_id(client, token, url)
+        source_type, source_token, source_title = await _resolve_source(client, token, url)
+        if source_type == "file":
+            return await _import_feishu_pdf_file(
+                client,
+                token,
+                source_token,
+                user_id=user_id,
+                source_title=source_title,
+            )
+        document_id = source_token
         info = await _get_document_info(client, token, document_id)
         blocks = await _list_document_blocks(client, token, document_id)
         renderer = FeishuMarkdownRenderer(
@@ -775,6 +991,7 @@ async def import_feishu_docx(url: str, *, user_id: int) -> FeishuImportedDocumen
             title=title.strip()[:100],
             markdown=markdown,
             image_count=renderer.image_count,
+            pdf_count=renderer.pdf_count,
             style_count=renderer.style_count,
             callout_count=renderer.callout_count,
             warnings=renderer.warnings,
