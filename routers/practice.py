@@ -7,17 +7,18 @@ from __future__ import annotations
 from datetime import datetime
 from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, UploadFile
 from fastapi.responses import Response
+from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from pydantic import BaseModel
 from typing import Optional
 from sqlalchemy.orm import Session
 from sqlalchemy import text
 from urllib.parse import quote, unquote, urlparse
 from app_config import get_app_setting
-from auth import create_access_token, ensure_default_admin, get_current_user, is_default_admin_phone
+from auth import create_access_token, decode_access_token, ensure_default_admin, get_current_user, is_default_admin_phone
 from database import get_db
 from models import PracticeCourse, PracticeLesson, User
 from permissions import get_active_plan
-from plan_config import get_plan_definition, plan_allows_practice, plan_can_publish_practice
+from plan_config import get_plan_definition, get_practice_content_access, plan_allows_practice, plan_can_publish_practice
 from services.cos_upload import CosUploadError, upload_bytes, upload_fastapi_file
 from services.feishu_import import FeishuImportError, import_feishu_docx, parse_feishu_docx_id
 from sms_service import SmsVerificationError, verify_sms_code
@@ -27,6 +28,7 @@ import os
 
 router = APIRouter(prefix="/practice", tags=["practice"])
 logger = logging.getLogger(__name__)
+optional_bearer_scheme = HTTPBearer(auto_error=False)
 
 
 class SubscribeRequest(BaseModel):
@@ -70,6 +72,48 @@ def _require_practice_publisher(user: User, db: Session) -> None:
 def _require_admin_user(user: User) -> None:
     if not getattr(user, "is_admin", False):
         raise HTTPException(403, "需要管理员权限")
+
+
+def _optional_current_user(
+    credentials: Optional[HTTPAuthorizationCredentials] = Depends(optional_bearer_scheme),
+    db: Session = Depends(get_db),
+) -> Optional[User]:
+    if credentials is None:
+        return None
+    token = credentials.credentials
+    admin_token = os.getenv("ADMIN_TOKEN", "")
+    if admin_token and token == admin_token:
+        return User(id=0, phone="admin-token", is_admin=True, is_active=True)
+    user_id = decode_access_token(token)
+    if user_id is None:
+        return None
+    return db.query(User).filter(User.id == int(user_id), User.is_active == True).first()  # noqa: E712
+
+
+def _allowed_content_ids(user: Optional[User], content_kind: str, db: Session) -> Optional[list[int]]:
+    if user is not None and getattr(user, "is_admin", False):
+        return None
+    plan_type = get_active_plan(user, db) if user is not None else "free"
+    access = get_practice_content_access(plan_type, db)
+    if not access["practice_access"]:
+        return []
+    if access["mode"] != "custom":
+        return None
+    key = "column_ids" if content_kind == "column" else "course_ids"
+    return list(access[key])
+
+
+def _ids_sql(ids: list[int]) -> str:
+    return ",".join(str(int(item)) for item in ids if int(item) > 0)
+
+
+def _require_content_access(user: Optional[User], content_kind: str, content_id: int, db: Session) -> None:
+    allowed_ids = _allowed_content_ids(user, content_kind, db)
+    if allowed_ids is None:
+        return
+    if int(content_id) in set(allowed_ids):
+        return
+    raise HTTPException(403, "当前套餐无权访问该内容")
 
 
 def _upload_error(exc: CosUploadError) -> HTTPException:
@@ -379,10 +423,16 @@ def list_courses(
     sort: str = Query("hot"),
     page: int = Query(1, ge=1),
     page_size: int = Query(20, ge=1, le=50),
+    current_user: Optional[User] = Depends(_optional_current_user),
     db: Session = Depends(get_db),
 ):
     conditions = ["is_published = true", "COALESCE(content_kind, 'course') = 'course'"]
     params = {}
+    allowed_ids = _allowed_content_ids(current_user, "course", db)
+    if allowed_ids == []:
+        return {"total": 0, "page": page, "page_size": page_size, "items": []}
+    if allowed_ids is not None:
+        conditions.append(f"id IN ({_ids_sql(allowed_ids)})")
 
     if category:
         conditions.append("category = :category")
@@ -395,7 +445,7 @@ def list_courses(
     where = " AND ".join(conditions)
     order = "view_count DESC, sort_order ASC" if sort == "hot" else "created_at DESC"
 
-    total = db.execute(text(f"SELECT COUNT(*) FROM practice_courses WHERE {where}"), params).scalar() or 0
+    total = db.execute(text(f"SELECT COUNT(*) FROM practice_courses pc WHERE {where}"), params).scalar() or 0
 
     params["limit"] = page_size
     params["offset"] = (page - 1) * page_size
@@ -410,7 +460,11 @@ def list_courses(
 
 # ─── 6. 课程详情 + 课时 ───
 @router.get("/courses/{slug}")
-def get_course(slug: str, db: Session = Depends(get_db)):
+def get_course(
+    slug: str,
+    current_user: Optional[User] = Depends(_optional_current_user),
+    db: Session = Depends(get_db),
+):
     row = db.execute(
         text("""
             SELECT * FROM practice_courses
@@ -423,6 +477,7 @@ def get_course(slug: str, db: Session = Depends(get_db)):
         raise HTTPException(404, "课程不存在")
 
     item = row_to_dict(row)
+    _require_content_access(current_user, "course", int(item["id"]), db)
 
     lessons = db.execute(text("""
         SELECT id, title, description, lesson_type, video_duration, sort_order, is_free, is_published, view_count
@@ -437,7 +492,12 @@ def get_course(slug: str, db: Session = Depends(get_db)):
 
 # ─── 7. 单课时详情 ───
 @router.get("/courses/{slug}/lessons/{lesson_id}")
-def get_lesson(slug: str, lesson_id: int, db: Session = Depends(get_db)):
+def get_lesson(
+    slug: str,
+    lesson_id: int,
+    current_user: Optional[User] = Depends(_optional_current_user),
+    db: Session = Depends(get_db),
+):
     course = db.execute(
         text("""
             SELECT id FROM practice_courses
@@ -448,6 +508,7 @@ def get_lesson(slug: str, lesson_id: int, db: Session = Depends(get_db)):
     ).fetchone()
     if not course:
         raise HTTPException(404, "课程不存在")
+    _require_content_access(current_user, "course", int(course[0]), db)
 
     lesson = db.execute(text("""
         SELECT * FROM practice_lessons
@@ -470,17 +531,23 @@ def list_columns(
     sort: str = Query("latest"),
     page: int = Query(1, ge=1),
     page_size: int = Query(20, ge=1, le=50),
+    current_user: Optional[User] = Depends(_optional_current_user),
     db: Session = Depends(get_db),
 ):
     conditions = ["is_published = true", "content_kind = 'column'"]
     params = {}
+    allowed_ids = _allowed_content_ids(current_user, "column", db)
+    if allowed_ids == []:
+        return {"total": 0, "page": page, "page_size": page_size, "items": []}
+    if allowed_ids is not None:
+        conditions.append(f"pc.id IN ({_ids_sql(allowed_ids)})")
     if category:
         conditions.append("category = :category")
         params["category"] = category
 
     where = " AND ".join(conditions)
     order = "view_count DESC, sort_order ASC" if sort == "hot" else "updated_at DESC, sort_order ASC"
-    total = db.execute(text(f"SELECT COUNT(*) FROM practice_courses WHERE {where}"), params).scalar() or 0
+    total = db.execute(text(f"SELECT COUNT(*) FROM practice_courses pc WHERE {where}"), params).scalar() or 0
     params["limit"] = page_size
     params["offset"] = (page - 1) * page_size
     rows = db.execute(text(f"""
@@ -497,7 +564,11 @@ def list_columns(
 
 
 @router.get("/columns/{slug}")
-def get_column(slug: str, db: Session = Depends(get_db)):
+def get_column(
+    slug: str,
+    current_user: Optional[User] = Depends(_optional_current_user),
+    db: Session = Depends(get_db),
+):
     row = db.execute(text("""
         SELECT * FROM practice_courses
         WHERE slug = :slug AND is_published = true AND content_kind = 'column'
@@ -505,6 +576,7 @@ def get_column(slug: str, db: Session = Depends(get_db)):
     if not row:
         raise HTTPException(404, "专栏不存在")
     item = row_to_dict(row)
+    _require_content_access(current_user, "column", int(item["id"]), db)
     lessons = db.execute(text("""
         SELECT id, title, description, lesson_type, video_duration, sort_order,
                is_free, is_published, view_count, source_type, source_doc_id
@@ -517,13 +589,19 @@ def get_column(slug: str, db: Session = Depends(get_db)):
 
 
 @router.get("/columns/{slug}/lessons/{lesson_id}")
-def get_column_lesson(slug: str, lesson_id: int, db: Session = Depends(get_db)):
+def get_column_lesson(
+    slug: str,
+    lesson_id: int,
+    current_user: Optional[User] = Depends(_optional_current_user),
+    db: Session = Depends(get_db),
+):
     course = db.execute(text("""
         SELECT id FROM practice_courses
         WHERE slug = :slug AND is_published = true AND content_kind = 'column'
     """), {"slug": slug}).fetchone()
     if not course:
         raise HTTPException(404, "专栏不存在")
+    _require_content_access(current_user, "column", int(course[0]), db)
     lesson = db.execute(text("""
         SELECT * FROM practice_lessons
         WHERE id = :lid AND course_id = :cid AND is_published = true
@@ -583,24 +661,40 @@ def list_categories(project_type: Optional[str] = Query(None), db: Session = Dep
 
 # ─── 11. 课程分类 ───
 @router.get("/course-categories")
-def list_course_categories(db: Session = Depends(get_db)):
+def list_course_categories(
+    current_user: Optional[User] = Depends(_optional_current_user),
+    db: Session = Depends(get_db),
+):
+    allowed_ids = _allowed_content_ids(current_user, "course", db)
+    if allowed_ids == []:
+        return []
+    extra = f"AND id IN ({_ids_sql(allowed_ids)})" if allowed_ids is not None else ""
     rows = db.execute(text("""
         SELECT DISTINCT category FROM practice_courses
         WHERE is_published = true
           AND COALESCE(content_kind, 'course') = 'course'
           AND category IS NOT NULL
+          """ + extra + """
         ORDER BY category
     """)).fetchall()
     return [r[0] for r in rows]
 
 
 @router.get("/column-categories")
-def list_column_categories(db: Session = Depends(get_db)):
+def list_column_categories(
+    current_user: Optional[User] = Depends(_optional_current_user),
+    db: Session = Depends(get_db),
+):
+    allowed_ids = _allowed_content_ids(current_user, "column", db)
+    if allowed_ids == []:
+        return []
+    extra = f"AND id IN ({_ids_sql(allowed_ids)})" if allowed_ids is not None else ""
     rows = db.execute(text("""
         SELECT DISTINCT category FROM practice_courses
         WHERE is_published = true
           AND content_kind = 'column'
           AND category IS NOT NULL
+          """ + extra + """
         ORDER BY category
     """)).fetchall()
     return [r[0] for r in rows]

@@ -39,7 +39,7 @@ from credit_config import (
     save_credit_package_config,
 )
 from database import get_db
-from models import Credit, Membership, Order, UsageLog, User
+from models import Credit, Membership, Order, PracticeCourse, UsageLog, User
 from plan_config import (
     get_feature_definitions,
     get_grantable_plans,
@@ -481,6 +481,31 @@ def update_admin_plan_config(
         "features": get_feature_definitions(),
         "credit_packages": get_credit_package_config(db)["packages"],
         "credit_billing": get_credit_billing_config(db),
+    }
+
+
+@router.get("/practice-content-options")
+def get_practice_content_options(_: None = Depends(require_admin), db: Session = Depends(get_db)):
+    rows = db.query(PracticeCourse).order_by(
+        PracticeCourse.content_kind.asc(),
+        PracticeCourse.sort_order.asc(),
+        PracticeCourse.id.asc(),
+    ).all()
+
+    def item(course: PracticeCourse) -> dict:
+        return {
+            "id": int(course.id),
+            "slug": course.slug,
+            "title": course.title,
+            "content_kind": course.content_kind or "course",
+            "category": course.category,
+            "is_published": bool(course.is_published),
+            "lesson_count": int(course.lesson_count or 0),
+        }
+
+    return {
+        "courses": [item(c) for c in rows if (c.content_kind or "course") == "course"],
+        "columns": [item(c) for c in rows if c.content_kind == "column"],
     }
 
 

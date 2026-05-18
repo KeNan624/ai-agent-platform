@@ -9,16 +9,22 @@ POST /practice/lessons/{id}/view    累加课时浏览量
 """
 
 from __future__ import annotations
+import os
 from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from pydantic import BaseModel
 from sqlalchemy.orm import Session, joinedload
 
+from auth import decode_access_token
 from database import get_db
-from models import PracticeCourse, PracticeLesson
+from models import PracticeCourse, PracticeLesson, User
+from permissions import get_active_plan
+from plan_config import get_practice_content_access
 
 router = APIRouter(prefix="/practice", tags=["courses"])
+optional_bearer_scheme = HTTPBearer(auto_error=False)
 
 
 # ═══════════════════════════════════════════════
@@ -68,6 +74,43 @@ class LessonDetail(LessonCard):
 #  Helpers
 # ═══════════════════════════════════════════════
 
+def _optional_current_user(
+    credentials: Optional[HTTPAuthorizationCredentials] = Depends(optional_bearer_scheme),
+    db: Session = Depends(get_db),
+) -> Optional[User]:
+    if credentials is None:
+        return None
+    token = credentials.credentials
+    admin_token = os.getenv("ADMIN_TOKEN", "")
+    if admin_token and token == admin_token:
+        return User(id=0, phone="admin-token", is_admin=True, is_active=True)
+    user_id = decode_access_token(token)
+    if user_id is None:
+        return None
+    return db.query(User).filter(User.id == int(user_id), User.is_active == True).first()  # noqa: E712
+
+
+def _allowed_course_ids(user: Optional[User], db: Session) -> Optional[list[int]]:
+    if user is not None and getattr(user, "is_admin", False):
+        return None
+    plan_type = get_active_plan(user, db) if user is not None else "free"
+    access = get_practice_content_access(plan_type, db)
+    if not access["practice_access"]:
+        return []
+    if access["mode"] != "custom":
+        return None
+    return list(access["course_ids"])
+
+
+def _require_course_access(user: Optional[User], course_id: int, db: Session) -> None:
+    allowed_ids = _allowed_course_ids(user, db)
+    if allowed_ids is None:
+        return
+    if int(course_id) in set(allowed_ids):
+        return
+    raise HTTPException(403, "当前套餐无权访问该内容")
+
+
 def _course_to_card(c: PracticeCourse) -> CourseCard:
     return CourseCard(
         slug=c.slug, title=c.title, description=c.description,
@@ -96,8 +139,17 @@ def _lesson_to_card(l: PracticeLesson) -> LessonCard:
 def list_courses(
     db: Session = Depends(get_db),
     category: Optional[str] = Query(None),
+    current_user: Optional[User] = Depends(_optional_current_user),
 ):
-    q = db.query(PracticeCourse).filter(PracticeCourse.is_published == True)  # noqa
+    q = db.query(PracticeCourse).filter(
+        PracticeCourse.is_published == True,  # noqa: E712
+        PracticeCourse.content_kind == "course",
+    )
+    allowed_ids = _allowed_course_ids(current_user, db)
+    if allowed_ids == []:
+        return []
+    if allowed_ids is not None:
+        q = q.filter(PracticeCourse.id.in_(allowed_ids))
     if category:
         q = q.filter(PracticeCourse.category == category)
     q = q.order_by(PracticeCourse.sort_order.asc(), PracticeCourse.id.asc())
@@ -105,7 +157,11 @@ def list_courses(
 
 
 @router.get("/courses/{slug}", response_model=CourseDetail)
-def get_course(slug: str, db: Session = Depends(get_db)):
+def get_course(
+    slug: str,
+    db: Session = Depends(get_db),
+    current_user: Optional[User] = Depends(_optional_current_user),
+):
     c = db.query(PracticeCourse).options(
         joinedload(PracticeCourse.lessons)
     ).filter(PracticeCourse.slug == slug).first()
@@ -113,6 +169,7 @@ def get_course(slug: str, db: Session = Depends(get_db)):
         raise HTTPException(404, "课程不存在")
     if not c.is_published:
         raise HTTPException(404, "课程未发布")
+    _require_course_access(current_user, int(c.id), db)
     lessons = [_lesson_to_card(l) for l in (c.lessons or []) if l.is_published]
     return CourseDetail(**_course_to_card(c).model_dump(), lessons=lessons)
 
@@ -128,7 +185,11 @@ def increment_course_view(slug: str, db: Session = Depends(get_db)):
 
 
 @router.get("/lessons/{lesson_id}", response_model=LessonDetail)
-def get_lesson(lesson_id: int, db: Session = Depends(get_db)):
+def get_lesson(
+    lesson_id: int,
+    db: Session = Depends(get_db),
+    current_user: Optional[User] = Depends(_optional_current_user),
+):
     l = db.query(PracticeLesson).options(
         joinedload(PracticeLesson.course)
     ).filter(PracticeLesson.id == lesson_id).first()
@@ -136,6 +197,7 @@ def get_lesson(lesson_id: int, db: Session = Depends(get_db)):
         raise HTTPException(404, "课时不存在")
     if not l.is_published:
         raise HTTPException(404, "课时未发布")
+    _require_course_access(current_user, int(l.course_id), db)
     return LessonDetail(
         id=l.id, title=l.title, description=l.description,
         lesson_type=l.lesson_type, video_duration=l.video_duration,

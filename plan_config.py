@@ -15,6 +15,7 @@ from app_config import get_app_setting
 PLAN_CONFIG_KEY = "PLAN_CONFIG"
 PLAN_ID_RE = re.compile(r"^[a-z0-9][a-z0-9_-]{0,31}$")
 PLAN_PERIODS = {"day", "month"}
+PRACTICE_CONTENT_MODES = {"all", "custom"}
 DEFAULT_SALE_STOCK = 999
 FEATURE_UNLIMITED_QUOTA = -1
 PLAN_FEATURE_DEFINITIONS: list[dict[str, str]] = [
@@ -56,6 +57,9 @@ DEFAULT_PLAN_CONFIG: dict[str, Any] = {
             "feature_quotas": {key: FEATURE_UNLIMITED_QUOTA for key in PLAN_FEATURE_KEYS},
             "practice_access": False,
             "practice_publish": False,
+            "practice_content_mode": "all",
+            "practice_course_ids": [],
+            "practice_column_ids": [],
             "sort_order": 0,
         },
         {
@@ -76,6 +80,9 @@ DEFAULT_PLAN_CONFIG: dict[str, Any] = {
             "feature_quotas": {key: FEATURE_UNLIMITED_QUOTA for key in PLAN_FEATURE_KEYS},
             "practice_access": False,
             "practice_publish": False,
+            "practice_content_mode": "all",
+            "practice_course_ids": [],
+            "practice_column_ids": [],
             "sort_order": 10,
         },
         {
@@ -96,6 +103,9 @@ DEFAULT_PLAN_CONFIG: dict[str, Any] = {
             "feature_quotas": {key: FEATURE_UNLIMITED_QUOTA for key in PLAN_FEATURE_KEYS},
             "practice_access": False,
             "practice_publish": False,
+            "practice_content_mode": "all",
+            "practice_course_ids": [],
+            "practice_column_ids": [],
             "sort_order": 20,
         },
         {
@@ -116,6 +126,9 @@ DEFAULT_PLAN_CONFIG: dict[str, Any] = {
             "feature_quotas": {key: FEATURE_UNLIMITED_QUOTA for key in PLAN_FEATURE_KEYS},
             "practice_access": True,
             "practice_publish": True,
+            "practice_content_mode": "all",
+            "practice_course_ids": [],
+            "practice_column_ids": [],
             "sort_order": 30,
         },
     ],
@@ -254,6 +267,22 @@ def _clean_feature_quotas(value: Any, default: Optional[dict[str, Any]] = None) 
     return result
 
 
+def _clean_content_ids(value: Any, default: Optional[list[int]] = None) -> list[int]:
+    source = value if isinstance(value, list) else (default if isinstance(default, list) else [])
+    result: list[int] = []
+    seen: set[int] = set()
+    for item in source:
+        try:
+            parsed = int(item)
+        except (TypeError, ValueError):
+            continue
+        if parsed <= 0 or parsed in seen:
+            continue
+        seen.add(parsed)
+        result.append(parsed)
+    return result
+
+
 def _clean_benefits(value: Any, default: Optional[list[str]] = None) -> list[str]:
     source = value if isinstance(value, list) else (default if isinstance(default, list) else [])
     return [
@@ -315,6 +344,9 @@ def normalize_plan_config(
             "feature_quotas": {key: FEATURE_UNLIMITED_QUOTA for key in PLAN_FEATURE_KEYS},
             "practice_access": False,
             "practice_publish": False,
+            "practice_content_mode": "all",
+            "practice_course_ids": [],
+            "practice_column_ids": [],
             "sort_order": len(plans) * 10,
         })
 
@@ -352,11 +384,22 @@ def normalize_plan_config(
             "feature_quotas": feature_quotas,
             "practice_access": bool(item.get("practice_access", base.get("practice_access", False))),
             "practice_publish": bool(item.get("practice_publish", base.get("practice_publish", False))),
+            "practice_content_mode": str(
+                item.get("practice_content_mode") or base.get("practice_content_mode") or "all"
+            ).strip().lower(),
+            "practice_course_ids": _clean_content_ids(
+                item.get("practice_course_ids"), base.get("practice_course_ids", [])
+            ),
+            "practice_column_ids": _clean_content_ids(
+                item.get("practice_column_ids"), base.get("practice_column_ids", [])
+            ),
             "sort_order": _as_int(item.get("sort_order", base.get("sort_order", len(plans) * 10)), len(plans) * 10),
         }
 
         if plan["period"] not in PLAN_PERIODS:
             plan["period"] = base.get("period", "month")
+        if plan["practice_content_mode"] not in PRACTICE_CONTENT_MODES:
+            plan["practice_content_mode"] = "all"
         if plan_id == "free":
             plan["enabled"] = True
             plan["purchasable"] = False
@@ -501,6 +544,34 @@ def plan_allows_practice(plan_type: Optional[str], db: Optional[Session] = None)
 
 def plan_can_publish_practice(plan_type: Optional[str], db: Optional[Session] = None) -> bool:
     return bool(get_plan_definition(plan_type, db).get("practice_publish"))
+
+
+def get_practice_content_access(plan_type: Optional[str], db: Optional[Session] = None) -> dict[str, Any]:
+    plan = get_plan_definition(plan_type, db)
+    mode = str(plan.get("practice_content_mode") or "all").strip().lower()
+    if mode not in PRACTICE_CONTENT_MODES:
+        mode = "all"
+    return {
+        "practice_access": bool(plan.get("practice_access")),
+        "mode": mode,
+        "course_ids": _clean_content_ids(plan.get("practice_course_ids", [])),
+        "column_ids": _clean_content_ids(plan.get("practice_column_ids", [])),
+    }
+
+
+def plan_can_access_practice_content(
+    plan_type: Optional[str],
+    content_kind: str,
+    content_id: int,
+    db: Optional[Session] = None,
+) -> bool:
+    access = get_practice_content_access(plan_type, db)
+    if not access["practice_access"]:
+        return False
+    if access["mode"] != "custom":
+        return True
+    key = "column_ids" if str(content_kind or "").strip() == "column" else "course_ids"
+    return int(content_id or 0) in set(access[key])
 
 
 def get_purchasable_plans(db: Optional[Session] = None) -> list[dict[str, Any]]:

@@ -225,7 +225,7 @@ select.form-input{cursor:pointer}
 .plan-checks{display:flex;gap:10px;align-items:center;white-space:nowrap}
 .plan-checks label,.mini-check{display:flex;align-items:center;gap:4px;font-size:11px;color:var(--muted)}
 .plan-table-wrap{overflow-x:auto;overflow-y:hidden;-webkit-overflow-scrolling:touch}
-.plan-table{width:2700px;min-width:2700px;table-layout:fixed}
+.plan-table{width:2920px;min-width:2920px;table-layout:fixed}
 .plan-table th,.plan-table td{box-sizing:border-box}
 .plan-table input,.plan-table select,.plan-table textarea{width:100%;min-width:0;padding:6px 8px;border:1px solid var(--border);border-radius:6px;font-size:12px;background:#fff}
 .plan-table textarea{min-height:72px;resize:vertical;font-family:inherit;line-height:1.45}
@@ -237,6 +237,19 @@ select.form-input{cursor:pointer}
 .plan-feature-row{display:flex;align-items:center;gap:6px}
 .plan-feature-row label{min-width:0;overflow:hidden;text-overflow:ellipsis}
 .plan-flags{display:flex;flex-direction:column;gap:5px;min-width:110px}
+.practice-content-control{display:flex;flex-direction:column;gap:7px;min-width:170px}
+.practice-content-summary{font-size:11px;color:var(--muted);line-height:1.45}
+.practice-content-modal{width:760px;max-width:95vw}
+.practice-content-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.practice-content-group{border:1px solid var(--border);border-radius:10px;background:#f8fafc;min-width:0}
+.practice-content-group-title{padding:10px 12px;border-bottom:1px solid var(--border);font-size:12px;font-weight:700;color:var(--text)}
+.practice-content-list{max-height:420px;overflow:auto;padding:8px}
+.practice-content-option{display:grid;grid-template-columns:18px minmax(0,1fr);gap:8px;padding:8px;border-radius:8px;font-size:12px;color:var(--text);cursor:pointer}
+.practice-content-option:hover{background:#fff}
+.practice-content-option input{margin-top:2px}
+.practice-content-title{font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.practice-content-meta{font-size:11px;color:var(--muted);margin-top:2px}
+.practice-content-empty{padding:18px 12px;color:var(--muted);font-size:12px;text-align:center}
 .credit-config-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:16px}
 .credit-config-card{border:1px solid var(--border);border-radius:10px;background:#fff;padding:14px}
 .credit-config-card h4{font-size:13px;margin-bottom:10px;color:var(--text)}
@@ -307,6 +320,7 @@ body.drawer-open .m-overlay{display:block}
   .config-grid{grid-template-columns:1fr;gap:14px}
   .model-provider-card{grid-template-columns:1fr;gap:10px}
   .credit-config-grid{grid-template-columns:1fr;gap:12px}
+  .practice-content-grid{grid-template-columns:1fr}
   .modal{width:92vw;padding:22px;max-height:90vh;overflow-y:auto;border-radius:12px}
   .modal h3{font-size:15px}
   .toolbar{flex-wrap:wrap;gap:8px}
@@ -718,6 +732,19 @@ body.drawer-open .m-overlay{display:block}
   </div>
 </div>
 
+<!-- ═══════════════════ PRACTICE CONTENT MODAL ═══════════════════ -->
+<div class="modal-overlay" id="practice-content-modal">
+  <div class="modal practice-content-modal">
+    <h3 id="practice-content-modal-title">配置课程/专栏权限</h3>
+    <div class="modal-sub">只在套餐选择“按勾选内容”时生效；选择“全部可看”时这些勾选会保留但不限制访问。</div>
+    <div id="practice-content-modal-body"></div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeModal('practice-content-modal')">取消</button>
+      <button class="btn btn-primary" onclick="savePracticeContentSelection()">保存选择</button>
+    </div>
+  </div>
+</div>
+
 <div id="toast"></div>
 
 <script>
@@ -734,6 +761,8 @@ let userPhoneFilter = '';
 let apiConfigItems = [];
 let modelConfigData = null;
 let planConfigData = null;
+let practiceContentOptions = null;
+let practiceContentEditIdx = -1;
 let usageStatsData = null;
 
 // ═══════════════════════════════════════════════
@@ -1337,6 +1366,7 @@ async function loadPlanConfig() {
       modelConfigData = await api('GET', '/admin/model-config');
     }
     planConfigData = await api('GET', '/admin/plan-config');
+    await loadPracticeContentOptions();
     renderPlanConfig();
     refreshGrantPlans();
   } catch (e) {
@@ -1346,6 +1376,99 @@ async function loadPlanConfig() {
 
 function enabledChatModels() {
   return (modelConfigData?.models || []).filter(m => m.enabled);
+}
+
+async function loadPracticeContentOptions() {
+  if (practiceContentOptions) return practiceContentOptions;
+  practiceContentOptions = await api('GET', '/admin/practice-content-options');
+  practiceContentOptions.courses = practiceContentOptions.courses || [];
+  practiceContentOptions.columns = practiceContentOptions.columns || [];
+  return practiceContentOptions;
+}
+
+function cleanIdArray(values) {
+  const seen = new Set();
+  return (values || [])
+    .map(v => parseInt(v, 10))
+    .filter(v => Number.isInteger(v) && v > 0 && !seen.has(v) && (seen.add(v) || true));
+}
+
+function normalizePracticeContentPlan(plan) {
+  plan.practice_content_mode = plan.practice_content_mode === 'custom' ? 'custom' : 'all';
+  plan.practice_course_ids = cleanIdArray(plan.practice_course_ids);
+  plan.practice_column_ids = cleanIdArray(plan.practice_column_ids);
+  return plan;
+}
+
+function renderPracticeContentSummary(plan) {
+  normalizePracticeContentPlan(plan);
+  const courseCount = plan.practice_course_ids.length;
+  const columnCount = plan.practice_column_ids.length;
+  if (plan.practice_content_mode !== 'custom') return `全部课程/专栏可看 · 已保留 ${courseCount} 门课程、${columnCount} 个专栏选择`;
+  return `已开放 ${courseCount} 门课程、${columnCount} 个专栏`;
+}
+
+function setPlanContentMode(idx, value) {
+  const plan = planConfigData?.plans?.[idx];
+  if (!plan) return;
+  plan.practice_content_mode = value === 'custom' ? 'custom' : 'all';
+  const el = document.getElementById(`practice-content-summary-${idx}`);
+  if (el) el.textContent = renderPracticeContentSummary(plan);
+}
+
+function renderPracticeContentOptions(kind, selectedIds) {
+  const items = (practiceContentOptions?.[kind] || []);
+  if (!items.length) return '<div class="practice-content-empty">暂无内容</div>';
+  const label = kind === 'courses' ? 'course' : 'column';
+  return items.map(item => `
+    <label class="practice-content-option">
+      <input type="checkbox" class="pcm-content-check" data-kind="${label}" data-id="${item.id}" ${selectedIds.has(Number(item.id)) ? 'checked' : ''}>
+      <span>
+        <span class="practice-content-title">${esc(item.title || item.slug || item.id)}</span>
+        <span class="practice-content-meta">${esc(item.category || '未分类')} · ${item.lesson_count || 0} 节 · ${item.is_published ? '已发布' : '草稿'}</span>
+      </span>
+    </label>
+  `).join('');
+}
+
+async function openPracticeContentModal(idx) {
+  practiceContentEditIdx = idx;
+  const plan = planConfigData?.plans?.[idx];
+  if (!plan) return;
+  await loadPracticeContentOptions();
+  normalizePracticeContentPlan(plan);
+  document.getElementById('practice-content-modal-title').textContent = `配置内容权限 · ${plan.name || plan.id}`;
+  document.getElementById('practice-content-modal-body').innerHTML = `
+    <div class="practice-content-grid">
+      <div class="practice-content-group">
+        <div class="practice-content-group-title">视频课程</div>
+        <div class="practice-content-list">${renderPracticeContentOptions('courses', new Set(plan.practice_course_ids))}</div>
+      </div>
+      <div class="practice-content-group">
+        <div class="practice-content-group-title">专栏</div>
+        <div class="practice-content-list">${renderPracticeContentOptions('columns', new Set(plan.practice_column_ids))}</div>
+      </div>
+    </div>
+  `;
+  document.getElementById('practice-content-modal').classList.add('open');
+}
+
+function savePracticeContentSelection() {
+  const plan = planConfigData?.plans?.[practiceContentEditIdx];
+  if (!plan) return;
+  const courseIds = [];
+  const columnIds = [];
+  document.querySelectorAll('#practice-content-modal .pcm-content-check:checked').forEach(el => {
+    const id = parseInt(el.dataset.id, 10);
+    if (!Number.isInteger(id) || id <= 0) return;
+    if (el.dataset.kind === 'column') columnIds.push(id);
+    else courseIds.push(id);
+  });
+  plan.practice_course_ids = cleanIdArray(courseIds);
+  plan.practice_column_ids = cleanIdArray(columnIds);
+  const summary = document.getElementById(`practice-content-summary-${practiceContentEditIdx}`);
+  if (summary) summary.textContent = renderPracticeContentSummary(plan);
+  closeModal('practice-content-modal');
 }
 
 function renderModelCheckboxes(plan, className, selectedKey) {
@@ -1455,6 +1578,7 @@ function renderPlanConfig() {
     panel.innerHTML = '<div class="empty">暂无套餐配置</div>';
     return;
   }
+  plans.forEach(normalizePracticeContentPlan);
   panel.innerHTML = `
     <div class="model-table-wrap plan-table-wrap">
       <div class="m-scroll-hint">← 左右滑动查看更多 →</div>
@@ -1474,6 +1598,7 @@ function renderPlanConfig() {
           <col style="width:340px">
           <col style="width:150px">
           <col style="width:140px">
+          <col style="width:220px">
           <col style="width:100px">
           <col style="width:100px">
         </colgroup>
@@ -1493,6 +1618,7 @@ function renderPlanConfig() {
             <th>功能权限</th>
             <th>状态</th>
             <th>实战区</th>
+            <th>课程/专栏权限</th>
             <th>排序</th>
             <th>操作</th>
           </tr>
@@ -1529,6 +1655,16 @@ function renderPlanConfig() {
                   <label class="mini-check"><input type="checkbox" class="pc-practice-publish" ${p.practice_publish ? 'checked' : ''}>可发布</label>
                 </div>
               </td>
+              <td>
+                <div class="practice-content-control">
+                  <select class="pc-practice-content-mode" onchange="setPlanContentMode(${idx}, this.value)">
+                    <option value="all" ${p.practice_content_mode !== 'custom' ? 'selected' : ''}>全部可看</option>
+                    <option value="custom" ${p.practice_content_mode === 'custom' ? 'selected' : ''}>按勾选内容</option>
+                  </select>
+                  <button type="button" class="btn btn-sm" onclick="openPracticeContentModal(${idx})">配置内容</button>
+                  <div class="practice-content-summary" id="practice-content-summary-${idx}">${esc(renderPracticeContentSummary(p))}</div>
+                </div>
+              </td>
               <td><input class="pc-sort" type="number" value="${Number(p.sort_order || 0)}"></td>
               <td>
                 ${p._isNew ? `<button class="btn btn-sm" onclick="removePlanRow(${idx})">删除</button>` : `<button class="btn btn-sm" onclick="togglePlanEnabled(${idx})">${p.enabled ? '停用' : '启用'}</button>`}
@@ -1561,6 +1697,8 @@ function collectPlanConfig() {
     const enabledFeatures = Array.from(row.querySelectorAll('.pc-feature:checked')).map(el => el.dataset.feature);
     if (!allowed.length) throw new Error(`套餐 ${id} 至少需要选择一个可用模型`);
     const practicePublish = !!row.querySelector('.pc-practice-publish')?.checked;
+    const sourcePlan = normalizePracticeContentPlan(planConfigData?.plans?.[idx] || {});
+    const practiceContentMode = row.querySelector('.pc-practice-content-mode')?.value === 'custom' ? 'custom' : 'all';
     return {
       id,
       name: row.querySelector('.pc-name')?.value.trim() || id,
@@ -1583,6 +1721,9 @@ function collectPlanConfig() {
       feature_quotas: Object.fromEntries(planFeatureDefs().map(f => [f.key, -1])),
       practice_access: practicePublish || !!row.querySelector('.pc-practice-access')?.checked,
       practice_publish: practicePublish,
+      practice_content_mode: practiceContentMode,
+      practice_course_ids: cleanIdArray(sourcePlan.practice_course_ids),
+      practice_column_ids: cleanIdArray(sourcePlan.practice_column_ids),
       sort_order: parseInt(row.querySelector('.pc-sort')?.value, 10) || idx * 10,
     };
   });
@@ -1658,6 +1799,9 @@ function addPlanRow() {
     feature_quotas: Object.fromEntries(planFeatureDefs().map(f => [f.key, -1])),
     practice_access: false,
     practice_publish: false,
+    practice_content_mode: 'all',
+    practice_course_ids: [],
+    practice_column_ids: [],
     sort_order: planConfigData.plans.length * 10,
     _isNew: true,
   });

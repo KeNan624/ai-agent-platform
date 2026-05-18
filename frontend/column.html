@@ -611,6 +611,7 @@ span[class*="fs-bg-"]{padding:1px 4px;border-radius:4px}
 <script>
 const ROOT_API = location.protocol === 'file:' ? 'http://localhost:8000' : location.origin;
 const API = ROOT_API + '/practice';
+const TOKEN = localStorage.getItem('token') || localStorage.getItem('admin_token') || '';
 const params = new URLSearchParams(location.search);
 const COLUMN_SLUG = params.get('slug') || '';
 let columnData = null;
@@ -632,11 +633,18 @@ function esc(s) {
 
 async function apiFetch(path) {
   try {
-    const r = await fetch(API + path);
-    if (!r.ok) throw new Error(String(r.status));
+    const r = await fetch(API + path, {
+      headers: TOKEN ? { 'Authorization': 'Bearer ' + TOKEN } : {}
+    });
+    if (!r.ok) {
+      const err = new Error(String(r.status));
+      err.status = r.status;
+      throw err;
+    }
     return await r.json();
   } catch(e) {
     console.error('[API]', path, e);
+    if (e.status === 403) return { _forbidden: true };
     return null;
   }
 }
@@ -1021,6 +1029,11 @@ async function loadLesson(lessonId, pushState) {
   let lesson = lessonCache.get(activeLessonId);
   if (!lesson) {
     lesson = await apiFetch(`/columns/${encodeURIComponent(COLUMN_SLUG)}/lessons/${activeLessonId}`);
+    if (lesson?._forbidden) {
+      const inner = document.getElementById('docInner');
+      if (inner) inner.innerHTML = '<div class="empty-state">当前套餐暂无权限阅读这个章节</div>';
+      return;
+    }
     if (!lesson) {
       const inner = document.getElementById('docInner');
       if (inner) inner.innerHTML = '<div class="empty-state">章节不存在或已下架</div>';
@@ -1039,6 +1052,10 @@ async function loadColumn() {
     return;
   }
   columnData = await apiFetch(`/columns/${encodeURIComponent(COLUMN_SLUG)}`);
+  if (columnData?._forbidden) {
+    document.getElementById('pageRoot').innerHTML = '<div class="empty-state">当前套餐暂无权限阅读这个专栏</div>';
+    return;
+  }
   if (!columnData) {
     document.getElementById('pageRoot').innerHTML = '<div class="empty-state">专栏不存在或已下架</div>';
     return;

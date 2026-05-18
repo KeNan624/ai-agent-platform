@@ -1684,10 +1684,15 @@ async function apiFetch(path) {
     const r = await fetch(API + path, {
       headers: TOKEN ? { 'Authorization': 'Bearer ' + TOKEN } : {}
     });
-    if (!r.ok) throw new Error(r.status);
+    if (!r.ok) {
+      const err = new Error(String(r.status));
+      err.status = r.status;
+      throw err;
+    }
     return await r.json();
   } catch (e) {
     console.error('[API]', path, e);
+    if (e.status === 403) return { _forbidden: true };
     return null;
   }
 }
@@ -2248,6 +2253,7 @@ async function openCourseDetail(slug) {
   openOverlay();
 
   const data = await apiFetch(`/courses/${slug}`);
+  if (data?._forbidden) { panel.innerHTML = '<div class="empty-state"><div class="empty-state-text">当前套餐暂无权限观看这门课程</div></div>'; return; }
   if (!data) { panel.innerHTML = '<div class="empty-state"><div class="empty-state-text">加载失败</div></div>'; return; }
 
   const lessons = data.lessons || [];
@@ -2307,6 +2313,7 @@ async function playLesson(courseSlug, lessonId, el) {
   if (el) el.classList.add('active');
 
   const data = await apiFetch(`/courses/${courseSlug}/lessons/${lessonId}`);
+  if (data?._forbidden) { showToast('当前套餐暂无权限观看这节课'); return; }
   if (!data) return;
 
   const player = document.getElementById('playerArea');
@@ -2347,6 +2354,7 @@ async function openColumnDetail(slug) {
   openOverlay();
 
   const data = await apiFetch(`/columns/${slug}`);
+  if (data?._forbidden) { panel.innerHTML = '<div class="empty-state"><div class="empty-state-text">当前套餐暂无权限阅读这个专栏</div></div>'; return; }
   if (!data) { panel.innerHTML = '<div class="empty-state"><div class="empty-state-text">加载失败</div></div>'; return; }
 
   const lessons = data.lessons || [];
@@ -2402,6 +2410,7 @@ async function playColumnLesson(columnSlug, lessonId, el) {
   if (el) el.classList.add('active');
 
   const data = await apiFetch(`/columns/${columnSlug}/lessons/${lessonId}`);
+  if (data?._forbidden) { showToast('当前套餐暂无权限阅读这个章节'); return; }
   if (!data) return;
 
   let player = document.getElementById('columnPlayerArea');
