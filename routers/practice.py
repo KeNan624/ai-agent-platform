@@ -6,10 +6,13 @@ from __future__ import annotations
 
 from datetime import datetime
 from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, UploadFile
+from fastapi.responses import Response
 from pydantic import BaseModel
 from typing import Optional
 from sqlalchemy.orm import Session
 from sqlalchemy import text
+from urllib.parse import quote, unquote, urlparse
+from app_config import get_app_setting
 from auth import create_access_token, ensure_default_admin, get_current_user, is_default_admin_phone
 from database import get_db
 from models import PracticeCourse, PracticeLesson, User
@@ -73,6 +76,56 @@ def _upload_error(exc: CosUploadError) -> HTTPException:
     msg = str(exc)
     status_code = 500 if ("COS" in msg or "依赖" in msg or "配置" in msg or "安装" in msg) else 400
     return HTTPException(status_code, msg)
+
+
+def _practice_document_max_bytes() -> int:
+    raw = (get_app_setting("PRACTICE_DOCUMENT_MAX_MB", "200") or "200").strip()
+    try:
+        return max(1, int(raw)) * 1024 * 1024
+    except ValueError:
+        return 200 * 1024 * 1024
+
+
+def _allowed_pdf_preview_url(value: str) -> str:
+    parsed = urlparse((value or "").strip())
+    if parsed.scheme not in {"http", "https"} or not parsed.netloc or parsed.username or parsed.password:
+        raise HTTPException(400, "PDF 地址无效")
+
+    parsed = parsed._replace(fragment="")
+    host = (parsed.hostname or "").lower()
+    path = unquote(parsed.path or "")
+    if not path.lower().endswith(".pdf"):
+        raise HTTPException(400, "仅支持预览 PDF 文件")
+
+    allowed = False
+    public_base = (get_app_setting("COS_PUBLIC_BASE_URL", "") or "").strip().rstrip("/")
+    if public_base:
+        base = urlparse(public_base)
+        if (base.hostname or "").lower() == host:
+            base_path = unquote(base.path or "").rstrip("/")
+            allowed = not base_path or path.startswith(base_path + "/") or path == base_path
+
+    bucket = (get_app_setting("COS_BUCKET", "") or "").strip()
+    region = (get_app_setting("COS_REGION", "") or "").strip()
+    if bucket and region and host == f"{bucket}.cos.{region}.myqcloud.com".lower():
+        allowed = True
+
+    if host.endswith(".myqcloud.com") and "/practice/" in path:
+        allowed = True
+
+    if not allowed:
+        raise HTTPException(400, "PDF 预览仅支持本站上传的文件")
+    return parsed.geturl()
+
+
+def _pdf_inline_headers(source_url: str) -> dict[str, str]:
+    filename = os.path.basename(unquote(urlparse(source_url).path)) or "preview.pdf"
+    ascii_name = filename.encode("ascii", "ignore").decode("ascii").replace("\\", "").replace('"', "") or "preview.pdf"
+    return {
+        "Content-Disposition": f"inline; filename=\"{ascii_name}\"; filename*=UTF-8''{quote(filename)}",
+        "X-Content-Type-Options": "nosniff",
+        "Cache-Control": "public, max-age=300",
+    }
 
 
 def _first_markdown_image(content: str) -> str:
@@ -143,6 +196,42 @@ def _remove_feishu_source(slug: str) -> None:
 
 
 # ─── 1. 项目列表 ───
+@router.get("/pdf-preview")
+async def preview_pdf(url: str = Query(...)):
+    """Serve uploaded PDFs as same-origin inline previews for browser iframe rendering."""
+    import httpx
+
+    source_url = _allowed_pdf_preview_url(url)
+    max_bytes = _practice_document_max_bytes()
+    try:
+        async with httpx.AsyncClient(timeout=60.0, follow_redirects=True) as client:
+            response = await client.get(
+                source_url,
+                headers={
+                    "Accept": "application/pdf,*/*;q=0.8",
+                    "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36",
+                },
+            )
+    except httpx.HTTPError as exc:
+        logger.warning("PDF preview fetch failed: %s", exc)
+        raise HTTPException(502, "PDF 预览加载失败")
+
+    if response.status_code >= 400:
+        raise HTTPException(502, "PDF 预览加载失败")
+    if len(response.content) > max_bytes:
+        raise HTTPException(413, f"PDF 文件过大，最大允许 {max_bytes // 1024 // 1024}MB")
+
+    content_type = (response.headers.get("Content-Type") or "").split(";")[0].lower()
+    if content_type not in {"application/pdf", "application/x-pdf"} and not response.content.lstrip().startswith(b"%PDF"):
+        raise HTTPException(400, "文件不是有效 PDF")
+
+    return Response(
+        content=response.content,
+        media_type="application/pdf",
+        headers=_pdf_inline_headers(source_url),
+    )
+
+
 @router.get("/projects")
 def list_projects(
     project_type: Optional[str] = Query(None),

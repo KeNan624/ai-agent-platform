@@ -278,7 +278,8 @@ def _decoded_safe_url_candidate(value: str) -> str:
 
 def _pdf_card_html(name: str, url: str) -> str:
     safe_name = _html_text(name)
-    viewer_url = _html_attr(f"{url}#toolbar=0&navpanes=0&view=FitH" if "#" not in url else url)
+    source_url = (url or "").split("#", 1)[0]
+    viewer_url = _html_attr(f"/practice/pdf-preview?url={quote(source_url, safe='')}#toolbar=0&navpanes=0&view=FitH")
     title = _html_attr(name)
     return (
         '<div class="fs-file-card fs-pdf-card">'

@@ -1568,6 +1568,31 @@ function enhanceContentLinks(root) {
       link.setAttribute('title', '飞书资料');
     }
   });
+  enhancePdfPreviewers(root);
+}
+
+function pdfPreviewSrc(value) {
+  const raw = String(value || '').trim();
+  if (!raw) return '';
+  try {
+    const parsed = new URL(raw, location.href);
+    if (parsed.pathname === '/practice/pdf-preview') return raw;
+    parsed.hash = '';
+    return `${API}/pdf-preview?url=${encodeURIComponent(parsed.href)}#toolbar=0&navpanes=0&view=FitH`;
+  } catch(e) {
+    return '';
+  }
+}
+
+function enhancePdfPreviewers(root) {
+  if (!root) return;
+  root.querySelectorAll('iframe.fs-pdf-viewer').forEach(frame => {
+    if (frame.dataset.pdfPreviewReady === '1') return;
+    const nextSrc = pdfPreviewSrc(frame.getAttribute('src') || '');
+    if (!nextSrc) return;
+    frame.dataset.pdfPreviewReady = '1';
+    frame.setAttribute('src', nextSrc);
+  });
 }
 
 function protectExperienceContent(root) {
@@ -1978,8 +2003,9 @@ function renderCamp(items) {
 function campCard(p) {
   if (p._kind === 'legacy-camp') {
     const cover = _extractImg(p);
+    const legacyUrl = `article.html?slug=${encodeURIComponent(p.slug)}`;
     return `
-      <div class="course-card" onclick="openProjectDetail('${p.slug}')">
+      <div class="course-card" onclick="location.href='${legacyUrl}'">
         <div class="course-cover" style="background:url(${esc(cover)}) center/cover no-repeat">
           <img src="${esc(cover)}" alt="${esc(p.title)}" onerror="this.onerror=null;this.src='${DEFAULT_COLUMN_COVER_URL}'">
           <div class="course-cover-badge">${esc(p.category || '历史专栏')}</div>
@@ -1989,25 +2015,24 @@ function campCard(p) {
           <div class="course-title">${esc(p.title)}</div>
           <div class="course-desc">${esc(p.description || '精选项目内容持续更新')}</div>
           <div class="course-bottom">
-            <button class="course-view-btn" onclick="event.stopPropagation();openProjectDetail('${p.slug}')">阅读 →</button>
+            <button class="course-view-btn" onclick="event.stopPropagation();location.href='${legacyUrl}'">阅读 →</button>
           </div>
         </div>
       </div>`;
   }
   const coverUrl = (p.cover_url && p.cover_url.trim()) || DEFAULT_COLUMN_COVER_URL;
-  const lessonCount = p.published_lesson_count || p.lesson_count || 0;
+  const columnUrl = `column.html?slug=${encodeURIComponent(p.slug)}`;
   return `
-    <div class="course-card" onclick="openColumnDetail('${p.slug}')">
+    <div class="course-card" onclick="location.href='${columnUrl}'">
       <div class="course-cover" style="background:url(${esc(coverUrl)}) center/cover no-repeat">
         <img src="${esc(coverUrl)}" alt="${esc(p.title)}" onerror="this.onerror=null;this.src='${DEFAULT_COLUMN_COVER_URL}'">
         <div class="course-cover-badge">${esc(p.category || '专栏')}</div>
-        <div class="course-cover-count">共 ${lessonCount} 章</div>
       </div>
       <div class="course-body">
         <div class="course-title">${esc(p.title)}</div>
         <div class="course-desc">${esc(p.description || '图文与视频章节持续更新')}</div>
         <div class="course-bottom">
-          <button class="course-view-btn" onclick="event.stopPropagation();openColumnDetail('${p.slug}')">进入专栏 →</button>
+          <button class="course-view-btn" onclick="event.stopPropagation();location.href='${columnUrl}'">进入专栏 →</button>
         </div>
       </div>
     </div>`;
@@ -2338,7 +2363,6 @@ async function openColumnDetail(slug) {
       <div class="detail-info">
         ${data.category ? `<span class="tag">${esc(data.category)}</span>` : ''}
         ${data.instructor ? `<span>${esc(data.instructor)}</span>` : ''}
-        <span>📚 ${data.lesson_count || lessons.length} 章</span>
         ${data.updated_at ? `<span>最近更新 ${String(data.updated_at).substring(0,10)}</span>` : ''}
       </div>
     </div>
@@ -2352,7 +2376,7 @@ async function openColumnDetail(slug) {
         <div class="detail-content" id="columnLessonArticle" style="display:none"></div>
       </div>
       <div class="course-sidebar column-sidebar">
-        <div class="course-sidebar-header">专栏目录 · ${lessons.length} 章</div>
+        <div class="course-sidebar-header">专栏目录</div>
         ${lessons.length ? lessons.map((l, i) => `
           <div class="lesson-item ${i === 0 ? 'active' : ''}" data-lid="${l.id}" onclick="playColumnLesson('${slug}', ${l.id}, this)">
             <div class="lesson-num">${i + 1}</div>
