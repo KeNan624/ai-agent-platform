@@ -7,10 +7,18 @@ Wants=network-online.target
 Type=simple
 User=root
 WorkingDirectory=/root/ai-agent-platform
+Environment=UVICORN_HOST=127.0.0.1
+Environment=UVICORN_PORT=8000
+Environment=UVICORN_WORKERS=4
+Environment=UVICORN_LIMIT_CONCURRENCY=200
+Environment=UVICORN_BACKLOG=2048
+Environment=UVICORN_TIMEOUT_KEEP_ALIVE=30
 EnvironmentFile=/root/ai-agent-platform/.env
-ExecStart=/root/ai-agent-platform/.venv/bin/python -m uvicorn main:app --host 127.0.0.1 --port 8000
+ExecStart=/root/ai-agent-platform/.venv/bin/python -m uvicorn main:app --host ${UVICORN_HOST} --port ${UVICORN_PORT} --workers ${UVICORN_WORKERS} --proxy-headers --forwarded-allow-ips 127.0.0.1 --limit-concurrency ${UVICORN_LIMIT_CONCURRENCY} --backlog ${UVICORN_BACKLOG} --timeout-keep-alive ${UVICORN_TIMEOUT_KEEP_ALIVE}
 Restart=always
 RestartSec=5
+TimeoutStopSec=60
+LimitNOFILE=65535
 
 [Install]
 WantedBy=multi-user.target
